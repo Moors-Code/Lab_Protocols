@@ -1,0 +1,497 @@
+<title>rvTF 12-Well HEK293T</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+
+<style>
+  /* Layout: single-column protocol card, table-heavy, scientific utility */
+  :root {
+    --bg:       #f7f8fa;
+    --surface:  #ffffff;
+    --border:   #dde1e8;
+    --muted:    #8a919e;
+    --fg:       #1a1d23;
+    --fg-dim:   #4b5260;
+    --accent:   #1a7f6e;
+    --accent-2: #e6f4f1;
+    --warn:     #b45309;
+    --warn-bg:  #fef3c7;
+    --mono:     'IBM Plex Mono', 'Courier New', monospace;
+    --sans:     'IBM Plex Sans', system-ui, sans-serif;
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:       #131518;
+      --surface:  #1e2128;
+      --border:   #2e333d;
+      --muted:    #6b7280;
+      --fg:       #e8eaed;
+      --fg-dim:   #9aa3b0;
+      --accent:   #2eb89a;
+      --accent-2: #162e29;
+      --warn:     #f59e0b;
+      --warn-bg:  #1c1400;
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg:       #131518;
+    --surface:  #1e2128;
+    --border:   #2e333d;
+    --muted:    #6b7280;
+    --fg:       #e8eaed;
+    --fg-dim:   #9aa3b0;
+    --accent:   #2eb89a;
+    --accent-2: #162e29;
+    --warn:     #f59e0b;
+    --warn-bg:  #1c1400;
+    color-scheme: dark;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    padding-block: 40px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+
+  .page {
+    max-width: 780px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  /* Header */
+  header {
+    border-left: 3px solid var(--accent);
+    padding-left: 16px;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 6px;
+  }
+
+  h1 {
+    margin: 0 0 6px;
+    font-size: clamp(20px, 4vw, 26px);
+    font-weight: 600;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    margin: 0;
+    color: var(--fg-dim);
+    font-size: 14px;
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-header h2 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .card-header .step-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--accent-2);
+    color: var(--accent);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-weight: 600;
+  }
+
+  /* Tables */
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    min-width: 0;
+  }
+
+  th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+    vertical-align: top;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  tr:hover td { background: var(--accent-2); }
+
+  td.param {
+    font-weight: 500;
+    color: var(--fg-dim);
+    white-space: nowrap;
+  }
+
+  td.val-12w {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  td.val {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--fg-dim);
+  }
+
+  /* Steps */
+  .steps {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    counter-reset: step;
+  }
+
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 14px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+
+  .steps li:last-child { border-bottom: none; }
+
+  .step-num {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent-2);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+
+  .step-content { min-width: 0; }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 3px;
+  }
+
+  .step-desc {
+    font-size: 13px;
+    color: var(--fg-dim);
+    line-height: 1.5;
+  }
+
+  .step-desc code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--accent-2);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* Note box */
+  .note {
+    background: var(--warn-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--warn);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--fg-dim);
+    line-height: 1.55;
+  }
+
+  .note strong {
+    color: var(--warn);
+    font-weight: 600;
+  }
+
+  /* Thermo comparison */
+  .thermo-row td.val {
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .delta {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: var(--warn-bg);
+    color: var(--warn);
+  }
+
+  /* Footer */
+  footer {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    font-family: var(--mono);
+    padding-top: 8px;
+  }
+</style>
+
+<div class="page">
+
+  <header>
+    <p class="eyebrow">Transfection Protocol</p>
+    <h1>Reverse Transfection — 12-Well Plate<br>HEK293T · Lipofectamine 3000</h1>
+    <p class="subtitle">Scaled from validated 48-well rvTF protocol (×4 surface area factor)</p>
+    <div class="meta">
+      <span>Format: 12-well plate</span>
+      <span>Cell line: HEK293T</span>
+      <span>Reagent: Lipofectamine 3000</span>
+      <span>Version: 2026-10-20</span>
+    </div>
+  </header>
+
+  <!-- Format comparison -->
+  <section class="card">
+    <div class="card-header">
+      <h2>Parameters — All Formats</h2>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>96-well</th>
+            <th>48-well</th>
+            <th>12-well ★</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param">Cells / well</td>
+            <td class="val">0.05 M</td>
+            <td class="val">0.20 M</td>
+            <td class="val-12w">0.80 M</td>
+          </tr>
+          <tr>
+            <td class="param">Total pDNA / well</td>
+            <td class="val">0.20 µg</td>
+            <td class="val">0.50 µg</td>
+            <td class="val-12w">2.0 µg</td>
+          </tr>
+          <tr>
+            <td class="param">Antibiotic-free GM</td>
+            <td class="val">0.10 mL</td>
+            <td class="val">0.50 mL</td>
+            <td class="val-12w">2.0 mL</td>
+          </tr>
+          <tr>
+            <td class="param">Lipofectamine 3000</td>
+            <td class="val">0.3 µL</td>
+            <td class="val">1.5 µL</td>
+            <td class="val-12w">6.0 µL</td>
+          </tr>
+          <tr>
+            <td class="param">Opti-MEM (tube A)</td>
+            <td class="val">5 µL</td>
+            <td class="val">25 µL</td>
+            <td class="val-12w">100 µL</td>
+          </tr>
+          <tr>
+            <td class="param">P3000 Reagent</td>
+            <td class="val">0.4 µL</td>
+            <td class="val">1.0 µL</td>
+            <td class="val-12w">4.0 µL</td>
+          </tr>
+          <tr>
+            <td class="param">Opti-MEM (tube B)</td>
+            <td class="val">5 µL</td>
+            <td class="val">25 µL</td>
+            <td class="val-12w">100 µL</td>
+          </tr>
+          <tr>
+            <td class="param">Total complex volume</td>
+            <td class="val">10 µL</td>
+            <td class="val">50 µL</td>
+            <td class="val-12w">200 µL</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Step-by-step -->
+  <section class="card">
+    <div class="card-header">
+      <h2>Step-by-Step (per well)</h2>
+    </div>
+    <ol class="steps">
+      <li>
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">Prepare Tube A — Lipofectamine mix</div>
+          <div class="step-desc">Add <code>6.0 µL</code> Lipofectamine 3000 to <code>100 µL</code> Opti-MEM. Mix gently by pipetting.</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">Prepare Tube B — DNA mix</div>
+          <div class="step-desc">Combine <code>2.0 µg</code> pDNA + <code>4.0 µL</code> P3000 Reagent in <code>100 µL</code> Opti-MEM. Mix gently.</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-title">Combine A + B → form complexes</div>
+          <div class="step-desc">Add Tube A contents to Tube B (<code>200 µL</code> total). Mix gently, incubate <code>15 min</code> at RT.</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <div class="step-title">Add complexes to empty well first</div>
+          <div class="step-desc">This is the <em>reverse</em> step — pipette complexes into the empty well before adding cells.</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <div class="step-title">Seed HEK293T cells on top</div>
+          <div class="step-desc">Add <code>0.8 M</code> HEK293T cells resuspended in <code>2.0 mL</code> antibiotic-free growth media directly onto the complexes.</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">6</div>
+        <div class="step-content">
+          <div class="step-title">Distribute and incubate</div>
+          <div class="step-desc">Swirl plate gently. Incubate at <code>37 °C / 5% CO₂</code>.</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">7</div>
+        <div class="step-content">
+          <div class="step-title">Optional media change at 4–6 h</div>
+          <div class="step-desc">Replace with complete growth media to reduce lipofection-associated toxicity. Harvest at <code>24–48 h</code> post-transfection per your 48-well schedule.</div>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <!-- Thermo comparison note -->
+  <section class="card">
+    <div class="card-header">
+      <h2>vs. Thermo Fisher Standard (interpolated for 12-well)</h2>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Thermo interpolated</th>
+            <th>This protocol</th>
+            <th>Ratio</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param">pDNA</td>
+            <td class="val">1.0 µg</td>
+            <td class="val-12w">2.0 µg</td>
+            <td><span class="delta">2×</span></td>
+          </tr>
+          <tr>
+            <td class="param">Lipofectamine 3000</td>
+            <td class="val">~1.5–3.0 µL</td>
+            <td class="val-12w">6.0 µL</td>
+            <td><span class="delta">2–4×</span></td>
+          </tr>
+          <tr>
+            <td class="param">P3000 Reagent</td>
+            <td class="val">~2.0 µL</td>
+            <td class="val-12w">4.0 µL</td>
+            <td><span class="delta">2×</span></td>
+          </tr>
+          <tr>
+            <td class="param">Cells</td>
+            <td class="val">0.1–0.4 M</td>
+            <td class="val-12w">0.8 M</td>
+            <td><span class="delta">2–8×</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="note">
+    <strong>Note:</strong> Reagent amounts run ~2× above Thermo Fisher's standard recommendation — this offset is inherited from the validated 48-well source protocol and is consistent across all formats. The higher cell density is appropriate for rvTF, where cells settle onto pre-formed complexes. If this is the first run at 12-well scale, consider a titration at 1.5 µg pDNA / 3.75 µL L3K / 3.0 µL P3K (closer to Thermo standard) to monitor toxicity alongside the scaled dose.
+  </div>
+
+  <footer>
+    Syphy-lab · mrober@ethz.ch · Scaled from 48-well rvTF reference (Thermo Lipofectamine 3000, Doc MAN0007824)
+  </footer>
+
+</div>
