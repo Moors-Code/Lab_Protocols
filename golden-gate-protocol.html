@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+/* Layout: sticky header + sectioned steps, crisp scientific aesthetic */
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --surface-2: #f0f3f7;
+  --border: #dce3ed;
+  --text: #1a2235;
+  --muted: #5a6882;
+  --accent: #1a5fa8;
+  --accent-soft: #e6f0fb;
+  --mono-col: #1a5fa8;
+  --success: #16a34a;
+  --warn: #b45309;
+  --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --r: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1118;
+    --surface: #141b27;
+    --surface-2: #1b2333;
+    --border: #28364f;
+    --text: #dde4f0;
+    --muted: #7a8fb0;
+    --accent: #5294d6;
+    --accent-soft: #162034;
+    --mono-col: #5294d6;
+    --success: #4ade80;
+    --warn: #fbbf24;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1118;
+  --surface: #141b27;
+  --surface-2: #1b2333;
+  --border: #28364f;
+  --text: #dde4f0;
+  --muted: #7a8fb0;
+  --accent: #5294d6;
+  --accent-soft: #162034;
+  --mono-col: #5294d6;
+  --success: #4ade80;
+  --warn: #fbbf24;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0;
+}
+
+/* ─── HEADER ────────────────────────────────── */
+.page-header {
+  background: var(--surface);
+  border-bottom: 2px solid var(--accent);
+  padding: 14px max(24px, env(safe-area-inset-left, 0px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 10;
+}
+.header-left { display: flex; flex-direction: column; gap: 2px; }
+.header-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.header-subtitle {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Reaction counter */
+.rxn-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 12px;
+}
+.rxn-label {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.rxn-stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.rxn-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--accent);
+  font-size: 16px;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-weight: 500;
+  transition: background 0.1s;
+}
+.rxn-btn:hover { background: var(--accent-soft); }
+.rxn-val {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  min-width: 28px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--sans);
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.btn:hover { opacity: 0.85; }
+.btn-ghost {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { background: var(--accent-soft); opacity: 1; }
+
+/* ─── MAIN ────────────────────────────────── */
+.main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding-block: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ─── SECTION ────────────────────────────── */
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.section-head {
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.step-pill {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--accent);
+  color: #fff;
+  padding: 3px 9px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.step-pill.reagents { background: var(--muted); }
+.step-pill.step3 { background: #5a6882; }
+.section-title { font-size: 14px; font-weight: 600; }
+.section-subtitle { font-size: 12px; color: var(--muted); margin-left: auto; }
+.section-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ─── SUBSECTION LABEL ─────────────────── */
+.sub-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+/* ─── TWO-COL LAYOUT ───────────────────── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+/* ─── TABLES ───────────────────────────── */
+.table-wrap { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+th {
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 7px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+th.right { text-align: right; }
+td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tr.total-row td {
+  background: var(--surface-2);
+  font-weight: 600;
+  border-top: 1px solid var(--border);
+}
+.td-num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--mono-col);
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+}
+.td-num.master {
+  color: var(--text);
+  font-weight: 500;
+}
+.td-num.total {
+  font-weight: 700;
+  color: var(--text);
+}
+.td-na {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  text-align: right;
+}
+.unit {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 1px;
+}
+
+/* Editable per-rxn volume */
+.editable-vol {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--mono-col);
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed var(--mono-col);
+  padding: 1px 4px;
+  width: 52px;
+  text-align: right;
+  cursor: text;
+}
+.editable-vol:focus {
+  outline: none;
+  background: var(--accent-soft);
+  border-radius: 3px;
+  border-bottom: 1px solid var(--accent);
+}
+
+/* ─── CYCLING PROGRAM ──────────────────── */
+.program-box {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.program-header {
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--border);
+  padding: 7px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.program-name {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+}
+.program-stages {
+  display: flex;
+  flex-direction: column;
+}
+.prog-stage {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border);
+}
+.prog-stage:last-child { border-bottom: none; }
+.prog-stage-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  writing-mode: horizontal-tb;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-right: 1px solid var(--border);
+  min-width: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 10px;
+}
+.prog-stage.cycles .prog-stage-label {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.prog-steps {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.prog-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 14px;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.prog-step:last-child { border-bottom: none; }
+.prog-step-desc {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+}
+.prog-step-val {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.cycles-n {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--accent);
+  color: #fff;
+  padding: 1px 7px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+
+/* Editable temp/time */
+.editable-field {
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed var(--border);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  padding: 1px 4px;
+  cursor: text;
+  text-align: right;
+}
+.editable-field:focus {
+  outline: none;
+  background: var(--accent-soft);
+  border-radius: 3px;
+  border-bottom: 1px solid var(--accent);
+}
+.editable-field.editable-cycles {
+  width: 32px;
+  text-align: center;
+}
+
+/* ─── INFO BOX ─────────────────────────── */
+.info-box {
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 5px 5px 0;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.info-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+/* ─── TRANSFORMATION STEPS ─────────────── */
+.trans-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.trans-group-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 10px 0 6px;
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+}
+.trans-group-label:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+.trans-step {
+  display: flex;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+}
+.trans-step:last-child { border-bottom: none; }
+.trans-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--muted);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.trans-text {
+  font-size: 13px;
+  line-height: 1.55;
+}
+.trans-text strong { font-weight: 600; color: var(--accent); }
+
+/* ─── REAGENTS TABLE ───────────────────── */
+.loc-text {
+  font-size: 12px;
+  color: var(--muted);
+}
+.loc-tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 6px;
+  color: var(--muted);
+}
+
+/* ─── MODAL ─────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px max(24px, env(safe-area-inset-left, 0px));
+}
+.modal-overlay[hidden] { display: none !important; }
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  width: 100%;
+  max-width: 620px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-title { font-size: 16px; font-weight: 600; }
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+  padding: 2px 6px;
+}
+.modal-close:hover { color: var(--text); }
+.modal-note {
+  font-size: 12px;
+  color: var(--muted);
+}
+.export-area {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text);
+  white-space: pre-wrap;
+  min-height: 280px;
+  user-select: text;
+}
+.modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.copy-msg {
+  font-size: 12px;
+  color: var(--success);
+  font-family: var(--mono);
+  opacity: 0;
+  transition: opacity 0.25s;
+  margin-right: auto;
+}
+.copy-msg.show { opacity: 1; }
+
+@media (max-width: 480px) {
+  .section-body { padding: 14px; }
+  .page-header { padding: 12px 16px; }
+  .main { padding-block: 16px; gap: 14px; }
+}
+</style>
+
+<!-- PAGE HEADER -->
+<header class="page-header">
+  <div class="header-left">
+    <div class="header-title">Cycling Golden Gate – Oligo Cloning</div>
+    <div class="header-subtitle">Syphy-lab · Phosphorylation → Assembly → Transformation</div>
+  </div>
+  <div class="header-right">
+    <div class="rxn-control">
+      <span class="rxn-label">Reactions</span>
+      <div class="rxn-stepper">
+        <button class="rxn-btn" id="rxnMinus" aria-label="Decrease reactions">−</button>
+        <span class="rxn-val" id="rxnDisplay">12</span>
+        <button class="rxn-btn" id="rxnPlus" aria-label="Increase reactions">+</button>
+      </div>
+    </div>
+    <button class="btn" id="exportBtn">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v5M5.5 7.5L8 10l2.5-2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Export
+    </button>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- ── REAGENTS ──────────────────────────────────────── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="step-pill reagents">Reagents</span>
+      <span class="section-title">Materials &amp; Locations</span>
+    </div>
+    <div class="section-body" style="padding: 0;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Reagent</th><th>Location</th></tr>
+          </thead>
+          <tbody id="reagentsBody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── STEP 1 ─────────────────────────────────────── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="step-pill">Step 1</span>
+      <span class="section-title">Oligo Phosphorylation → Annealing</span>
+    </div>
+    <div class="section-body">
+      <div class="two-col">
+        <!-- Mix table -->
+        <div>
+          <div class="sub-label">Master Mix</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Reagent</th>
+                  <th class="right">Per rxn (µL)</th>
+                  <th class="right">Master mix (µL)</th>
+                </tr>
+              </thead>
+              <tbody id="step1Body"></tbody>
+            </table>
+          </div>
+          <div class="info-box" style="margin-top:12px;">
+            <span class="info-icon">ℹ</span>
+            <span>Aliquot <strong id="step1AliquotText">4.0 µL</strong>/tube from master mix, then add <strong>0.5 µL UP</strong> + <strong>0.5 µL DW</strong> oligo individually.</span>
+          </div>
+        </div>
+        <!-- Cycling program -->
+        <div>
+          <div class="sub-label">Cycling Program</div>
+          <div class="program-box">
+            <div class="program-header">
+              <span class="program-name">Phosphorylation/Annealing</span>
+            </div>
+            <div class="program-stages">
+              <div class="prog-stage">
+                <div class="prog-stage-label">Stage 1</div>
+                <div class="prog-steps">
+                  <div class="prog-step">
+                    <span class="prog-step-desc">Phosphorylation</span>
+                    <span class="prog-step-val"><input class="editable-field" id="s1t1" value="37" style="width:36px">°C &nbsp; <input class="editable-field" id="s1d1" value="30" style="width:32px">ʹ</span>
+                  </div>
+                </div>
+              </div>
+              <div class="prog-stage">
+                <div class="prog-stage-label">Stage 2</div>
+                <div class="prog-steps">
+                  <div class="prog-step">
+                    <span class="prog-step-desc">Denaturation</span>
+                    <span class="prog-step-val"><input class="editable-field" id="s1t2" value="95" style="width:36px">°C &nbsp; <input class="editable-field" id="s1d2" value="5" style="width:32px">ʹ</span>
+                  </div>
+                </div>
+              </div>
+              <div class="prog-stage">
+                <div class="prog-stage-label">Stage 3</div>
+                <div class="prog-steps">
+                  <div class="prog-step">
+                    <span class="prog-step-desc">Renaturation (slow cooling)</span>
+                    <span class="prog-step-val">target <input class="editable-field" id="s1t3" value="12" style="width:36px">°C</span>
+                  </div>
+                  <div class="prog-step">
+                    <span class="prog-step-desc">Ramp rate</span>
+                    <span class="prog-step-val"><input class="editable-field" id="s1ramp" value="0.1–1" style="width:50px"> °C/s</span>
+                  </div>
+                </div>
+              </div>
+              <div class="prog-stage">
+                <div class="prog-stage-label">Hold</div>
+                <div class="prog-steps">
+                  <div class="prog-step">
+                    <span class="prog-step-desc">Indefinite hold</span>
+                    <span class="prog-step-val"><input class="editable-field" id="s1hold" value="12" style="width:36px">°C</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── STEP 2 ─────────────────────────────────────── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="step-pill">Step 2</span>
+      <span class="section-title">Assembly (Golden Gate Ligation)</span>
+    </div>
+    <div class="section-body">
+      <div class="info-box">
+        <span class="info-icon">🔀</span>
+        <span>First, dilute step 1 product 1:40: add <strong>195 µL mqH2O</strong> to each step 1 tube (5 µL → 200 µL total). Use 0.5 µL of this dilution per assembly reaction.</span>
+      </div>
+      <div class="two-col">
+        <!-- Mix table -->
+        <div>
+          <div class="sub-label">Master Mix</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Reagent</th>
+                  <th class="right">Per rxn (µL)</th>
+                  <th class="right">Master mix (µL)</th>
+                </tr>
+              </thead>
+              <tbody id="step2Body"></tbody>
+            </table>
+          </div>
+          <div class="info-box" style="margin-top:12px;">
+            <span class="info-icon">ℹ</span>
+            <span>Aliquot <strong id="step2AliquotText">4.5 µL</strong>/tube from master mix, then add <strong>0.5 µL</strong> of 1/40 diluted oligo pair per tube.</span>
+          </div>
+        </div>
+        <!-- Cycling program -->
+        <div>
+          <div class="sub-label">Cycling Program</div>
+          <div class="program-box">
+            <div class="program-header">
+              <span class="program-name">"goldgate" — DE folder</span>
+            </div>
+            <div class="program-stages">
+              <div class="prog-stage cycles">
+                <div class="prog-stage-label">Cycles</div>
+                <div class="prog-steps">
+                  <div class="prog-step" style="border-top: 1px solid var(--border);">
+                    <span class="prog-step-desc">× <input class="editable-field editable-cycles" id="s2cyc" value="30"> cycles</span>
+                    <span></span>
+                  </div>
+                  <div class="prog-step">
+                    <span class="prog-step-desc">Step 1 – Digestion</span>
+                    <span class="prog-step-val"><input class="editable-field" id="s2t1" value="37" style="width:36px">°C &nbsp; <input class="editable-field" id="s2d1" value="1" style="width:28px">ʹ</span>
+                  </div>
+                  <div class="prog-step">
+                    <span class="prog-step-desc">Step 2 – Ligation</span>
+                    <span class="prog-step-val"><input class="editable-field" id="s2t2" value="16" style="width:36px">°C &nbsp; <input class="editable-field" id="s2d2" value="1" style="width:28px">ʹ</span>
+                  </div>
+                </div>
+              </div>
+              <div class="prog-stage">
+                <div class="prog-stage-label">Stage 2</div>
+                <div class="prog-steps">
+                  <div class="prog-step">
+                    <span class="prog-step-desc">Inactivation</span>
+                    <span class="prog-step-val"><input class="editable-field" id="s2t3" value="65" style="width:36px">°C &nbsp; <input class="editable-field" id="s2d3" value="20" style="width:28px">ʹ</span>
+                  </div>
+                </div>
+              </div>
+              <div class="prog-stage">
+                <div class="prog-stage-label">Hold</div>
+                <div class="prog-steps">
+                  <div class="prog-step">
+                    <span class="prog-step-desc">Indefinite hold</span>
+                    <span class="prog-step-val"><input class="editable-field" id="s2hold" value="12" style="width:36px">°C</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── STEP 3 ─────────────────────────────────────── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="step-pill step3">Step 3</span>
+      <span class="section-title">Transformation (NEBStable Competent Cells)</span>
+    </div>
+    <div class="section-body">
+      <div class="trans-block" id="transBlock"></div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ── EXPORT MODAL ───────────────────────────────── -->
+<div class="modal-overlay" id="exportModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2 class="modal-title">Export Protocol</h2>
+      <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+    </div>
+    <div class="modal-note">Protocol text with current values. Select all and copy, or use the button below.</div>
+    <div class="export-area" id="exportArea"></div>
+    <div class="modal-foot">
+      <span class="copy-msg" id="copyMsg">✓ Copied to clipboard</span>
+      <button class="btn btn-ghost" id="modalClose2">Close</button>
+      <button class="btn" id="copyBtn">Copy to clipboard</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────
+
+const REAGENTS = [
+  { name: '100 µM oligos (UP/DOWN; Sense/AntiSense; Fw/Rv)', loc: 'My −20' },
+  { name: '10 U/µL PNK (Thermo #EK0031)', loc: '4th drawer common −20 — red metal box (labelled 1)' },
+  { name: '10× buffer A', loc: '4th drawer common −20 — red metal box (labelled 1)' },
+  { name: '10 mM ATP (1/10 dil. of Thermo #R0441)', loc: '4th drawer common −20 — red metal box (labelled 1)' },
+  { name: '30 ng/µL cloning vector', loc: 'My −20 (yellow screening box)' },
+  { name: 'Esp3I (Thermo #ER0451)', loc: '4th drawer common −20 — red metal box (labelled 1)' },
+  { name: '10× Tango buffer', loc: '4th drawer common −20 — red metal box (labelled 1)' },
+  { name: '10 mM DTT (1/100 dil. of Thermo #P2325)', loc: '4th drawer common −20 — red metal box (labelled 1)' },
+  { name: 'T7 DNA Ligase (NEB #M0318S)', loc: '4th drawer common −20 — red metal box (labelled 1)' },
+  { name: 'SOC', loc: 'My −20' },
+  { name: 'NEBStable comp. cells (#C3040)', loc: 'New −80 (last row LHS 19)' },
+  { name: 'Selective plate (+antibiotic)', loc: '' },
+  { name: 'LB + required antibiotic', loc: '' },
+  { name: 'Inoculation tube', loc: '' },
+];
+
+const STEP1 = [
+  { name: 'mqH₂O',              perRxn: 3.00,  isMaster: true  },
+  { name: 'UP oligo (100 µM)',   perRxn: 0.50,  isMaster: false },
+  { name: 'DW oligo (100 µM)',   perRxn: 0.50,  isMaster: false },
+  { name: '10× buffer A',        perRxn: 0.50,  isMaster: true  },
+  { name: '10 mM ATP',           perRxn: 0.25,  isMaster: true  },
+  { name: '10 U/µL PNK',         perRxn: 0.25,  isMaster: true  },
+];
+
+const STEP2 = [
+  { name: 'mqH₂O',                        perRxn: 2.400, isMaster: true  },
+  { name: '30 ng/µL cloning vector',       perRxn: 0.250, isMaster: true  },
+  { name: '1/40 oligo pair (from step 1)', perRxn: 0.500, isMaster: false },
+  { name: '10× Tango buffer',              perRxn: 0.500, isMaster: true  },
+  { name: '10 mM ATP',                     perRxn: 0.500, isMaster: true  },
+  { name: '10 mM DTT',                     perRxn: 0.500, isMaster: true  },
+  { name: 'Esp3I',                         perRxn: 0.175, isMaster: true  },
+  { name: 'T7 DNA Ligase',                 perRxn: 0.175, isMaster: true  },
+];
+
+const TRANS_STEPS = [
+  { group: '1 hr prior', steps: [
+    { text: 'Take <strong>plate</strong> from cold room, dry at <strong>37°C</strong> in incubator (upside down).' },
+    { text: 'Turn on bench-top eppi incubator and heat to <strong>42°C</strong>.' },
+    { text: 'Thaw <strong>SOC</strong> in waterbath at <strong>37°C</strong>.' },
+    { text: 'Get ice.' },
+  ]},
+  { group: 'When ready', steps: [
+    { text: 'Get required number of eppis per reaction — chill on ice and label.' },
+    { text: 'Take out <strong>NEBStable comp. cells</strong> from −80°C — thaw on ice (~5 min).' },
+    { text: 'Once thawed, add <strong>5 µL bacteria</strong> to each eppi, then add <strong>0.5 µL step 2 product</strong> per tube.' },
+    { text: '<strong>Flick to mix</strong> — do NOT vortex (bacteria are sensitive).' },
+    { text: 'Place back on ice for <strong>5 min</strong>.' },
+    { text: '<strong>Heat shock: 30 sec at 42°C</strong> on bench-top incubator.' },
+    { text: 'Turn incubator down to <strong>37°C</strong> immediately after placing eppis (slight lag is fine for the 30 sec step).' },
+    { text: 'Place back on ice until incubator reaches <strong>37°C</strong>.' },
+    { text: 'Add <strong>995 µL SOC</strong> to each tube.' },
+    { text: 'Incubate at <strong>37°C, 400 RPM</strong> for <strong>1 hr</strong> (longer = more bacteria — that is fine).' },
+  ]},
+  { group: 'After 1 hr', steps: [
+    { text: 'Plate <strong>50 µL</strong> on selective plate; incubate overnight.' },
+    { text: 'Add <strong>5 mL LB + antibiotic</strong> to inoculation tube; add remainder of eppi and label. Incubate overnight.' },
+    { text: 'Next day: <strong>miniprep</strong> liquid culture and/or <strong>pick colonies</strong>.' },
+  ]},
+];
+
+// ── STATE ─────────────────────────────────────────────────
+let nRxns = 12;
+const OVERAGE = 1.05;
+
+// ── RENDER REAGENTS ────────────────────────────────────────
+function renderReagents() {
+  const body = document.getElementById('reagentsBody');
+  body.innerHTML = REAGENTS.map(r => `
+    <tr>
+      <td>${r.name}</td>
+      <td><span class="loc-text">${r.loc ? `<span class="loc-tag">${r.loc}</span>` : '—'}</span></td>
+    </tr>`).join('');
+}
+
+// ── RENDER MIX TABLE ───────────────────────────────────────
+function fmt(val) {
+  // Show up to 3 decimal places, trim trailing zeros
+  const s = val.toFixed(3).replace(/\.?0+$/, '');
+  return s;
+}
+
+function renderMixTable(tbodyId, reagents, aliquotId) {
+  const tbody = document.getElementById(tbodyId);
+  let masterTotal = 0;
+  let perTotal = 0;
+  let aliquotVol = 0;
+
+  const rows = reagents.map((r, i) => {
+    const masterVol = r.isMaster ? r.perRxn * nRxns * OVERAGE : null;
+    if (masterVol !== null) masterTotal += masterVol;
+    perTotal += r.perRxn;
+    if (r.isMaster) aliquotVol += r.perRxn;
+    const masterCell = masterVol !== null
+      ? `<td class="td-num master" data-master="${tbodyId}-${i}">${fmt(masterVol)} <span class="unit">µL</span></td>`
+      : `<td class="td-na">—</td>`;
+    return `<tr>
+      <td>${r.name}</td>
+      <td class="td-num"><input class="editable-vol" id="vol-${tbodyId}-${i}" value="${r.perRxn}" data-idx="${i}" data-table="${tbodyId}" step="0.05" min="0"> <span class="unit">µL</span></td>
+      ${masterCell}
+    </tr>`;
+  });
+
+  // Total row
+  rows.push(`<tr class="total-row">
+    <td><strong>Total</strong></td>
+    <td class="td-num total">${fmt(perTotal)} <span class="unit">µL</span></td>
+    <td class="td-num total" id="${tbodyId}-masterTotal">${fmt(masterTotal)} <span class="unit">µL</span></td>
+  </tr>`);
+
+  tbody.innerHTML = rows.join('');
+
+  // Update aliquot text
+  if (aliquotId) {
+    document.getElementById(aliquotId).textContent = fmt(aliquotVol) + ' µL';
+  }
+
+  // Bind editable volume inputs
+  tbody.querySelectorAll('.editable-vol').forEach(input => {
+    input.addEventListener('change', () => {
+      const idx = parseInt(input.dataset.idx);
+      const table = input.dataset.table;
+      const val = parseFloat(input.value);
+      if (!isNaN(val) && val >= 0) {
+        if (table === 'step1Body') STEP1[idx].perRxn = val;
+        else STEP2[idx].perRxn = val;
+        renderMixTable(table, table === 'step1Body' ? STEP1 : STEP2,
+          table === 'step1Body' ? 'step1AliquotText' : 'step2AliquotText');
+      }
+    });
+  });
+}
+
+// ── RENDER TRANSFORMATION ─────────────────────────────────
+function renderTrans() {
+  const block = document.getElementById('transBlock');
+  let stepNum = 0;
+  let html = '';
+  TRANS_STEPS.forEach(group => {
+    html += `<div class="trans-group-label">${group.group}</div>`;
+    group.steps.forEach(step => {
+      stepNum++;
+      html += `<div class="trans-step">
+        <span class="trans-num">${stepNum}</span>
+        <span class="trans-text">${step.text}</span>
+      </div>`;
+    });
+  });
+  block.innerHTML = html;
+}
+
+// ── RE-RENDER ON N CHANGE ──────────────────────────────────
+function updateAll() {
+  document.getElementById('rxnDisplay').textContent = nRxns;
+  renderMixTable('step1Body', STEP1, 'step1AliquotText');
+  renderMixTable('step2Body', STEP2, 'step2AliquotText');
+}
+
+// ── REACTION COUNTER ───────────────────────────────────────
+document.getElementById('rxnMinus').addEventListener('click', () => {
+  if (nRxns > 1) { nRxns--; updateAll(); }
+});
+document.getElementById('rxnPlus').addEventListener('click', () => {
+  nRxns++; updateAll();
+});
+
+// ── EXPORT ────────────────────────────────────────────────
+function getEdVal(id) { return document.getElementById(id)?.value ?? ''; }
+
+function buildExportText() {
+  const lines = [];
+  lines.push('CYCLING GOLDEN GATE – OLIGO CLONING PROTOCOL');
+  lines.push('Syphy-lab');
+  lines.push('');
+  lines.push('─'.repeat(60));
+  lines.push('REAGENTS');
+  lines.push('─'.repeat(60));
+  REAGENTS.forEach(r => {
+    lines.push(`  • ${r.name}${r.loc ? '   [' + r.loc + ']' : ''}`);
+  });
+  lines.push('');
+
+  lines.push('─'.repeat(60));
+  lines.push('STEP 1 – OLIGO PHOSPHORYLATION → ANNEALING');
+  lines.push('─'.repeat(60));
+  lines.push('');
+  lines.push(`Master Mix (${nRxns} rxn × ${OVERAGE} overage):`);
+  lines.push(`${'Reagent'.padEnd(38)} Per rxn (µL)   Master (µL)`);
+  lines.push('─'.repeat(60));
+  let s1MasterTotal = 0;
+  STEP1.forEach(r => {
+    const master = r.isMaster ? r.perRxn * nRxns * OVERAGE : null;
+    if (master !== null) s1MasterTotal += master;
+    const masterStr = master !== null ? fmt(master) : 'N/A (individual)';
+    lines.push(`  ${r.name.padEnd(36)} ${String(fmt(r.perRxn)).padStart(6)}         ${masterStr}`);
+  });
+  const s1PerTotal = STEP1.reduce((a, r) => a + r.perRxn, 0);
+  lines.push('─'.repeat(60));
+  lines.push(`  ${'TOTAL'.padEnd(36)} ${String(fmt(s1PerTotal)).padStart(6)}         ${fmt(s1MasterTotal)}`);
+  lines.push('');
+  const s1Aliquot = STEP1.filter(r => r.isMaster).reduce((a, r) => a + r.perRxn, 0);
+  lines.push(`  → Aliquot ${fmt(s1Aliquot)} µL/tube from master mix`);
+  lines.push(`  → Add 0.5 µL UP oligo + 0.5 µL DW oligo individually`);
+  lines.push('');
+  lines.push('Cycling Program:');
+  lines.push(`  Stage 1: ${getEdVal('s1t1')}°C for ${getEdVal('s1d1')}ʹ  (phosphorylation)`);
+  lines.push(`  Stage 2: ${getEdVal('s1t2')}°C for ${getEdVal('s1d2')}ʹ  (denaturation)`);
+  lines.push(`  Stage 3: target ${getEdVal('s1t3')}°C at ${getEdVal('s1ramp')} °C/s  (renaturation – slow cooling)`);
+  lines.push(`  Hold:    ${getEdVal('s1hold')}°C`);
+  lines.push('');
+
+  lines.push('─'.repeat(60));
+  lines.push('STEP 2 – ASSEMBLY');
+  lines.push('─'.repeat(60));
+  lines.push('');
+  lines.push('  ⚠ First: dilute step 1 product 1:40 (add 195 µL mqH₂O to each tube)');
+  lines.push('');
+  lines.push(`Master Mix (${nRxns} rxn × ${OVERAGE} overage):`);
+  lines.push(`${'Reagent'.padEnd(38)} Per rxn (µL)   Master (µL)`);
+  lines.push('─'.repeat(60));
+  let s2MasterTotal = 0;
+  STEP2.forEach(r => {
+    const master = r.isMaster ? r.perRxn * nRxns * OVERAGE : null;
+    if (master !== null) s2MasterTotal += master;
+    const masterStr = master !== null ? fmt(master) : 'N/A (individual)';
+    lines.push(`  ${r.name.padEnd(36)} ${String(fmt(r.perRxn)).padStart(6)}         ${masterStr}`);
+  });
+  const s2PerTotal = STEP2.reduce((a, r) => a + r.perRxn, 0);
+  lines.push('─'.repeat(60));
+  lines.push(`  ${'TOTAL'.padEnd(36)} ${String(fmt(s2PerTotal)).padStart(6)}         ${fmt(s2MasterTotal)}`);
+  lines.push('');
+  const s2Aliquot = STEP2.filter(r => r.isMaster).reduce((a, r) => a + r.perRxn, 0);
+  lines.push(`  → Aliquot ${fmt(s2Aliquot)} µL/tube from master mix`);
+  lines.push(`  → Add 0.5 µL of 1/40 diluted oligo pair individually`);
+  lines.push('');
+  lines.push(`Cycling Program ("goldgate" – DE folder):`);
+  lines.push(`  ${getEdVal('s2cyc')} cycles: Step 1 ${getEdVal('s2t1')}°C / ${getEdVal('s2d1')}ʹ (digestion)`);
+  lines.push(`           Step 2 ${getEdVal('s2t2')}°C / ${getEdVal('s2d2')}ʹ (ligation)`);
+  lines.push(`  Stage 2: ${getEdVal('s2t3')}°C for ${getEdVal('s2d3')}ʹ  (inactivation)`);
+  lines.push(`  Hold:    ${getEdVal('s2hold')}°C`);
+  lines.push('');
+
+  lines.push('─'.repeat(60));
+  lines.push('STEP 3 – TRANSFORMATION (NEBStable Competent Cells)');
+  lines.push('─'.repeat(60));
+  lines.push('');
+  let stepN = 0;
+  TRANS_STEPS.forEach(group => {
+    lines.push(`  [${group.group.toUpperCase()}]`);
+    group.steps.forEach(step => {
+      stepN++;
+      const text = step.text.replace(/<[^>]+>/g, '');
+      lines.push(`  ${stepN}. ${text}`);
+    });
+    lines.push('');
+  });
+
+  lines.push('─'.repeat(60));
+  lines.push(`Generated: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · ${nRxns} reactions · Syphy-lab`);
+
+  return lines.join('\n');
+}
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  document.getElementById('exportArea').textContent = buildExportText();
+  document.getElementById('exportModal').hidden = false;
+});
+
+function closeModal() {
+  document.getElementById('exportModal').hidden = true;
+}
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalClose2').addEventListener('click', closeModal);
+document.getElementById('exportModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const text = document.getElementById('exportArea').textContent;
+  const msg = document.getElementById('copyMsg');
+  navigator.clipboard.writeText(text).then(() => {
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 2200);
+  }).catch(() => {
+    // fallback: select text
+    const area = document.getElementById('exportArea');
+    const sel = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(area);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+});
+
+// ── INIT ──────────────────────────────────────────────────
+renderReagents();
+renderTrans();
+updateAll();
+</script>
+</body>
+</html>
