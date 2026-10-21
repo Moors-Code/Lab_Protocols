@@ -189,8 +189,8 @@ td.warn{color:var(--red);font-weight:600;}
   </div>
 </div>
 
-<!-- Google Sheets config -->
-<details class="config-panel" style="margin:1rem 0 0;" id="gs-config">
+<!-- Google Sheets config (URL hard-coded — panel hidden from users) -->
+<details class="config-panel" style="margin:1rem 0 0;display:none;" id="gs-config">
   <summary>⚙ Google Sheets settings</summary>
   <div style="margin-top:.7rem;display:flex;flex-wrap:wrap;gap:.6rem;align-items:flex-end;">
     <div class="inp-group" style="flex:1;min-width:220px;">
@@ -2175,11 +2175,9 @@ function saveNotes() {
 }
 
 // ─── Google Sheets ───────────────────────────────────────
-let gsUrl = '';
+const gsUrl = 'https://script.google.com/macros/s/AKfycbx_x6ppTpsTbGT1OIs1awCuFWQlXpMi1WseobkobGYzMrDdzGaNILMICn6W9W5AJhoZ/exec';
 
-function saveGsConfig() {
-  try { localStorage.setItem('aav-gsconfig', JSON.stringify({gsUrl})); } catch(e){}
-}
+function saveGsConfig() { /* URL is hard-coded; nothing to save */ }
 
 function gsPost(data) {
   if (!gsUrl) { toast('Paste your Apps Script URL in ⚙ Sheets settings first'); return false; }
@@ -2526,8 +2524,7 @@ function loadLS() {
     const cfg = localStorage.getItem('aav-gsconfig');
     if(cfg) {
       const c = JSON.parse(cfg);
-      gsUrl = c.gsUrl||'';
-      if(document.getElementById('gs-url')) document.getElementById('gs-url').value = gsUrl;
+      /* gsUrl is hard-coded; ignore any saved value */
     }
     const theme = localStorage.getItem('aav-theme');
     if(theme) document.documentElement.setAttribute('data-theme', theme);
