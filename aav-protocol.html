@@ -2074,7 +2074,7 @@ function renderPlasmidLibrary() {
       <td style="padding:.4rem .6rem;text-align:right;">${p.conc||'—'}</td>
       <td style="padding:.4rem .6rem;color:var(--fg-muted);font-size:12px;">${esc(p.batch)}</td>
       <td style="padding:.4rem .6rem;color:var(--fg-muted);font-size:12px;">${esc(p.date)}</td>
-      <td style="padding:.4rem .6rem;font-size:12px;font-weight:600;">${p.labcollector ? `<a href="http://bs-labcollect01.ethz.ch/moor/plasmids.php?search=1&strict=on&by_id=${encodeURIComponent(p.labcollector)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;" title="Open in LabCollector">${esc(p.labcollector)}</a>` : '<span style="color:var(--fg-muted);">—</span>'}</td>
+      <td style="padding:.4rem .6rem;font-size:12px;font-weight:600;">${p.labcollector ? `<a href="https://bs-labcollect01.ethz.ch/moor/plasmids.php?search=1&strict=on&by_id=${encodeURIComponent(p.labcollector)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;" title="Open in LabCollector">${esc(p.labcollector)}</a>` : '<span style="color:var(--fg-muted);">—</span>'}</td>
       <td style="padding:.4rem .6rem;color:var(--fg-muted);font-size:12px;">${esc(p.notes)}</td>
       <td style="padding:.4rem .6rem;white-space:nowrap;">
         <button style="background:none;border:1px solid var(--border);border-radius:5px;cursor:pointer;font-size:12px;padding:.1rem .4rem;color:var(--fg-muted);margin-right:.2rem;" onclick="editPlasmid(${p.id})" title="Edit">✏️</button>
