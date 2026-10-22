@@ -1,9 +1,11 @@
-<title>Syphy-lab Protocols</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SyPhy Lab Resources</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-
 <style>
-/* Layout: sticky header + responsive card grid */
 :root {
   --bg: #f5f6f8;
   --bg-card: #ffffff;
@@ -17,206 +19,196 @@
   --tag-bg: #dde8e4;
   --tag-fg: #0c5e43;
   --shadow: 0 1px 3px rgba(0,0,0,.07), 0 4px 12px rgba(0,0,0,.05);
+  --tab-h: 48px;
 }
-
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #131519;
-    --bg-card: #1c1f26;
-    --fg: #e8eaf0;
-    --fg-muted: #7a8090;
-    --accent: #2ab88a;
-    --accent-soft: #0c2d22;
-    --border: #282c36;
-    --header-bg: #0c0e12;
-    --header-fg: #e8eaf0;
-    --tag-bg: #0e2a20;
-    --tag-fg: #2ab88a;
+    --bg: #131519; --bg-card: #1c1f26; --fg: #e8eaf0; --fg-muted: #7a8090;
+    --accent: #2ab88a; --accent-soft: #0c2d22; --border: #282c36;
+    --header-bg: #0c0e12; --header-fg: #e8eaf0;
+    --tag-bg: #0e2a20; --tag-fg: #2ab88a;
     --shadow: 0 1px 3px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.2);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #131519;
-  --bg-card: #1c1f26;
-  --fg: #e8eaf0;
-  --fg-muted: #7a8090;
-  --accent: #2ab88a;
-  --accent-soft: #0c2d22;
-  --border: #282c36;
-  --header-bg: #0c0e12;
-  --header-fg: #e8eaf0;
-  --tag-bg: #0e2a20;
-  --tag-fg: #2ab88a;
+  --bg: #131519; --bg-card: #1c1f26; --fg: #e8eaf0; --fg-muted: #7a8090;
+  --accent: #2ab88a; --accent-soft: #0c2d22; --border: #282c36;
+  --header-bg: #0c0e12; --header-fg: #e8eaf0;
+  --tag-bg: #0e2a20; --tag-fg: #2ab88a;
   --shadow: 0 1px 3px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.2);
   color-scheme: dark;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+html, body { min-height: 100%; }
 body {
   font-family: 'IBM Plex Sans', system-ui, sans-serif;
-  background: var(--bg);
-  color: var(--fg);
-  font-size: 15px;
-  line-height: 1.6;
-  min-height: 100%;
+  background: var(--bg); color: var(--fg);
+  font-size: 15px; line-height: 1.6;
+  display: flex; flex-direction: column;
 }
 
 /* ── Header ── */
 header {
-  background: var(--header-bg);
-  color: var(--header-fg);
-  padding-block: 2.5rem 2rem;
+  background: var(--header-bg); color: var(--header-fg);
+  padding-block: 2.2rem 1.8rem;
   padding-left: max(24px, env(safe-area-inset-left, 0px));
   padding-right: max(24px, env(safe-area-inset-right, 0px));
 }
-
-.header-inner {
-  max-width: 900px;
-}
-
+.header-inner { max-width: 900px; }
 .lab-eyebrow {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: .6rem;
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: .5rem;
 }
-
 header h1 {
-  font-size: clamp(1.6rem, 4vw, 2.4rem);
-  font-weight: 600;
-  line-height: 1.2;
-  text-wrap: balance;
-  letter-spacing: -.02em;
+  font-size: clamp(1.5rem, 4vw, 2.2rem); font-weight: 600;
+  line-height: 1.2; letter-spacing: -.02em;
 }
+header p { margin-top: .5rem; color: #8a9ab0; font-size: 14px; max-width: 56ch; }
 
-header p {
-  margin-top: .6rem;
-  color: #8a9ab0;
-  font-size: 14px;
-  max-width: 56ch;
+/* ── Tab bar (sticks below header) ── */
+.tab-bar {
+  background: var(--header-bg);
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  padding-left: max(24px, env(safe-area-inset-left, 0px));
+  padding-right: max(24px, env(safe-area-inset-right, 0px));
+  position: sticky; top: 0; z-index: 20;
 }
+.tab-bar-inner {
+  max-width: 900px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: var(--tab-h); gap: 1rem;
+}
+.tabs { display: flex; gap: 2px; height: 100%; align-items: flex-end; }
+.tab {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-size: 13.5px; font-weight: 500;
+  color: #7a8a9a; background: none; border: none;
+  padding: 0 14px 0; height: 100%; cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.tab:hover { color: #c0cad6; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* eLABFTW persistent link */
+.elab-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11.5px; font-weight: 600; letter-spacing: .04em;
+  color: var(--accent); text-decoration: none;
+  background: var(--accent-soft); border: 1px solid rgba(43,184,138,.2);
+  border-radius: 6px; padding: 5px 12px;
+  transition: background .15s, border-color .15s;
+  white-space: nowrap; flex-shrink: 0;
+}
+.elab-btn:hover { background: #0d3d2e; border-color: rgba(43,184,138,.45); color: #3dd9a4; }
+.elab-btn svg { flex-shrink: 0; }
 
 /* ── Main ── */
 main {
-  max-width: 900px;
-  padding-top: 2.5rem;
-  padding-bottom: 4rem;
+  flex: 1;
+  max-width: 900px; width: 100%;
+  padding-top: 2.5rem; padding-bottom: 4rem;
   padding-left: max(24px, env(safe-area-inset-left, 0px));
   padding-right: max(24px, env(safe-area-inset-right, 0px));
 }
 
+/* Tab panels */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
 .section-label {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
-  margin-bottom: 1.2rem;
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--fg-muted); margin-bottom: 1.2rem;
 }
 
+/* ── Card grid ── */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 1rem;
 }
 
-/* ── Protocol card ── */
 .card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1.4rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: .8rem;
-  box-shadow: var(--shadow);
-  text-decoration: none;
-  color: inherit;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 1.4rem 1.5rem;
+  display: flex; flex-direction: column; gap: .8rem;
+  box-shadow: var(--shadow); text-decoration: none; color: inherit;
   transition: border-color .15s, box-shadow .15s, transform .1s;
   cursor: pointer;
 }
-
 .card:hover {
   border-color: var(--accent);
   box-shadow: var(--shadow), 0 0 0 3px var(--accent-soft);
   transform: translateY(-1px);
 }
 .card:active { transform: translateY(0); }
-
-.card-icon {
-  font-size: 1.5rem;
-  line-height: 1;
-}
-
+.card-icon { font-size: 1.5rem; line-height: 1; }
 .card-body { flex: 1; }
-
-.card h2 {
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.3;
-  margin-bottom: .3rem;
-}
-
-.card p {
-  font-size: 13px;
-  color: var(--fg-muted);
-  line-height: 1.5;
-}
-
-.card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .4rem;
-}
-
+.card h2 { font-size: 1rem; font-weight: 600; line-height: 1.3; margin-bottom: .3rem; }
+.card p { font-size: 13px; color: var(--fg-muted); line-height: 1.5; }
+.card-tags { display: flex; flex-wrap: wrap; gap: .4rem; }
 .tag {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  background: var(--tag-bg);
-  color: var(--tag-fg);
-  border-radius: 4px;
-  padding: 2px 7px;
-  letter-spacing: .03em;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  background: var(--tag-bg); color: var(--tag-fg);
+  border-radius: 4px; padding: 2px 7px; letter-spacing: .03em;
 }
-
 .card-arrow {
-  align-self: flex-end;
-  font-size: 16px;
-  color: var(--fg-muted);
+  align-self: flex-end; font-size: 16px; color: var(--fg-muted);
   transition: color .15s, transform .15s;
 }
 .card:hover .card-arrow { color: var(--accent); transform: translateX(3px); }
 
-/* ── Placeholder card ── */
+/* Placeholder card */
 .card-placeholder {
-  border: 1.5px dashed var(--border);
-  background: transparent;
-  box-shadow: none;
-  color: var(--fg-muted);
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  min-height: 140px;
-  cursor: default;
+  border: 1.5px dashed var(--border); background: transparent;
+  box-shadow: none; color: var(--fg-muted);
+  align-items: center; justify-content: center;
+  text-align: center; min-height: 140px; cursor: default;
 }
-.card-placeholder:hover {
-  border-color: var(--border);
-  box-shadow: none;
-  transform: none;
+.card-placeholder:hover { border-color: var(--border); box-shadow: none; transform: none; }
+.card-placeholder span { font-size: 13px; line-height: 1.5; }
+.card-placeholder .plus { font-size: 1.4rem; margin-bottom: .4rem; color: var(--border); }
+
+/* ── Project Planning tab ── */
+.planning-hero {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 2rem 2.2rem;
+  box-shadow: var(--shadow); margin-bottom: 1.5rem;
 }
-.card-placeholder span {
-  font-size: 13px;
-  line-height: 1.5;
+.planning-hero h2 {
+  font-size: 1.2rem; font-weight: 600; margin-bottom: .5rem;
 }
-.card-placeholder .plus {
-  font-size: 1.4rem;
-  margin-bottom: .4rem;
-  color: var(--border);
+.planning-hero p { font-size: 14px; color: var(--fg-muted); max-width: 58ch; line-height: 1.6; }
+.planning-hero .open-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 1.2rem;
+  background: var(--accent); color: #fff;
+  border-radius: 7px; padding: 9px 18px;
+  font-size: 14px; font-weight: 600; text-decoration: none;
+  transition: opacity .15s, transform .1s;
 }
+.planning-hero .open-btn:hover { opacity: .88; transform: translateY(-1px); }
+.planning-hero .open-btn:active { transform: none; }
+
+.planning-tips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: .9rem;
+}
+.tip-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 9px; padding: 1.1rem 1.3rem;
+  box-shadow: var(--shadow);
+}
+.tip-card .tip-icon { font-size: 1.2rem; margin-bottom: .5rem; }
+.tip-card h3 { font-size: .9rem; font-weight: 600; margin-bottom: .3rem; }
+.tip-card p { font-size: 12.5px; color: var(--fg-muted); line-height: 1.5; }
 
 /* ── Footer ── */
 footer {
@@ -224,113 +216,181 @@ footer {
   padding-block: 1.4rem;
   padding-left: max(24px, env(safe-area-inset-left, 0px));
   padding-right: max(24px, env(safe-area-inset-right, 0px));
-  color: var(--fg-muted);
-  font-size: 12px;
+  color: var(--fg-muted); font-size: 12px;
   font-family: 'IBM Plex Mono', monospace;
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: .5rem;
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem;
 }
 </style>
+</head>
+<body>
 
 <header>
   <div class="header-inner">
-    <div class="lab-eyebrow">Syphy-lab · ETH Zürich</div>
-    <h1>Lab Protocol Tools</h1>
-    <p>Interactive calculators and reference tools for common lab procedures.</p>
+    <div class="lab-eyebrow">SyPhy-lab · ETH Zürich</div>
+    <h1>Lab Resources</h1>
+    <p>Interactive tools, protocols, and project planning for the SyPhy Lab.</p>
   </div>
 </header>
 
+<!-- Persistent tab bar with eLABFTW link -->
+<nav class="tab-bar">
+  <div class="tab-bar-inner">
+    <div class="tabs">
+      <button class="tab active" data-tab="protocols">Protocols</button>
+      <button class="tab" data-tab="planning">Project Planning</button>
+    </div>
+    <a class="elab-btn" href="https://elabftw.bsse.ethz.ch/dashboard.php" target="_blank" rel="noopener">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+        <rect x="1" y="1" width="14" height="14" rx="3" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      eLABFTW
+    </a>
+  </div>
+</nav>
+
 <main>
-  <div class="section-label">Protocols</div>
-  <div class="grid">
 
-        <!-- AAV Production -->
-    <a class="card" href="aav-protocol.html" target="_blank" rel="noopener">
-      <div class="card-icon">🧬</div>
-      <div class="card-body">
-        <h2>AAV Production</h2>
-        <p>Triple-plasmid PEI transfection calculator. Scales for CellStack, HYPERFlask, or standard dishes. Includes iodixanol gradient prep, ddPCR & qPCR quantification, and storage tracker.</p>
-      </div>
-      <div class="card-tags">
-        <span class="tag">PEI</span>
-        <span class="tag">purification</span>
-        <span class="tag">quantification</span>
-      </div>
-      <div class="card-arrow">→</div>
-    </a>
+  <!-- PROTOCOLS TAB -->
+  <div id="tab-protocols" class="tab-panel active">
+    <div class="section-label">Protocols</div>
+    <div class="grid">
 
-    <!-- jetOPTIMUS / L3K Batch Calculator -->
-    <a class="card" href="jetOPTIMUS_Batch_Calculator_2.html" target="_blank" rel="noopener">
-      <div class="card-icon">🧪</div>
-      <div class="card-body">
-        <h2>Transfection Batch Calculator</h2>
-        <p>Plate-map or list-based batch calculator for jetOPTIMUS® and Lipofectamine 3000. Paint conditions onto a well plate and get master-mix volumes with 10% excess.</p>
-      </div>
-      <div class="card-tags">
-        <span class="tag">jetOPTIMUS</span>
-        <span class="tag">L3000</span>
-        <span class="tag">plate map</span>
-      </div>
-      <div class="card-arrow">→</div>
-    </a>
+      <a class="card" href="aav-protocol.html" target="_blank" rel="noopener">
+        <div class="card-icon">🧬</div>
+        <div class="card-body">
+          <h2>AAV Production</h2>
+          <p>Triple-plasmid PEI transfection calculator. Scales for CellStack, HYPERFlask, or standard dishes. Includes iodixanol gradient prep, ddPCR &amp; qPCR quantification, and storage tracker.</p>
+        </div>
+        <div class="card-tags">
+          <span class="tag">PEI</span>
+          <span class="tag">purification</span>
+          <span class="tag">quantification</span>
+        </div>
+        <div class="card-arrow">→</div>
+      </a>
 
-    <!-- qPCR Protocol Builder -->
-    <a class="card" href="qpcr.html" target="_blank" rel="noopener">
-      <div class="card-icon">📊</div>
-      <div class="card-body">
-        <h2>qPCR Protocol Builder</h2>
-        <p>Assign samples and primer pairs to a 96-well plate, auto-generate master-mix volumes per gene with overage, and export a full protocol summary.</p>
-      </div>
-      <div class="card-tags">
-        <span class="tag">SYBR Green</span>
-        <span class="tag">master mix</span>
-        <span class="tag">plate map</span>
-      </div>
-      <div class="card-arrow">→</div>
-    </a>
+      <a class="card" href="jetOPTIMUS_Batch_Calculator_2.html" target="_blank" rel="noopener">
+        <div class="card-icon">🧪</div>
+        <div class="card-body">
+          <h2>Transfection Batch Calculator</h2>
+          <p>Plate-map or list-based batch calculator for jetOPTIMUS® and Lipofectamine 3000. Paint conditions onto a well plate and get master-mix volumes with 10% excess.</p>
+        </div>
+        <div class="card-tags">
+          <span class="tag">jetOPTIMUS</span>
+          <span class="tag">L3000</span>
+          <span class="tag">plate map</span>
+        </div>
+        <div class="card-arrow">→</div>
+      </a>
 
-    <!-- Oligo Annealing & Golden Gate Assembly -->
-    <a class="card" href="golden-gate-protocol.html" target="_blank" rel="noopener">
-      <div class="card-icon">🔬</div>
-      <div class="card-body">
-        <h2>Oligo Annealing & Golden Gate Assembly</h2>
-        <p>kjahsds</p>
-      </div>
-      <div class="card-tags">
-        <span class="tag">L3000</span>
-        <span class="tag">HEK293T</span>
-        <span class="tag">reverse TF</span>
-      </div>
-      <div class="card-arrow">→</div>
-    </a>
+      <a class="card" href="qpcr.html" target="_blank" rel="noopener">
+        <div class="card-icon">📊</div>
+        <div class="card-body">
+          <h2>qPCR Protocol Builder</h2>
+          <p>Assign samples and primer pairs to a 96-well plate, auto-generate master-mix volumes per gene with overage, and export a full protocol summary.</p>
+        </div>
+        <div class="card-tags">
+          <span class="tag">SYBR Green</span>
+          <span class="tag">master mix</span>
+          <span class="tag">plate map</span>
+        </div>
+        <div class="card-arrow">→</div>
+      </a>
 
-    <!-- Lab Calculator -->
-    <a class="card" href="lab-calc.html" target="_blank" rel="noopener">
-      <div class="card-icon">⚗️</div>
-      <div class="card-body">
-        <h2>Lab Calculator</h2>
-        <p>Unit conversion, dilutions (C₁V₁ = C₂V₂), molarity from mass, and Beer–Lambert law — all in one tool with smart unit auto-selection.</p>
+      <a class="card" href="golden-gate-protocol.html" target="_blank" rel="noopener">
+        <div class="card-icon">🔬</div>
+        <div class="card-body">
+          <h2>Oligo Annealing &amp; Golden Gate Assembly</h2>
+          <p>kjahsds</p>
+        </div>
+        <div class="card-tags">
+          <span class="tag">L3000</span>
+          <span class="tag">HEK293T</span>
+          <span class="tag">reverse TF</span>
+        </div>
+        <div class="card-arrow">→</div>
+      </a>
+
+      <a class="card" href="lab-calc.html" target="_blank" rel="noopener">
+        <div class="card-icon">⚗️</div>
+        <div class="card-body">
+          <h2>Lab Calculator</h2>
+          <p>Unit conversion, dilutions (C₁V₁ = C₂V₂), molarity from mass, and Beer–Lambert law — all in one tool with smart unit auto-selection.</p>
+        </div>
+        <div class="card-tags">
+          <span class="tag">dilutions</span>
+          <span class="tag">molarity</span>
+          <span class="tag">Beer–Lambert</span>
+        </div>
+        <div class="card-arrow">→</div>
+      </a>
+
+      <div class="card card-placeholder">
+        <div class="plus">＋</div>
+        <span>More protocols coming soon</span>
       </div>
-      <div class="card-tags">
-        <span class="tag">dilutions</span>
-        <span class="tag">molarity</span>
-        <span class="tag">Beer–Lambert</span>
-      </div>
-      <div class="card-arrow">→</div>
-    </a>
-    
-    <!-- Placeholder for future protocols -->
-    <div class="card card-placeholder">
-      <div class="plus">＋</div>
-      <span>More protocols coming soon</span>
+
+    </div>
+  </div>
+
+  <!-- PROJECT PLANNING TAB -->
+  <div id="tab-planning" class="tab-panel">
+    <div class="section-label">Project Planning</div>
+
+    <div class="planning-hero">
+      <div class="card-icon" style="margin-bottom:.7rem">🗺️</div>
+      <h2>Research Mind Map</h2>
+      <p>An interactive canvas for mapping research questions and experiments. Nodes are color-coded by status — link directly to eLABFTW entries and track which experiments are running, successful, or need repeating.</p>
+      <a class="open-btn" href="mindmap.html" target="_blank" rel="noopener">
+        Open Mind Map →
+      </a>
     </div>
 
+    <div class="planning-tips">
+      <div class="tip-card">
+        <div class="tip-icon">🟡</div>
+        <h3>Question nodes</h3>
+        <p>Amber nodes represent open research questions. Connect them to experiments that address them.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">🟢</div>
+        <h3>Experiment nodes</h3>
+        <p>Green nodes link to eLABFTW entries. Status colours: green = success, blue = running, red = failure, grey = repeat.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">💾</div>
+        <h3>Save your map</h3>
+        <p>Use the Save button to export a <code>.json</code> snapshot. Load it back anytime — your data lives in your own files.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">🔗</div>
+        <h3>eLABFTW links</h3>
+        <p>Paste eLABFTW experiment URLs directly into experiment nodes. Click the link in the expanded card to jump to the entry.</p>
+      </div>
+    </div>
   </div>
+
 </main>
 
 <footer>
-  <span>Syphy-lab</span>
+  <span>SyPhy-lab · ETH Zürich</span>
   <span>mrober@ethz.ch</span>
 </footer>
+
+<script>
+  // Tab switching
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      panels.forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
