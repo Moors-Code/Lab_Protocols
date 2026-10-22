@@ -176,6 +176,7 @@ body{
 .pp-close:hover{opacity:.8}
 
 /* ── MODAL ── */
+[hidden]{display:none!important}
 #mbg{
   position:fixed;inset:0;background:rgba(0,0,0,.45);
   z-index:100;display:flex;align-items:center;justify-content:center;
@@ -305,9 +306,17 @@ body{
 </div>
 
 <script>
-// ── STATE ──────────────────────────────────────────────────────────────────
-const SK = 'lmm-v3';
-let S = { title:'Research Project', nodes:[], edges:[] };
+// ── PROJECT / STATE ────────────────────────────────────────────────────────
+const _params = new URLSearchParams(location.search);
+const PROJECT_ID = _params.get('project') || 'default';
+const SK = PROJECT_ID === 'default' ? 'lmm-v3' : 'lmm-v3-' + PROJECT_ID;
+const REGISTRY_KEY = 'lmm-projects';
+
+// Default title from project slug (prettify hyphens → spaces, title-case)
+const _defaultTitle = PROJECT_ID === 'default' ? 'Research Project'
+  : PROJECT_ID.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+
+let S = { title: _defaultTitle, nodes:[], edges:[] };
 let V = {
   mode:'select', pan:{x:0,y:0}, zoom:1,
   sel:null, cFrom:null,
@@ -316,7 +325,17 @@ let V = {
   editId:null, tTimer:null, popId:null
 };
 
-function save(){ try{ localStorage.setItem(SK,JSON.stringify(S)) }catch(e){} }
+function save(){
+  try{
+    localStorage.setItem(SK,JSON.stringify(S));
+    // Update project registry so index.html can list projects
+    const reg=JSON.parse(localStorage.getItem(REGISTRY_KEY)||'[]');
+    const idx=reg.findIndex(p=>p.id===PROJECT_ID);
+    const entry={id:PROJECT_ID,title:S.title,nodeCount:S.nodes.length,updated:Date.now()};
+    if(idx>=0) reg[idx]=entry; else reg.push(entry);
+    localStorage.setItem(REGISTRY_KEY,JSON.stringify(reg));
+  }catch(e){}
+}
 async function saveFile(){
   const json=JSON.stringify(S,null,2);
   const safe=(S.title||'mindmap').replace(/[^a-zA-Z0-9_ -]/g,'_').trim()||'mindmap';
@@ -572,7 +591,7 @@ nLayer.addEventListener('mousedown',e=>{
 function addNode(type,wx,wy){
   const id='n'+Date.now()+Math.floor(Math.random()*999);
   S.nodes.push({id,type,text:'',url:'',x:Math.round(wx),y:Math.round(wy)});
-  save(); renderAll(); openModal(id);
+  save(); renderAll(); setMode('select'); openModal(id);
 }
 function delNode(id){
   S.nodes=S.nodes.filter(n=>n.id!==id);
@@ -683,7 +702,12 @@ function saveModal(){
   save(); closeModal(); renderAll();
 }
 document.getElementById('mmsave').addEventListener('click',saveModal);
-document.getElementById('mmcancel').addEventListener('click',closeModal);
+document.getElementById('mmcancel').addEventListener('click',()=>{
+  // If cancelling a brand-new empty node, remove it
+  const n=S.nodes.find(n=>n.id===V.editId);
+  if(n&&!n.text){ delNode(V.editId); }
+  closeModal();
+});
 document.getElementById('mmdel').addEventListener('click',()=>{ if(V.editId){delNode(V.editId);closeModal()} });
 mbg.addEventListener('click',e=>{ if(e.target===mbg) closeModal() });
 mtxt.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)) saveModal() });
@@ -860,9 +884,10 @@ function seedDemo(){
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 load();
-seedDemo();
-document.getElementById('proj-title').value=S.title||'Research Project';
-document.title=S.title||'Lab Mind Map';
+// Only seed demo nodes for the default/unnamed project on first open
+if(PROJECT_ID==='default') seedDemo();
+document.getElementById('proj-title').value=S.title||_defaultTitle;
+document.title=(S.title||_defaultTitle)+' · Mind Map';
 renderAll();
 setTimeout(fitAll,60);
 </script>
