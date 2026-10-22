@@ -138,7 +138,7 @@ body{
   position:fixed;z-index:80;
   background:var(--surf);border-radius:14px;
   box-shadow:0 4px 24px rgba(0,0,0,.16),0 0 0 1px var(--bdr);
-  padding:18px;width:280px;
+  padding:18px;width:320px;max-height:80vh;overflow-y:auto;
   animation:popIn .15s ease-out;
 }
 @keyframes popIn{from{opacity:0;transform:scale(.94) translateY(4px)}to{opacity:1;transform:scale(1) translateY(0)}}
@@ -167,13 +167,21 @@ body{
   font-weight:500;cursor:pointer;font-family:inherit;transition:background .12s;
 }
 .pp-del:hover{background:#FEE2E2}
-.pp-close{
-  position:absolute;top:12px;right:12px;
-  background:transparent;border:none;cursor:pointer;
-  color:var(--fg2);opacity:.4;font-size:16px;padding:2px 5px;
-  border-radius:4px;font-family:inherit;transition:opacity .1s;
+.pp-dismiss{
+  display:block;text-align:center;font-size:10.5px;color:var(--fg2);
+  opacity:.38;margin-top:4px;pointer-events:none;
 }
-.pp-close:hover{opacity:.8}
+.pp-extra-section{
+  border-top:1px solid var(--bdr); padding-top:10px; margin-bottom:4px;
+}
+.pp-extra-label{
+  font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--fg2);opacity:.55;margin-bottom:4px;
+}
+.pp-extra-body{
+  font-size:12.5px;color:var(--fg);line-height:1.55;white-space:pre-wrap;word-break:break-word;
+  max-height:120px;overflow-y:auto;
+}
 
 /* ── MODAL ── */
 [hidden]{display:none!important}
@@ -291,9 +299,21 @@ body{
       <label for="mtxt">Label</label>
       <textarea id="mtxt" rows="3" placeholder="Describe this…"></textarea>
     </div>
+    <div class="ff" id="mbackrow">
+      <label for="mback">Background</label>
+      <textarea id="mback" rows="3" placeholder="Relevant context, prior work, hypothesis…"></textarea>
+    </div>
+    <div class="ff" id="mgoalsrow">
+      <label for="mgoals">Goals</label>
+      <textarea id="mgoals" rows="2" placeholder="What do you aim to achieve with this experiment?"></textarea>
+    </div>
     <div class="ff" id="murlrow">
       <label for="murl">eLABFTW Link</label>
       <input id="murl" type="url" placeholder="https://your-elab.server/experiments.php?id=…">
+    </div>
+    <div class="ff" id="mconcrow">
+      <label for="mconc">Conclusions / Notes / Problems</label>
+      <textarea id="mconc" rows="3" placeholder="Key findings, observations or issues…"></textarea>
     </div>
     <div class="mbtns">
       <button class="btn-d" id="mmdel">Delete</button>
@@ -384,7 +404,13 @@ const cvs=document.getElementById('canvas'),
   mtitle=document.getElementById('mtitle'),
   mtxt=document.getElementById('mtxt'),
   murl=document.getElementById('murl'),
-  murlrow=document.getElementById('murlrow');
+  murlrow=document.getElementById('murlrow'),
+  mback=document.getElementById('mback'),
+  mbackrow=document.getElementById('mbackrow'),
+  mgoals=document.getElementById('mgoals'),
+  mgoalsrow=document.getElementById('mgoalsrow'),
+  mconc=document.getElementById('mconc'),
+  mconcrow=document.getElementById('mconcrow');
 
 // ── TRANSFORM ─────────────────────────────────────────────────────────────
 function applyTx(){
@@ -640,11 +666,29 @@ function openPopup(id){
           </button>`:''}
       </div>
     </div>`:'';
+  // Extra fields for expanded card
+  const bgHtml = n.type==='q' && n.background
+    ? `<div class="pp-extra-section">
+         <div class="pp-extra-label">Background</div>
+         <div class="pp-extra-body">${esc(n.background)}</div>
+       </div>` : '';
+  const goalsHtml = n.type==='e' && n.goals
+    ? `<div class="pp-extra-section">
+         <div class="pp-extra-label">Goals</div>
+         <div class="pp-extra-body">${esc(n.goals)}</div>
+       </div>` : '';
+  const concHtml = n.type==='e' && n.conclusions
+    ? `<div class="pp-extra-section">
+         <div class="pp-extra-label">Conclusions / Notes / Problems</div>
+         <div class="pp-extra-body">${esc(n.conclusions)}</div>
+       </div>` : '';
+
   popup.innerHTML=`
-    <button class="pp-close" id="pp-x">✕</button>
     <div class="pp-type">${lbl}</div>
     <div class="pp-text">${esc(n.text||'(no description yet)')}</div>
+    ${bgHtml}${goalsHtml}
     ${statusPicker}
+    ${concHtml}
     ${hasUrl
       ? `<a class="pp-link" href="${esc(n.url)}" target="_blank" rel="noopener">
            <span class="pp-link-icon">↗</span>
@@ -655,12 +699,13 @@ function openPopup(id){
     <div class="pp-row">
       <button class="pp-edit" id="pp-edit">✎ Edit</button>
       <button class="pp-del" id="pp-del">✕</button>
-    </div>`;
+    </div>
+    <span class="pp-dismiss">click outside to close</span>`;
   popup.hidden=false;
 
   // Position near node in screen space
   const sc=toScreen(n.x,n.y);
-  const pw=280, ph=200;
+  const pw=320, ph=220;
   const vw=window.innerWidth, vh=window.innerHeight;
   let left=sc.x+20, top=sc.y-60;
   if(left+pw>vw-12) left=sc.x-pw-20;
@@ -669,7 +714,6 @@ function openPopup(id){
   if(top<60) top=60;
   popup.style.left=left+'px'; popup.style.top=top+'px';
 
-  document.getElementById('pp-x').addEventListener('click',closePopup);
   document.getElementById('pp-edit').addEventListener('click',()=>{closePopup();openModal(id)});
   document.getElementById('pp-del').addEventListener('click',()=>{closePopup();delNode(id)});
   popup.querySelectorAll('.pp-stat-btn').forEach(btn=>{
@@ -684,14 +728,30 @@ function openPopup(id){
 
 function closePopup(){ popup.hidden=true; V.popId=null }
 
+// Prevent clicks inside the popup from leaking to canvas handlers
+popup.addEventListener('mousedown', e=>e.stopPropagation());
+
+// Click outside popup → close it
+document.addEventListener('mousedown', e=>{
+  if(!popup.hidden && !popup.contains(e.target)) closePopup();
+});
+
 // ── MODAL ─────────────────────────────────────────────────────────────────
 function openModal(id){
   const n=S.nodes.find(n=>n.id===id); if(!n) return;
   V.editId=id;
-  mtitle.textContent=n.type==='q'?'Edit Question':'Edit Experiment';
+  const isE=n.type==='e';
+  mtitle.textContent=isE?'Edit Experiment':'Edit Question';
   mtxt.value=n.text||'';
   murl.value=n.url||'';
-  murlrow.style.display=n.type==='e'?'flex':'none';
+  mback.value=n.background||'';
+  mgoals.value=n.goals||'';
+  mconc.value=n.conclusions||'';
+  // Show/hide per-type fields
+  murlrow.style.display  =isE?'flex':'none';
+  mgoalsrow.style.display=isE?'flex':'none';
+  mconcrow.style.display =isE?'flex':'none';
+  mbackrow.style.display =isE?'none':'flex';
   mbg.hidden=false; setTimeout(()=>mtxt.focus(),10);
 }
 function closeModal(){ mbg.hidden=true; V.editId=null }
@@ -699,6 +759,9 @@ function saveModal(){
   const n=S.nodes.find(n=>n.id===V.editId); if(!n) return;
   n.text=mtxt.value.trim()||'…';
   n.url=murl.value.trim();
+  n.background=mback.value.trim();
+  n.goals=mgoals.value.trim();
+  n.conclusions=mconc.value.trim();
   save(); closeModal(); renderAll();
 }
 document.getElementById('mmsave').addEventListener('click',saveModal);
