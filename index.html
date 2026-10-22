@@ -176,39 +176,111 @@ main {
 .card-placeholder .plus { font-size: 1.4rem; margin-bottom: .4rem; color: var(--border); }
 
 /* ── Project Planning tab ── */
-.planning-hero {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 12px; padding: 2rem 2.2rem;
-  box-shadow: var(--shadow); margin-bottom: 1.5rem;
+.planning-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.2rem; gap: 1rem; flex-wrap: wrap;
 }
-.planning-hero h2 {
-  font-size: 1.2rem; font-weight: 600; margin-bottom: .5rem;
-}
-.planning-hero p { font-size: 14px; color: var(--fg-muted); max-width: 58ch; line-height: 1.6; }
-.planning-hero .open-btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  margin-top: 1.2rem;
+.new-project-btn {
+  display: inline-flex; align-items: center; gap: 6px;
   background: var(--accent); color: #fff;
-  border-radius: 7px; padding: 9px 18px;
-  font-size: 14px; font-weight: 600; text-decoration: none;
-  transition: opacity .15s, transform .1s;
+  border: none; border-radius: 7px; padding: 8px 16px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  transition: opacity .15s, transform .1s; white-space: nowrap;
 }
-.planning-hero .open-btn:hover { opacity: .88; transform: translateY(-1px); }
-.planning-hero .open-btn:active { transform: none; }
+.new-project-btn:hover { opacity: .88; transform: translateY(-1px); }
+.new-project-btn:active { transform: none; }
 
-.planning-tips {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: .9rem;
+/* New-project inline form */
+.new-project-form {
+  background: var(--bg-card); border: 1px solid var(--accent);
+  border-radius: 10px; padding: 1.2rem 1.4rem;
+  box-shadow: var(--shadow), 0 0 0 3px var(--accent-soft);
+  margin-bottom: 1.2rem; display: none;
 }
-.tip-card {
+.new-project-form.open { display: block; }
+.new-project-form label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--fg-muted); display: block; margin-bottom: .5rem;
+}
+.new-project-form input {
+  width: 100%; padding: 8px 12px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--bg);
+  color: var(--fg); font-size: 14px; font-family: inherit;
+  outline: none; transition: border-color .15s;
+}
+.new-project-form input:focus { border-color: var(--accent); }
+.new-project-form .form-btns {
+  display: flex; gap: 8px; margin-top: .8rem; justify-content: flex-end;
+}
+.btn-cancel { background: var(--bg); border: 1px solid var(--border);
+  color: var(--fg-muted); border-radius: 6px; padding: 6px 14px;
+  font-size: 13px; cursor: pointer; font-family: inherit; }
+.btn-cancel:hover { color: var(--fg); }
+.btn-create { background: var(--accent); border: none; color: #fff;
+  border-radius: 6px; padding: 6px 16px;
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.btn-create:hover { opacity: .88; }
+
+/* Export / Restore small buttons */
+.tbtn-sm {
+  display: inline-flex; align-items: center; gap: 5px;
   background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 9px; padding: 1.1rem 1.3rem;
-  box-shadow: var(--shadow);
+  color: var(--fg-muted); border-radius: 6px; padding: 6px 12px;
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  transition: border-color .15s, color .15s; white-space: nowrap;
 }
-.tip-card .tip-icon { font-size: 1.2rem; margin-bottom: .5rem; }
-.tip-card h3 { font-size: .9rem; font-weight: 600; margin-bottom: .3rem; }
-.tip-card p { font-size: 12.5px; color: var(--fg-muted); line-height: 1.5; }
+.tbtn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Restore flash overlay */
+#restoreFlash {
+  position: fixed; inset: 0; background: rgba(12,124,89,.18);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 999; opacity: 0; pointer-events: none;
+  transition: opacity .3s;
+}
+#restoreFlash.show { opacity: 1; pointer-events: auto; }
+#restoreFlash .flash-box {
+  background: var(--bg-card); border: 1px solid var(--accent);
+  border-radius: 12px; padding: 1.6rem 2rem; text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  max-width: 340px;
+}
+#restoreFlash .flash-icon { font-size: 2rem; margin-bottom: .6rem; }
+#restoreFlash h3 { font-size: 1rem; font-weight: 600; margin-bottom: .4rem; }
+#restoreFlash p { font-size: 13px; color: var(--fg-muted); }
+
+/* Project cards */
+.project-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 1.3rem 1.5rem;
+  display: flex; flex-direction: column; gap: .7rem;
+  box-shadow: var(--shadow); text-decoration: none; color: inherit;
+  transition: border-color .15s, box-shadow .15s, transform .1s;
+}
+.project-card:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow), 0 0 0 3px var(--accent-soft);
+  transform: translateY(-1px);
+}
+.project-card:active { transform: none; }
+.project-card .pc-icon { font-size: 1.4rem; }
+.project-card h2 { font-size: 1rem; font-weight: 600; }
+.project-card .pc-meta {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--fg-muted);
+}
+.project-card .card-arrow { align-self: flex-end; font-size: 15px; color: var(--fg-muted); transition: color .15s, transform .15s; }
+.project-card:hover .card-arrow { color: var(--accent); transform: translateX(3px); }
+
+.empty-projects {
+  grid-column: 1/-1; text-align: center;
+  color: var(--fg-muted); font-size: 14px; padding: 3rem 0;
+}
+.empty-projects .ep-icon { font-size: 2.5rem; margin-bottom: .8rem; opacity: .4; }
+.empty-projects p { max-width: 36ch; margin: 0 auto; line-height: 1.6; }
 
 /* ── Footer ── */
 footer {
@@ -336,42 +408,41 @@ footer {
 
   <!-- PROJECT PLANNING TAB -->
   <div id="tab-planning" class="tab-panel">
-    <div class="section-label">Project Planning</div>
 
-    <div class="planning-hero">
-      <div class="card-icon" style="margin-bottom:.7rem">🗺️</div>
-      <h2>Research Mind Map</h2>
-      <p>An interactive canvas for mapping research questions and experiments. Nodes are color-coded by status — link directly to eLABFTW entries and track which experiments are running, successful, or need repeating.</p>
-      <a class="open-btn" href="mindmap.html" target="_blank" rel="noopener">
-        Open Mind Map →
-      </a>
+    <div class="planning-header">
+      <div class="section-label" style="margin-bottom:0">Project Mind Maps</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="tbtn-sm" id="btnExportAll" title="Download all projects as a backup file">⬇ Export backup</button>
+        <label class="tbtn-sm" id="btnRestoreLabel" title="Restore projects from a backup file">⬆ Restore backup<input type="file" id="restoreInput" accept=".json" style="display:none"></label>
+        <button class="new-project-btn" id="btnNewProject">＋ New Mind Map</button>
+      </div>
     </div>
 
-    <div class="planning-tips">
-      <div class="tip-card">
-        <div class="tip-icon">🟡</div>
-        <h3>Question nodes</h3>
-        <p>Amber nodes represent open research questions. Connect them to experiments that address them.</p>
-      </div>
-      <div class="tip-card">
-        <div class="tip-icon">🟢</div>
-        <h3>Experiment nodes</h3>
-        <p>Green nodes link to eLABFTW entries. Status colours: green = success, blue = running, red = failure, grey = repeat.</p>
-      </div>
-      <div class="tip-card">
-        <div class="tip-icon">💾</div>
-        <h3>Save your map</h3>
-        <p>Use the Save button to export a <code>.json</code> snapshot. Load it back anytime — your data lives in your own files.</p>
-      </div>
-      <div class="tip-card">
-        <div class="tip-icon">🔗</div>
-        <h3>eLABFTW links</h3>
-        <p>Paste eLABFTW experiment URLs directly into experiment nodes. Click the link in the expanded card to jump to the entry.</p>
+    <!-- Inline new-project form -->
+    <div class="new-project-form" id="newProjectForm">
+      <label for="projectNameInput">Project name</label>
+      <input type="text" id="projectNameInput" placeholder="e.g. AAV Capsid Screen" maxlength="80" autocomplete="off">
+      <div class="form-btns">
+        <button class="btn-cancel" id="btnCancelProject">Cancel</button>
+        <button class="btn-create" id="btnCreateProject">Create →</button>
       </div>
     </div>
+
+    <!-- Dynamic project gallery -->
+    <div class="grid" id="projectGrid"></div>
+
   </div>
 
 </main>
+
+<!-- Restore success flash -->
+<div id="restoreFlash">
+  <div class="flash-box">
+    <div class="flash-icon">✅</div>
+    <h3 id="flashTitle">Backup restored</h3>
+    <p id="flashMsg">Projects loaded from backup file.</p>
+  </div>
+</div>
 
 <footer>
   <span>SyPhy-lab · ETH Zürich</span>
@@ -379,7 +450,7 @@ footer {
 </footer>
 
 <script>
-  // Tab switching
+  /* ── Tab switching ── */
   const tabs = document.querySelectorAll('.tab');
   const panels = document.querySelectorAll('.tab-panel');
   tabs.forEach(tab => {
@@ -387,8 +458,180 @@ footer {
       tabs.forEach(t => t.classList.remove('active'));
       panels.forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
-      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+      const panel = document.getElementById('tab-' + tab.dataset.tab);
+      panel.classList.add('active');
+      if (tab.dataset.tab === 'planning') renderProjects();
     });
+  });
+
+  /* ── Project gallery ── */
+  const REGISTRY_KEY = 'lmm-projects';
+  const MINDMAP_FILE = 'mindmap.html';
+
+  function getProjects() {
+    try { return JSON.parse(localStorage.getItem(REGISTRY_KEY) || '[]'); }
+    catch(e) { return []; }
+  }
+
+  function slugify(name) {
+    return name.trim().toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      || ('project-' + Date.now());
+  }
+
+  function formatDate(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+  }
+
+  function renderProjects() {
+    const grid = document.getElementById('projectGrid');
+    const projects = getProjects();
+    if (projects.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-projects">
+          <div class="ep-icon">🗺️</div>
+          <p>No mind maps yet. Click <strong>New Mind Map</strong> to create your first project.</p>
+        </div>`;
+      return;
+    }
+    // Sort newest first
+    projects.sort((a, b) => (b.updated || 0) - (a.updated || 0));
+    grid.innerHTML = projects.map(p => {
+      const href = `${MINDMAP_FILE}?project=${encodeURIComponent(p.id)}`;
+      const nodes = p.nodeCount != null ? `${p.nodeCount} node${p.nodeCount !== 1 ? 's' : ''}` : '';
+      const updated = p.updated ? `Updated ${formatDate(p.updated)}` : '';
+      const meta = [nodes, updated].filter(Boolean).join(' · ');
+      return `
+        <a class="project-card" href="${href}" target="_blank" rel="noopener">
+          <div class="pc-icon">🗺️</div>
+          <h2>${escHtml(p.title || p.id)}</h2>
+          ${meta ? `<div class="pc-meta">${escHtml(meta)}</div>` : ''}
+          <div class="card-arrow">→</div>
+        </a>`;
+    }).join('');
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ── New project form ── */
+  const form = document.getElementById('newProjectForm');
+  const nameInput = document.getElementById('projectNameInput');
+
+  document.getElementById('btnNewProject').addEventListener('click', () => {
+    form.classList.add('open');
+    nameInput.value = '';
+    nameInput.focus();
+  });
+
+  document.getElementById('btnCancelProject').addEventListener('click', () => {
+    form.classList.remove('open');
+  });
+
+  function createProject() {
+    const name = nameInput.value.trim();
+    if (!name) { nameInput.focus(); return; }
+    const id = slugify(name);
+    // Pre-register in localStorage so mindmap picks up the title right away
+    try {
+      const reg = getProjects();
+      if (!reg.find(p => p.id === id)) {
+        reg.push({ id, title: name, nodeCount: 0, updated: Date.now() });
+        localStorage.setItem(REGISTRY_KEY, JSON.stringify(reg));
+      }
+    } catch(e) {}
+    form.classList.remove('open');
+    renderProjects();
+    // Open the new mindmap
+    window.open(`${MINDMAP_FILE}?project=${encodeURIComponent(id)}`, '_blank', 'noopener');
+  }
+
+  document.getElementById('btnCreateProject').addEventListener('click', createProject);
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') createProject(); });
+
+  /* Render on load if planning tab starts active */
+  if (document.getElementById('tab-planning').classList.contains('active')) renderProjects();
+
+  /* ── Export all projects as a single backup JSON ── */
+  document.getElementById('btnExportAll').addEventListener('click', () => {
+    const reg = getProjects();
+    if (reg.length === 0) {
+      showFlash('⚠️', 'Nothing to export', 'Create at least one mind map first.', 2200);
+      return;
+    }
+    const bundle = {
+      version: 1,
+      exported: new Date().toISOString(),
+      projects: reg.map(p => {
+        const dataKey = p.id === 'default' ? 'lmm-v3' : 'lmm-v3-' + p.id;
+        let data = null;
+        try { data = JSON.parse(localStorage.getItem(dataKey) || 'null'); } catch(e) {}
+        return { id: p.id, title: p.title, updated: p.updated, data };
+      })
+    };
+    const json = JSON.stringify(bundle, null, 2);
+    const date = new Date().toISOString().slice(0, 10);
+    const blob = new Blob([json], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `syphy-mindmaps-backup-${date}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  /* ── Restore from backup JSON ── */
+  document.getElementById('restoreInput').addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    this.value = ''; // reset so same file can be re-selected
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const bundle = JSON.parse(e.target.result);
+        if (bundle.version !== 1 || !Array.isArray(bundle.projects))
+          throw new Error('Unrecognised backup format.');
+
+        let count = 0;
+        const reg = [];
+        bundle.projects.forEach(p => {
+          if (!p.id || !p.data) return;
+          const dataKey = p.id === 'default' ? 'lmm-v3' : 'lmm-v3-' + p.id;
+          localStorage.setItem(dataKey, JSON.stringify(p.data));
+          reg.push({
+            id: p.id,
+            title: p.title || p.data.title || p.id,
+            nodeCount: (p.data.nodes || []).length,
+            updated: p.updated || Date.now()
+          });
+          count++;
+        });
+        localStorage.setItem(REGISTRY_KEY, JSON.stringify(reg));
+        renderProjects();
+        showFlash('✅', 'Backup restored', `${count} project${count !== 1 ? 's' : ''} loaded successfully.`, 2800);
+      } catch(err) {
+        showFlash('❌', 'Restore failed', err.message || 'Could not read backup file.', 3000);
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  /* ── Flash helper ── */
+  function showFlash(icon, title, msg, duration) {
+    const el = document.getElementById('restoreFlash');
+    document.getElementById('flashTitle').textContent = title;
+    document.getElementById('flashMsg').textContent = msg;
+    document.querySelector('#restoreFlash .flash-icon').textContent = icon;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), duration || 2500);
+  }
+  document.getElementById('restoreFlash').addEventListener('click', () => {
+    document.getElementById('restoreFlash').classList.remove('show');
   });
 </script>
 
