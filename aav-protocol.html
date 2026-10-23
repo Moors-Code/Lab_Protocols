@@ -1321,7 +1321,7 @@ td.warn{color:var(--red);font-weight:600;}
 <!-- ══ PLASMID LIBRARY ══════════════════════════════════════ -->
 <div id="tab-plasmids" class="tab-panel">
   <div class="card">
-    <div class="card-head"><h2>Add Plasmid to Library</h2></div>
+    <div class="card-head" style="display:flex;align-items:center;gap:.5rem;"><h2>Add Plasmid to Library</h2><span id="shared-lib-status" style="font-size:11px;margin-left:auto;"></span></div>
     <div class="card-body">
       <div class="inp-row">
         <div class="inp-group" style="flex:1;">
@@ -1403,6 +1403,7 @@ let batchRecipes = [];   // saved plasmid combos for the storage form
 // ─── Init ────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   loadLS();
+  loadSharedLibrary();
   setTodayDates();
   recalc();
   renderRecipes();
@@ -1661,6 +1662,7 @@ function saveBatchRecipePrompt() { saveBatchRecipeFromField(); }
 function saveBatchRecipe(name, hId, cId, tId) {
   batchRecipes.unshift({ id: Date.now(), name, helperLibId: hId, capsidLibId: cId, transgeneLibId: tId });
   saveLS();
+  saveSharedLibrary();
   renderBatchRecipeSelect();
   toast(`Recipe "${name}" saved ✓`);
 }
@@ -1679,6 +1681,7 @@ function loadBatchRecipe(id) {
 function deleteBatchRecipe(id) {
   batchRecipes = batchRecipes.filter(r => r.id !== id);
   saveLS();
+  saveSharedLibrary();
   renderBatchRecipeSelect();
 }
 
@@ -1996,6 +1999,7 @@ function addPlasmidToLibrary() {
   };
   plasmidLibrary.unshift(entry);
   saveLS();
+  saveSharedLibrary();
   renderPlasmidLibrary();
   toast('Plasmid saved to library ✓');
   // clear form
@@ -2008,6 +2012,7 @@ function addPlasmidToLibrary() {
 function deletePlasmidFromLibrary(id) {
   plasmidLibrary = plasmidLibrary.filter(p => p.id !== id);
   saveLS();
+  saveSharedLibrary();
   renderPlasmidLibrary();
 }
 
@@ -2051,9 +2056,10 @@ function savePlasmidEdit(id) {
 
   sentPlasmidIds.delete(id);
   saveLS();
+  saveSharedLibrary();
   updateLibraryDropdowns();
   renderPlasmidLibrary();
-  toast('Plasmid updated ✓ — click Send to Sheets to sync');
+  toast('Plasmid updated ✓');
 }
 
 function renderPlasmidLibrary() {
@@ -2181,6 +2187,51 @@ function saveNotes() {
 const gsUrl = 'https://script.google.com/macros/s/AKfycbx_x6ppTpsTbGT1OIs1awCuFWQlXpMi1WseobkobGYzMrDdzGaNILMICn6W9W5AJhoZ/exec';
 
 function saveGsConfig() { /* URL is hard-coded; nothing to save */ }
+
+// ─── Shared Library (plasmids + batch recipes via Google Sheets) ──────────────
+let _sharedLibSaveTimer = null;
+
+// Load shared plasmid library + batch recipes from Google Sheets on startup
+function loadSharedLibrary() {
+  const statusEl = document.getElementById('shared-lib-status');
+  if (statusEl) { statusEl.textContent = '⏳ Syncing library…'; statusEl.style.color = 'var(--fg-muted)'; }
+  fetch(gsUrl + '?mode=getLibrary', { method: 'GET' })
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.plasmidLibrary && Array.isArray(data.plasmidLibrary)) {
+        plasmidLibrary = data.plasmidLibrary;
+      }
+      if (data && data.batchRecipes && Array.isArray(data.batchRecipes)) {
+        batchRecipes = data.batchRecipes;
+      }
+      // Also persist locally so the page still works offline
+      saveLS();
+      renderPlasmidLibrary();
+      renderBatchRecipeSelect();
+      updateLibraryDropdowns();
+      if (statusEl) { statusEl.textContent = '✓ Library synced'; statusEl.style.color = 'var(--s2,green)'; setTimeout(() => { statusEl.textContent = ''; }, 3000); }
+    })
+    .catch(() => {
+      // Silently fall back to localStorage — already loaded by loadLS()
+      if (statusEl) { statusEl.textContent = '⚠ Offline — using local library'; statusEl.style.color = 'var(--fg-muted)'; setTimeout(() => { statusEl.textContent = ''; }, 4000); }
+    });
+}
+
+// Push shared library to Google Sheets (debounced 1.5 s so rapid edits batch)
+function saveSharedLibrary() {
+  clearTimeout(_sharedLibSaveTimer);
+  _sharedLibSaveTimer = setTimeout(_doSaveSharedLibrary, 1500);
+}
+
+function _doSaveSharedLibrary() {
+  const payload = { plasmidLibrary, batchRecipes };
+  fetch(gsUrl, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'saveLibrary', payload })
+  }).catch(() => {}); // silent — localStorage is always the safety net
+}
 
 function gsPost(data) {
   if (!gsUrl) { toast('Paste your Apps Script URL in ⚙ Sheets settings first'); return false; }
