@@ -588,6 +588,22 @@ td.warn{color:var(--red);font-weight:600;}
     </div>
   </div>
 
+  <!-- Transfection History — past entries from Google Sheet (read-only) -->
+  <div class="card" style="margin-top:1rem;">
+    <div class="card-head" style="display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;">
+      <h2>📋 Transfection History</h2>
+      <span style="font-size:11px;color:var(--fg-muted);margin-right:auto;">Past recipes from the shared Google Sheet</span>
+      <input type="text" placeholder="Filter by plasmid, operator, date…" oninput="filterTxnHistory(this.value)"
+        style="font-size:12px;padding:.3rem .6rem;border:1px solid var(--border);border-radius:6px;background:var(--bg-card);color:var(--fg);width:220px;">
+      <button class="btn btn-outline" style="font-size:11px;padding:.3rem .7rem;" onclick="loadTransfectionHistory()">↻ Refresh</button>
+    </div>
+    <div class="card-body">
+      <div id="txn-history-list">
+        <p style="color:var(--fg-muted);font-size:12px;font-style:italic;">Loading…</p>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /tab-calc -->
 
 <!-- ═══════════════════════════════════════════════════════
@@ -1316,6 +1332,22 @@ td.warn{color:var(--red);font-weight:600;}
       </div>
     </div>
   </div>
+
+  <!-- Lab Archive — all batches from Google Sheet (read-only) -->
+  <div class="card" style="margin-top:1rem;">
+    <div class="card-head" style="display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;">
+      <h2>🗂 Lab Archive</h2>
+      <span style="font-size:11px;color:var(--fg-muted);margin-right:auto;">All batches from the shared Google Sheet</span>
+      <input type="text" placeholder="Filter by plasmid, batch, operator…" oninput="filterLabArchive(this.value)"
+        style="font-size:12px;padding:.3rem .6rem;border:1px solid var(--border);border-radius:6px;background:var(--bg-card);color:var(--fg);width:220px;">
+      <button class="btn btn-outline" style="font-size:11px;padding:.3rem .7rem;" onclick="loadStorageArchive()">↻ Refresh</button>
+    </div>
+    <div class="card-body">
+      <div id="lab-archive-list">
+        <p style="color:var(--fg-muted);font-size:12px;font-style:italic;">Loading…</p>
+      </div>
+    </div>
+  </div>
 </div><!-- /tab-storage -->
 
 <!-- ══ PLASMID LIBRARY ══════════════════════════════════════ -->
@@ -1412,6 +1444,8 @@ window.addEventListener('DOMContentLoaded', () => {
   renderQpcrResults();
   renderPlasmidLibrary();
   renderBatchRecipeSelect();
+  loadStorageArchive();
+  loadTransfectionHistory();
 });
 
 function setTodayDates() {
@@ -1827,6 +1861,7 @@ function addStorageRecord() {
   storageRecords.unshift(rec);
   saveLS();
   renderStorageRecords();
+  autoSendStorageRecord(rec); // share immediately so lab archive updates on next load
   toast('Record added ✓');
 }
 
@@ -2184,7 +2219,7 @@ function saveNotes() {
 }
 
 // ─── Google Sheets ───────────────────────────────────────
-const gsUrl = 'https://script.google.com/macros/s/AKfycbz_rVLEtFHqhXqU3MS9hojr63hn2mRP2HuBCfb06qlMXUEbSCt8OcqwQwB76Q6gfrsc/exec';
+const gsUrl = 'https://script.google.com/macros/s/AKfycbx_x6ppTpsTbGT1OIs1awCuFWQlXpMi1WseobkobGYzMrDdzGaNILMICn6W9W5AJhoZ/exec';
 
 function saveGsConfig() { /* URL is hard-coded; nothing to save */ }
 
@@ -2231,6 +2266,150 @@ function _doSaveSharedLibrary() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ mode: 'saveLibrary', payload })
   }).catch(() => {}); // silent — localStorage is always the safety net
+}
+
+// ── Auto-send one storage record to Sheets immediately when added ──────────
+function autoSendStorageRecord(rec) {
+  if (!gsUrl) return;
+  const titreNum = parseFloat(rec.titre) || 0;
+  const stockVol = (parseFloat(rec.aliquot)||0) * (parseFloat(rec.nAliquots)||0);
+  fetch(gsUrl, {
+    method: 'POST', mode: 'no-cors',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      sheet: 'Storage',
+      records: [{
+        record_id:        rec.id,
+        storage:          rec.location || '—',
+        batch_exp:        rec.batch || '—',
+        batch_helper:     (rec.helperName||'—') + ' [' + (rec.helperBatch||'—') + ']',
+        batch_capsid:     (rec.capsidName||'—') + ' [' + (rec.capsidBatch||'—') + ']',
+        batch_transgene:  (rec.transgeneName||'—') + ' [' + (rec.transgeneBatch||'—') + ']',
+        lc_helper:        rec.helperLabcollector||'',
+        lc_capsid:        rec.capsidLabcollector||'',
+        lc_transgene:     rec.transgeneLabcollector||'',
+        date:             rec.date || '—',
+        operator:         rec.operator || '—',
+        stock_titer_vg_ul: titreNum,
+        method:           rec.method || '—',
+        stock_volume_ul:  stockVol,
+        notes:            rec.notes || ''
+      }]
+    })
+  }).catch(() => {});
+}
+
+// ── Lab Archive — load all storage records from Sheets ────────────────────
+function loadStorageArchive() {
+  if (!gsUrl) return;
+  const el = document.getElementById('lab-archive-list');
+  if (el) el.innerHTML = '<p style="color:var(--fg-muted);font-size:12px;font-style:italic;">⏳ Loading lab archive…</p>';
+  fetch(gsUrl + '?mode=getStorage', { method: 'GET' })
+    .then(r => r.json())
+    .then(data => {
+      if (data && Array.isArray(data.records)) renderStorageArchive(data.records);
+      else if (el) el.innerHTML = '<p style="color:var(--fg-muted);font-size:12px;font-style:italic;">No records in sheet yet.</p>';
+    })
+    .catch(() => {
+      if (el) el.innerHTML = '<p style="color:var(--fg-muted);font-size:12px;font-style:italic;">⚠ Could not load — offline or sheet empty.</p>';
+    });
+}
+
+function renderStorageArchive(records) {
+  const el = document.getElementById('lab-archive-list');
+  if (!el) return;
+  if (!records || !records.length) {
+    el.innerHTML = '<p style="color:var(--fg-muted);font-size:12px;font-style:italic;">No records in sheet yet.</p>';
+    return;
+  }
+  function fmtParticles(n) {
+    if (!n) return '—';
+    const e = Math.floor(Math.log10(n));
+    return (n / Math.pow(10, e)).toFixed(1) + ' × 10<sup>' + e + '</sup>';
+  }
+  el.innerHTML = records.map(r => `
+    <div class="lab-archive-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:.7rem 1rem;margin-bottom:.5rem;font-size:12px;">
+      <div style="display:flex;flex-wrap:wrap;gap:.6rem 1.4rem;margin-bottom:.35rem;align-items:baseline;">
+        <div><span style="font-size:10px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Batch/Exp</span><br><strong style="font-size:13px;">${esc(r.batch)}</strong></div>
+        <div><span style="font-size:10px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Titre</span><br>${r.titre ? r.titre.toExponential(2)+' vg/µL' : '—'}</div>
+        <div><span style="font-size:10px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Stock</span><br>${r.stockVol ? r.stockVol+' µL' : '—'}</div>
+        <div><span style="font-size:10px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Total vg</span><br>${fmtParticles(r.totalParticles)}</div>
+        <div><span style="font-size:10px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Inj vol/mouse</span><br>${r.injVol ? r.injVol+' µL' : '—'}</div>
+        <div><span style="font-size:10px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Mice</span><br>${r.nMice || '—'}</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem 1.4rem;color:var(--fg-muted);font-size:11px;border-top:1px solid var(--border);padding-top:.35rem;">
+        <div>🧬 H: <strong style="color:var(--fg);">${esc(r.helper||'—')}</strong></div>
+        <div>🧬 C: <strong style="color:var(--fg);">${esc(r.capsid||'—')}</strong></div>
+        <div>🧬 T: <strong style="color:var(--fg);">${esc(r.transgene||'—')}</strong></div>
+        <div style="margin-left:auto;display:flex;gap:1rem;">
+          <span>📍 ${esc(r.storage||'—')}</span>
+          <span>📅 ${esc(r.date||'—')}</span>
+          <span>👤 ${esc(r.operator||'—')}</span>
+          ${r.method ? '<span>⚗ '+esc(r.method)+'</span>' : ''}
+          ${r.notes ? '<span title="'+esc(r.notes)+'">📝 '+esc(r.notes.length>30?r.notes.slice(0,30)+'…':r.notes)+'</span>' : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterLabArchive(q) {
+  const lq = q.toLowerCase();
+  document.querySelectorAll('.lab-archive-card').forEach(card => {
+    card.style.display = card.textContent.toLowerCase().includes(lq) ? '' : 'none';
+  });
+}
+
+// ── Transfection History — load past transfection entries from Sheets ──────
+function loadTransfectionHistory() {
+  if (!gsUrl) return;
+  const el = document.getElementById('txn-history-list');
+  if (el) el.innerHTML = '<p style="color:var(--fg-muted);font-size:12px;font-style:italic;">⏳ Loading transfection history…</p>';
+  fetch(gsUrl + '?mode=getTransfections', { method: 'GET' })
+    .then(r => r.json())
+    .then(data => {
+      if (data && Array.isArray(data.entries)) renderTransfectionHistory(data.entries);
+      else if (el) el.innerHTML = '<p style="color:var(--fg-muted);font-size:12px;font-style:italic;">No entries in sheet yet.</p>';
+    })
+    .catch(() => {
+      if (el) el.innerHTML = '<p style="color:var(--fg-muted);font-size:12px;font-style:italic;">⚠ Could not load — offline or sheet empty.</p>';
+    });
+}
+
+function renderTransfectionHistory(entries) {
+  const el = document.getElementById('txn-history-list');
+  if (!el) return;
+  if (!entries || !entries.length) {
+    el.innerHTML = '<p style="color:var(--fg-muted);font-size:12px;font-style:italic;">No entries in sheet yet. Send a calculation to Sheets to start the history.</p>';
+    return;
+  }
+  el.innerHTML = entries.map(e => `
+    <div class="txn-history-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:.7rem 1rem;margin-bottom:.5rem;font-size:12px;">
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem 1rem;align-items:baseline;margin-bottom:.4rem;">
+        <strong style="font-size:13px;">${esc(e.recipeName||'Untitled')}</strong>
+        ${e.vessel ? '<span style="color:var(--fg-muted);">'+esc(e.vessel)+'</span>' : ''}
+        ${e.date   ? '<span style="color:var(--fg-muted);">📅 '+esc(e.date)+'</span>' : ''}
+        ${e.operator ? '<span style="color:var(--fg-muted);">👤 '+esc(e.operator)+'</span>' : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.15rem;">
+        ${(e.plasmids||[]).map(p => `
+          <div style="display:flex;flex-wrap:wrap;gap:.3rem 1rem;font-size:11px;color:var(--fg-muted);">
+            <span>🧬 <strong style="color:var(--fg);">${esc(p.name||'—')}</strong></span>
+            ${p.batch ? '<span>Lot: '+esc(p.batch)+'</span>' : ''}
+            ${p.conc  ? '<span>'+p.conc+' ng/µL</span>' : ''}
+            ${p.vol   ? '<span>'+p.vol+' µL/vessel</span>' : ''}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterTxnHistory(q) {
+  const lq = q.toLowerCase();
+  document.querySelectorAll('.txn-history-card').forEach(card => {
+    card.style.display = card.textContent.toLowerCase().includes(lq) ? '' : 'none';
+  });
 }
 
 function gsPost(data) {
