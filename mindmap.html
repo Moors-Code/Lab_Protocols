@@ -110,9 +110,11 @@ body{
 #tx{position:absolute;top:0;left:0;transform-origin:0 0}
 
 /* SVG edges – full canvas overlay, outside #tx, synced via inner <g> transform */
-#edges{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:1}
+/* z-index intentionally omitted (z-index:auto) so edges render under #tx nodes in DOM order */
+#edges{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 #edges .ehit{fill:none;stroke:transparent;stroke-width:14;cursor:pointer;pointer-events:stroke}
-#edges .eline{fill:none;stroke-width:2;pointer-events:none;transition:stroke .1s}
+#edges .eline{fill:none;stroke-width:2;pointer-events:none;transition:stroke .1s;opacity:0.6}
+#edges .eline.sel{opacity:1}
 
 /* ── NODES ── */
 #nodes{position:absolute;top:0;left:0;pointer-events:none}
@@ -528,7 +530,7 @@ body{
 
 <!-- CANVAS -->
 <div id="canvas">
-  <!-- SVG overlay covers full canvas; inner <g> gets pan/zoom transform -->
+  <!-- SVG edge layer – rendered first (behind #tx nodes) so arrows pass under boxes -->
   <svg id="edges" xmlns="http://www.w3.org/2000/svg"><g id="edge-g"></g></svg>
   <div id="tx">
     <div id="nodes"></div>
