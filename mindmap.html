@@ -84,6 +84,7 @@ body{
 #canvas.m-conn{cursor:cell}
 #canvas.m-del{cursor:no-drop}
 #canvas.m-select{cursor:grab}
+#canvas.m-lasso{cursor:crosshair}
 #canvas.panning{cursor:grabbing!important}
 #tx{position:absolute;top:0;left:0;transform-origin:0 0}
 
@@ -134,6 +135,138 @@ body{
 :root[data-theme="dark"] .node.st-running{background:#0C1A3A;border-color:#2563EB}
 :root[data-theme="dark"] .node.st-failure{background:#2D0A0A;border-color:#DC2626}
 :root[data-theme="dark"] .node.st-repeat {background:#1A1C22;border-color:#6B7280}
+
+/* ── LASSO SELECTION ── */
+#lasso-box{
+  position:absolute;z-index:5;pointer-events:none;
+  border:2px dashed var(--acc);background:rgba(29,111,164,.07);
+  border-radius:3px;display:none;
+}
+.node.dimmed{opacity:.18;filter:grayscale(.7);pointer-events:none}
+.node.multi-sel{outline:3px solid var(--acc);outline-offset:3px}
+.ngrp{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;align-items:center}
+.ngrp-dot{
+  width:8px;height:8px;border-radius:50%;
+  display:inline-block;flex-shrink:0;
+  box-shadow:0 0 0 1.5px rgba(0,0,0,.15);
+}
+
+/* ── AVENUES SIDEBAR ── */
+#gside{
+  position:fixed;right:0;top:52px;bottom:0;width:240px;
+  background:var(--surf);border-left:1px solid var(--bdr);
+  display:flex;flex-direction:column;z-index:60;
+  transform:translateX(100%);transition:transform .2s cubic-bezier(.4,0,.2,1);
+  box-shadow:-4px 0 16px rgba(0,0,0,.07);
+}
+#gside.open{transform:translateX(0)}
+#gside-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 14px 10px;border-bottom:1px solid var(--bdr);flex-shrink:0;
+}
+#gside-hd span{font-size:13px;font-weight:600;color:var(--fg)}
+#gside-close{
+  background:none;border:none;font-size:15px;cursor:pointer;
+  color:var(--fg2);padding:3px 6px;border-radius:6px;line-height:1;
+}
+#gside-close:hover{background:var(--surf2)}
+#gside-showall{
+  margin:10px 14px 2px;padding:7px 10px;border-radius:8px;
+  background:var(--acc);color:var(--acc-fg);border:none;
+  font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;
+  transition:background .12s;
+}
+#gside-showall:hover{background:var(--acc-h)}
+#gside-list{flex:1;overflow-y:auto;padding:8px 14px;display:flex;flex-direction:column;gap:5px}
+.gitem{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;border-radius:8px;cursor:pointer;
+  border:1.5px solid transparent;
+  background:var(--surf2);transition:background .12s;
+}
+.gitem:hover{background:var(--bdr)}
+.gitem.focused{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,transparent)}
+.gitem-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 2px rgba(0,0,0,.1)}
+.gitem-name{
+  flex:1;font-size:12.5px;font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--fg);
+}
+.gitem-cnt{
+  font-size:10px;color:var(--fg2);font-weight:600;
+  background:var(--surf);border:1px solid var(--bdr);
+  padding:1px 6px;border-radius:10px;flex-shrink:0;
+}
+.gitem-del{
+  background:none;border:none;font-size:13px;cursor:pointer;
+  color:var(--fg2);padding:2px 5px;border-radius:4px;
+  opacity:0;transition:opacity .1s;flex-shrink:0;
+}
+.gitem:hover .gitem-del{opacity:1}
+.gitem-del:hover{color:#DC2626;background:rgba(220,38,38,.1)}
+#gside-footer{
+  padding:10px 14px 14px;border-top:1px solid var(--bdr);
+  flex-shrink:0;font-size:11px;color:var(--fg2);line-height:1.55;text-align:center;
+}
+#gside-empty{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:30px 14px;color:var(--fg2);font-size:12px;text-align:center;
+}
+#gside-empty .gside-ei{font-size:28px;opacity:.4}
+
+/* ── GROUP ASSIGNMENT PANEL ── */
+#gpanel{
+  position:fixed;z-index:95;
+  background:var(--surf);border-radius:14px;
+  box-shadow:0 4px 24px rgba(0,0,0,.2),0 0 0 1px var(--bdr);
+  padding:16px;width:260px;
+  animation:popIn .15s ease-out;
+}
+#gpanel-count{font-size:11px;font-weight:600;color:var(--fg2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em}
+#gpanel-existing{display:flex;flex-direction:column;gap:5px;margin-bottom:8px}
+.gp-chip{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;border-radius:8px;cursor:pointer;
+  border:1.5px solid var(--bdr);background:var(--surf2);
+  font-size:13px;font-weight:500;font-family:inherit;color:var(--fg);
+  transition:background .12s;text-align:left;
+}
+.gp-chip:hover{background:var(--bdr)}
+.gp-chip-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+#gpanel-sep{font-size:11px;color:var(--fg2);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+#gpanel-new{display:flex;gap:6px;margin-bottom:8px}
+#gpanel-input{
+  flex:1;padding:7px 9px;border:1.5px solid var(--bdr);border-radius:8px;
+  background:var(--surf);color:var(--fg);font-size:13px;font-family:inherit;
+  min-width:0;
+}
+#gpanel-input:focus{outline:none;border-color:var(--acc)}
+#gpanel-create{
+  padding:7px 12px;background:var(--acc);color:var(--acc-fg);
+  border:none;border-radius:8px;font-size:13px;font-weight:600;
+  cursor:pointer;font-family:inherit;flex-shrink:0;
+}
+#gpanel-cancel{
+  width:100%;padding:6px;background:none;border:none;
+  color:var(--fg2);font-size:12px;cursor:pointer;font-family:inherit;
+  border-radius:6px;
+}
+#gpanel-cancel:hover{background:var(--surf2)}
+
+/* ── POPUP AVENUE SECTION ── */
+.pp-avenues{margin-top:10px;border-top:1px solid var(--bdr);padding-top:10px}
+.pp-avenue-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;opacity:.45;margin-bottom:6px}
+.pp-avenue-list{display:flex;flex-direction:column;gap:4px}
+.pp-avenue-chip{
+  display:flex;align-items:center;gap:7px;
+  font-size:12px;color:var(--fg);
+}
+.pp-avenue-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.pp-avenue-name{flex:1;font-weight:500}
+.pp-avenue-rm{
+  background:none;border:none;font-size:11px;cursor:pointer;
+  color:var(--fg2);padding:1px 5px;border-radius:4px;font-family:inherit;
+}
+.pp-avenue-rm:hover{color:#DC2626;background:rgba(220,38,38,.1)}
 
 /* ── POPUP CARD ── */
 #popup{
@@ -267,6 +400,9 @@ body{
   <button class="tbtn" id="badde"><span class="ico-e">⚗</span> Experiment <span class="k">E</span></button>
   <button class="tbtn" id="bconn">⇒ Connect <span class="k">C</span></button>
   <button class="tbtn" id="bdel">✕ Delete <span class="k">D</span></button>
+  <button class="tbtn" id="blasso">⬡ Lasso <span class="k">L</span></button>
+  <div class="sep"></div>
+  <button class="tbtn" id="bgroups">⊞ Avenues</button>
   <div class="sep"></div>
   <button class="tbtn" id="bfit">⊡ Fit</button>
   <button class="tbtn" id="bclr">⊘ Clear</button>
@@ -291,6 +427,29 @@ body{
     <div class="et">Start your research map</div>
     <div class="es">Choose <b>Question</b> or <b>Experiment</b> from the toolbar, then click anywhere on the canvas.</div>
   </div>
+  <div id="lasso-box"></div>
+</div>
+
+<!-- AVENUES SIDEBAR -->
+<div id="gside">
+  <div id="gside-hd">
+    <span>⬡ Avenues</span>
+    <button id="gside-close" title="Close sidebar">✕</button>
+  </div>
+  <div id="gside-list"></div>
+  <div id="gside-footer">Use the <b>⬡ Lasso</b> tool to select nodes<br>and assign them to an avenue.</div>
+</div>
+
+<!-- GROUP ASSIGNMENT PANEL -->
+<div id="gpanel" hidden>
+  <div id="gpanel-count"></div>
+  <div id="gpanel-existing"></div>
+  <div id="gpanel-sep">New avenue</div>
+  <div id="gpanel-new">
+    <input id="gpanel-input" type="text" placeholder="Avenue name…" autocomplete="off">
+    <button id="gpanel-create">Create</button>
+  </div>
+  <button id="gpanel-cancel">Cancel selection</button>
 </div>
 
 <!-- ZOOM -->
@@ -350,13 +509,16 @@ const REGISTRY_KEY = 'lmm-projects';
 const _defaultTitle = PROJECT_ID === 'default' ? 'Research Project'
   : PROJECT_ID.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
 
-let S = { title: _defaultTitle, nodes:[], edges:[] };
+let S = { title: _defaultTitle, nodes:[], edges:[], groups:[] };
 let V = {
   mode:'select', pan:{x:0,y:0}, zoom:1,
   sel:null, cFrom:null,
   drag:null,      // node drag
   panDrag:null,   // alt/middle-btn pan
   bgDrag:null,    // background click-drag pan (select mode)
+  lasso:null,     // lasso rect {sx,sy,ex,ey} in canvas px
+  multiSel:[],    // node IDs selected by lasso
+  focusGroup:null,// group ID currently focused (null = show all)
   editId:null, tTimer:null, popId:null
 };
 
@@ -436,6 +598,7 @@ function loadFile(file){
 }
 function load(){
   try{ const d=localStorage.getItem(SK); if(d) S={...S,...JSON.parse(d)} }catch(e){}
+  if(!S.groups) S.groups=[];
 }
 
 // ── DOM REFS ───────────────────────────────────────────────────────────────
@@ -560,6 +723,15 @@ function renderEdges(){
     const g=document.createElementNS('http://www.w3.org/2000/svg','g');
     g.setAttribute('class','eg'); g.dataset.id=e.id;
 
+    // Dim edge when a group is focused and neither endpoint is in that group
+    if(V.focusGroup){
+      const focGrp=(S.groups||[]).find(g=>g.id===V.focusGroup);
+      if(focGrp && !focGrp.nodeIds.includes(fn.id) && !focGrp.nodeIds.includes(tn.id)){
+        g.setAttribute('opacity','0.1');
+        g.style.pointerEvents='none';
+      }
+    }
+
     // Hit area
     const hit=document.createElementNS('http://www.w3.org/2000/svg','path');
     hit.setAttribute('d',d); hit.setAttribute('class','ehit');
@@ -619,9 +791,13 @@ function nodeHTML(n){
   const txt=n.text||'…';
   const sm=n.status&&STATUS_META[n.status];
   const statHTML=sm?`<div class="nstat" style="color:${sm.color};background:${sm.color}18;border:1px solid ${sm.color}55">${sm.label}</div>`:'';
+  const myGrps=(S.groups||[]).filter(g=>g.nodeIds.includes(n.id));
+  const grpHTML=myGrps.length
+    ? `<div class="ngrp">${myGrps.map(g=>`<span class="ngrp-dot" style="background:${g.color}" title="${esc(g.name)}"></span>`).join('')}</div>`
+    : '';
   return `<div class="nlbl">${lbl}</div>
     <div class="ntxt">${esc(txt)}</div>
-    ${statHTML}
+    ${statHTML}${grpHTML}
     <div class="nhint">Click to expand</div>`;
 }
 
@@ -633,9 +809,14 @@ function renderNodes(){
     let el=old.get(n.id);
     if(!el){ el=document.createElement('div'); nLayer.appendChild(el); }
     const stCls=n.type==='e'&&n.status?` st-${n.status}`:'';
+    const focGrp=V.focusGroup && (S.groups||[]).find(g=>g.id===V.focusGroup);
+    const isDimmed=focGrp && !focGrp.nodeIds.includes(n.id);
+    const isMultiSel=(V.multiSel||[]).includes(n.id);
     el.className='node'+(n.type==='e'?' exp':'')+stCls
       +(V.sel?.t==='node'&&V.sel?.id===n.id?' sel':'')
-      +(V.cFrom===n.id?' csrc':'');
+      +(V.cFrom===n.id?' csrc':'')
+      +(isDimmed?' dimmed':'')
+      +(isMultiSel?' multi-sel':'');
     el.dataset.id=n.id;
     el.style.left=n.x+'px'; el.style.top=n.y+'px';
     el.innerHTML=nodeHTML(n);
@@ -646,6 +827,7 @@ function renderNodes(){
 nLayer.addEventListener('mousedown',e=>{
   if(e.button!==0) return;
   const ne=e.target.closest('.node'); if(!ne) return;
+  if(V.mode==='lasso') return; // let lasso draw over nodes
   e.stopPropagation();
   const id=ne.dataset.id, n=S.nodes.find(n=>n.id===id); if(!n) return;
   if(V.mode==='delete'){closePopup();delNode(id);return}
@@ -775,6 +957,19 @@ function openPopup(id){
         ? '<span class="ico-e">⚗</span> Add linked Experiment'
         : '<span class="ico-q">?</span> Add linked Question'}
     </button>
+    ${(()=>{
+      const myGrps=(S.groups||[]).filter(g=>g.nodeIds.includes(id));
+      if(!myGrps.length) return '';
+      return `<div class="pp-avenues">
+        <div class="pp-avenue-label">Avenues</div>
+        <div class="pp-avenue-list">${myGrps.map(g=>`
+          <div class="pp-avenue-chip">
+            <div class="pp-avenue-dot" style="background:${g.color}"></div>
+            <div class="pp-avenue-name">${esc(g.name)}</div>
+            <button class="pp-avenue-rm" data-gid="${g.id}" data-nid="${id}">✕ Remove</button>
+          </div>`).join('')}
+        </div></div>`;
+    })()}
     <span class="pp-dismiss">click outside to close</span>`;
   popup.hidden=false;
 
@@ -793,6 +988,13 @@ function openPopup(id){
   document.getElementById('pp-del').addEventListener('click',()=>{closePopup();delNode(id)});
   document.getElementById('pp-quick').addEventListener('click',()=>{
     addConnectedNode(id, n.type==='q'?'e':'q');
+  });
+  popup.querySelectorAll('.pp-avenue-rm').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      removeNodeFromGroup(btn.dataset.gid,btn.dataset.nid);
+      openPopup(id);
+    });
   });
   popup.querySelectorAll('.pp-stat-btn').forEach(btn=>{
     btn.addEventListener('click',e=>{
@@ -854,19 +1056,36 @@ mbg.addEventListener('click',e=>{ if(e.target===mbg) closeModal() });
 mtxt.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)) saveModal() });
 
 // ── TOOLBAR ───────────────────────────────────────────────────────────────
-const MODES=['select','add-q','add-e','connect','delete'];
-const BTNS={select:'bsel','add-q':'baddq','add-e':'badde',connect:'bconn',delete:'bdel'};
-const MCLS={select:'m-select','add-q':'m-addq','add-e':'m-adde',connect:'m-conn',delete:'m-del'};
-const MLBLS={select:'Select mode — click a node to expand it','add-q':'Click canvas to add question','add-e':'Click canvas to add experiment',connect:'Click source node, then target',delete:'Click a node or edge to delete'};
+const MODES=['select','add-q','add-e','connect','delete','lasso'];
+const BTNS={select:'bsel','add-q':'baddq','add-e':'badde',connect:'bconn',delete:'bdel',lasso:'blasso'};
+const MCLS={select:'m-select','add-q':'m-addq','add-e':'m-adde',connect:'m-conn',delete:'m-del',lasso:'m-lasso'};
+const MLBLS={select:'Select mode — click a node to expand it','add-q':'Click canvas to add question','add-e':'Click canvas to add experiment',connect:'Click source node, then target',delete:'Click a node or edge to delete',lasso:'Drag to lasso-select nodes, then assign to an avenue'};
 
 function setMode(m){
   V.mode=m; V.cFrom=null; closePopup();
+  // Clear any lasso state when switching modes
+  if(m!=='lasso'){ V.lasso=null; V.multiSel=[]; const lb=document.getElementById('lasso-box'); if(lb) lb.style.display='none'; }
   MODES.forEach(md=>{ const b=document.getElementById(BTNS[md]); if(b) b.classList.toggle('on',md===m) });
   cvs.className=''; if(MCLS[m]) cvs.classList.add(MCLS[m]);
   toast2(MLBLS[m],2000); renderNodes();
 }
 MODES.forEach(m=>{ const b=document.getElementById(BTNS[m]); if(b) b.addEventListener('click',()=>setMode(m)) });
 document.getElementById('bfit').addEventListener('click',fitAll);
+
+// Sidebar toggle
+const gside=document.getElementById('gside');
+function toggleSidebar(force){
+  const open=force!==undefined?force:!gside.classList.contains('open');
+  gside.classList.toggle('open',open);
+  document.getElementById('bgroups').classList.toggle('on',open);
+}
+document.getElementById('bgroups').addEventListener('click',()=>toggleSidebar());
+document.getElementById('gside-close').addEventListener('click',()=>toggleSidebar(false));
+// Insert "Show all" button before the list
+const _showall=document.createElement('button');
+_showall.id='gside-showall'; _showall.textContent='← Show all nodes'; _showall.style.display='none';
+_showall.addEventListener('click',()=>{ V.focusGroup=null; renderNodes(); renderSidebar(); });
+gside.insertBefore(_showall, document.getElementById('gside-list'));
 document.getElementById('bclr').addEventListener('click',e=>{
   if(e.shiftKey||S.nodes.length===0){ S.nodes=[];S.edges=[];V.sel=null;closePopup();save();renderAll();toast2('Map cleared') }
   else toast2('Hold Shift + click Clear to reset',3000);
@@ -907,6 +1126,12 @@ cvs.addEventListener('mousedown',e=>{
       V.sel=null; closePopup();
       const pt=cPt(e),wp=toW(pt.x,pt.y);
       addNode(V.mode==='add-q'?'q':'e',wp.x,wp.y);
+    } else if(V.mode==='lasso'){
+      hideGroupPanel();
+      V.multiSel=[];
+      const pt=cPt(e);
+      V.lasso={sx:pt.x,sy:pt.y,ex:pt.x,ey:pt.y};
+      renderLasso();
     } else if(V.mode==='select'){
       // Start a background pan drag; decide click vs drag on mouseup
       V.bgDrag={sx:e.clientX,sy:e.clientY,spx:V.pan.x,spy:V.pan.y,moved:false};
@@ -923,6 +1148,11 @@ document.addEventListener('mousemove',e=>{
     V.pan.x=V.panDrag.spx+(e.clientX-V.panDrag.sx);
     V.pan.y=V.panDrag.spy+(e.clientY-V.panDrag.sy);
     applyTx(); return;
+  }
+  if(V.lasso){
+    const pt=cPt(e);
+    V.lasso.ex=pt.x; V.lasso.ey=pt.y;
+    renderLasso(); return;
   }
   if(V.bgDrag){
     const dist=Math.hypot(e.clientX-V.bgDrag.sx, e.clientY-V.bgDrag.sy);
@@ -956,6 +1186,10 @@ document.addEventListener('mousemove',e=>{
 
 document.addEventListener('mouseup',e=>{
   if(V.panDrag){ V.panDrag=null; cvs.classList.remove('panning') }
+  if(V.lasso){
+    finishLasso(e);
+    return;
+  }
   if(V.bgDrag){
     if(!V.bgDrag.moved){
       // Treat as a plain background click — deselect everything
@@ -976,6 +1210,137 @@ document.addEventListener('mouseup',e=>{
     V.drag=null;
   }
 });
+
+// ── LASSO ─────────────────────────────────────────────────────────────────
+const lassoBox=document.getElementById('lasso-box');
+function renderLasso(){
+  if(!V.lasso){ lassoBox.style.display='none'; return; }
+  const {sx,sy,ex,ey}=V.lasso;
+  const x=Math.min(sx,ex), y=Math.min(sy,ey);
+  lassoBox.style.left=x+'px'; lassoBox.style.top=y+'px';
+  lassoBox.style.width=Math.abs(ex-sx)+'px'; lassoBox.style.height=Math.abs(ey-sy)+'px';
+  lassoBox.style.display='block';
+}
+function finishLasso(e){
+  const {sx,sy,ex,ey}=V.lasso;
+  // Convert lasso rect from canvas-px to world coords
+  const x1=(Math.min(sx,ex)-V.pan.x)/V.zoom;
+  const y1=(Math.min(sy,ey)-V.pan.y)/V.zoom;
+  const x2=(Math.max(sx,ex)-V.pan.x)/V.zoom;
+  const y2=(Math.max(sy,ey)-V.pan.y)/V.zoom;
+  V.lasso=null; lassoBox.style.display='none';
+  // Select nodes whose centre is within rect (need a min drag to avoid single click)
+  const dragged=Math.abs(ex-sx)>8||Math.abs(ey-sy)>8;
+  V.multiSel=dragged ? S.nodes.filter(n=>n.x>=x1&&n.x<=x2&&n.y>=y1&&n.y<=y2).map(n=>n.id) : [];
+  renderNodes();
+  if(V.multiSel.length>0) showGroupPanel(e);
+  else{ hideGroupPanel(); toast2('No nodes in selection',2000); }
+}
+
+// ── AVENUES (groups) ───────────────────────────────────────────────────────
+const GROUP_COLORS=['#6366F1','#EC4899','#F59E0B','#10B981','#3B82F6','#8B5CF6','#EF4444','#06B6D4','#84CC16','#F97316'];
+function nextColor(){
+  const used=(S.groups||[]).map(g=>g.color);
+  return GROUP_COLORS.find(c=>!used.includes(c))||GROUP_COLORS[Math.floor(Math.random()*GROUP_COLORS.length)];
+}
+
+function createGroup(name,nodeIds){
+  if(!S.groups) S.groups=[];
+  const id='g'+Date.now();
+  S.groups.push({id,name:name.trim()||'Unnamed',color:nextColor(),nodeIds:[...nodeIds]});
+  V.multiSel=[]; save(); renderNodes(); renderSidebar();
+  toast2('Avenue created: '+name,2000);
+}
+function assignToGroup(groupId,nodeIds){
+  const g=S.groups.find(g=>g.id===groupId); if(!g) return;
+  nodeIds.forEach(id=>{ if(!g.nodeIds.includes(id)) g.nodeIds.push(id); });
+  V.multiSel=[]; save(); renderNodes(); renderSidebar();
+  toast2('Added to "'+g.name+'"',2000);
+}
+function removeNodeFromGroup(groupId,nodeId){
+  const g=(S.groups||[]).find(g=>g.id===groupId); if(!g) return;
+  g.nodeIds=g.nodeIds.filter(id=>id!==nodeId);
+  if(V.focusGroup===groupId&&g.nodeIds.length===0) V.focusGroup=null;
+  save(); renderNodes(); renderSidebar();
+}
+function deleteGroup(groupId){
+  S.groups=(S.groups||[]).filter(g=>g.id!==groupId);
+  if(V.focusGroup===groupId) V.focusGroup=null;
+  save(); renderNodes(); renderSidebar();
+}
+function setFocusGroup(id){
+  V.focusGroup=V.focusGroup===id?null:id;
+  renderNodes(); renderSidebar();
+}
+
+function renderSidebar(){
+  const list=document.getElementById('gside-list');
+  const showall=document.getElementById('gside-showall');
+  // Show/hide "Show all" button
+  if(showall) showall.style.display=V.focusGroup?'block':'none';
+  const grps=S.groups||[];
+  if(!grps.length){
+    list.innerHTML=`<div id="gside-empty"><div class="gside-ei">⬡</div>No avenues yet.<br>Use the Lasso tool to group nodes.</div>`;
+    return;
+  }
+  list.innerHTML=grps.map(g=>`
+    <div class="gitem${V.focusGroup===g.id?' focused':''}" data-gid="${g.id}">
+      <div class="gitem-dot" style="background:${g.color}"></div>
+      <div class="gitem-name" title="${esc(g.name)}">${esc(g.name)}</div>
+      <div class="gitem-cnt">${g.nodeIds.length}</div>
+      <button class="gitem-del" data-gid="${g.id}" title="Delete avenue">✕</button>
+    </div>`).join('');
+  list.querySelectorAll('.gitem').forEach(el=>{
+    el.addEventListener('click',ev=>{
+      if(ev.target.classList.contains('gitem-del')) return;
+      setFocusGroup(el.dataset.gid);
+    });
+  });
+  list.querySelectorAll('.gitem-del').forEach(btn=>{
+    btn.addEventListener('click',ev=>{
+      ev.stopPropagation();
+      const g=(S.groups||[]).find(g=>g.id===btn.dataset.gid);
+      if(g&&confirm(`Delete avenue "${g.name}"?`)) deleteGroup(btn.dataset.gid);
+    });
+  });
+}
+
+// Group assignment floating panel
+const gpanel=document.getElementById('gpanel');
+function showGroupPanel(e){
+  gpanel.hidden=false;
+  document.getElementById('gpanel-count').textContent=V.multiSel.length+' node'+(V.multiSel.length!==1?'s':'')+' selected';
+  document.getElementById('gpanel-input').value='';
+  const grps=S.groups||[];
+  const existing=document.getElementById('gpanel-existing');
+  existing.innerHTML=grps.length
+    ? '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--fg2);margin-bottom:6px">Add to existing</div>'
+      +grps.map(g=>`<button class="gp-chip" data-gid="${g.id}"><div class="gp-chip-dot" style="background:${g.color}"></div>${esc(g.name)}</button>`).join('')
+    : '';
+  existing.querySelectorAll('.gp-chip').forEach(btn=>{
+    btn.addEventListener('click',()=>{ assignToGroup(btn.dataset.gid,V.multiSel); hideGroupPanel(); });
+  });
+  // Position near mouse or centre of canvas
+  const r=cvs.getBoundingClientRect();
+  const px=e?Math.min(e.clientX,window.innerWidth-280):r.left+r.width/2-130;
+  const py=e?Math.min(e.clientY+10,window.innerHeight-200):r.top+r.height/2-100;
+  gpanel.style.left=Math.max(8,px)+'px'; gpanel.style.top=Math.max(60,py)+'px';
+}
+function hideGroupPanel(){
+  gpanel.hidden=true;
+  V.multiSel=[]; renderNodes();
+}
+document.getElementById('gpanel-create').addEventListener('click',()=>{
+  const name=document.getElementById('gpanel-input').value.trim();
+  if(!name){ document.getElementById('gpanel-input').focus(); return; }
+  createGroup(name,V.multiSel); hideGroupPanel();
+});
+document.getElementById('gpanel-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){ document.getElementById('gpanel-create').click(); }
+  if(e.key==='Escape') hideGroupPanel();
+});
+document.getElementById('gpanel-cancel').addEventListener('click',hideGroupPanel);
+gpanel.addEventListener('mousedown',e=>e.stopPropagation());
 
 // ── FIT ───────────────────────────────────────────────────────────────────
 function fitAll(){
@@ -1002,6 +1367,7 @@ document.addEventListener('keydown',e=>{
   else if(k==='e'||k==='E') setMode('add-e');
   else if(k==='c'||k==='C') setMode('connect');
   else if(k==='d'||k==='D') setMode('delete');
+  else if(k==='l'||k==='L') setMode('lasso');
   else if(k==='f'||k==='F') fitAll();
   else if(k==='+'||k==='=') zoom(1.2);
   else if(k==='-') zoom(1/1.2);
@@ -1063,5 +1429,6 @@ document.title=(S.title||_defaultTitle)+' · Mind Map';
 // Seed initial history snapshot so undo has a baseline to return to
 pushHistory();
 renderAll();
+renderSidebar();
 setTimeout(fitAll,60);
 </script>
