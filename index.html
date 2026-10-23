@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SyPhy Lab Resources</title>
+<link rel="icon" type="image/svg+xml" href="favicon-lab.svg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  --bg: #f5f6f8;
+  --bg-card: #ffffff;
+  --fg: #1a1d23;
+  --fg-muted: #5a6070;
+  --accent: #0c7c59;
+  --accent-soft: #e8f5f0;
+  --border: #e0e3ea;
+  --header-bg: #111318;
+  --header-fg: #f0f2f6;
+  --tag-bg: #dde8e4;
+  --tag-fg: #0c5e43;
+  --shadow: 0 1px 3px rgba(0,0,0,.07), 0 4px 12px rgba(0,0,0,.05);
+  --tab-h: 48px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131519; --bg-card: #1c1f26; --fg: #e8eaf0; --fg-muted: #7a8090;
+    --accent: #2ab88a; --accent-soft: #0c2d22; --border: #282c36;
+    --header-bg: #0c0e12; --header-fg: #e8eaf0;
+    --tag-bg: #0e2a20; --tag-fg: #2ab88a;
+    --shadow: 0 1px 3px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.2);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131519; --bg-card: #1c1f26; --fg: #e8eaf0; --fg-muted: #7a8090;
+  --accent: #2ab88a; --accent-soft: #0c2d22; --border: #282c36;
+  --header-bg: #0c0e12; --header-fg: #e8eaf0;
+  --tag-bg: #0e2a20; --tag-fg: #2ab88a;
+  --shadow: 0 1px 3px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.2);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; }
+body {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  background: var(--bg); color: var(--fg);
+  font-size: 15px; line-height: 1.6;
+  display: flex; flex-direction: column;
+}
+
+/* ── Header ── */
+header {
+  background: var(--header-bg); color: var(--header-fg);
+  padding-block: 2.2rem 1.8rem;
+  padding-left: max(24px, env(safe-area-inset-left, 0px));
+  padding-right: max(24px, env(safe-area-inset-right, 0px));
+}
+.header-inner { max-width: 900px; }
+.lab-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: .5rem;
+}
+header h1 {
+  font-size: clamp(1.5rem, 4vw, 2.2rem); font-weight: 600;
+  line-height: 1.2; letter-spacing: -.02em;
+}
+header p { margin-top: .5rem; color: #8a9ab0; font-size: 14px; max-width: 56ch; }
+
+/* ── Tab bar (sticks below header) ── */
+.tab-bar {
+  background: var(--header-bg);
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  padding-left: max(24px, env(safe-area-inset-left, 0px));
+  padding-right: max(24px, env(safe-area-inset-right, 0px));
+  position: sticky; top: 0; z-index: 20;
+}
+.tab-bar-inner {
+  max-width: 900px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: var(--tab-h); gap: 1rem;
+}
+.tabs { display: flex; gap: 2px; height: 100%; align-items: flex-end; }
+.tab {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-size: 13.5px; font-weight: 500;
+  color: #7a8a9a; background: none; border: none;
+  padding: 0 14px 0; height: 100%; cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.tab:hover { color: #c0cad6; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* eLABFTW persistent link */
+.elab-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11.5px; font-weight: 600; letter-spacing: .04em;
+  color: var(--accent); text-decoration: none;
+  background: var(--accent-soft); border: 1px solid rgba(43,184,138,.2);
+  border-radius: 6px; padding: 5px 12px;
+  transition: background .15s, border-color .15s;
+  white-space: nowrap; flex-shrink: 0;
+}
+.elab-btn:hover { background: #0d3d2e; border-color: rgba(43,184,138,.45); color: #3dd9a4; }
+.elab-btn svg { flex-shrink: 0; }
+
+/* ── Main ── */
+main {
+  flex: 1;
+  max-width: 900px; width: 100%;
+  padding-top: 2.5rem; padding-bottom: 4rem;
+  padding-left: max(24px, env(safe-area-inset-left, 0px));
+  padding-right: max(24px, env(safe-area-inset-right, 0px));
+}
+
+/* Tab panels */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.section-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--fg-muted); margin-bottom: 1.2rem;
+}
+
+/* ── Card grid ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 1.4rem 1.5rem;
+  display: flex; flex-direction: column; gap: .8rem;
+  box-shadow: var(--shadow); text-decoration: none; color: inherit;
+  transition: border-color .15s, box-shadow .15s, transform .1s;
+  cursor: pointer;
+}
+.card:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow), 0 0 0 3px var(--accent-soft);
+  transform: translateY(-1px);
+}
+.card:active { transform: translateY(0); }
+.card-icon { font-size: 1.5rem; line-height: 1; }
+.card-body { flex: 1; }
+.card h2 { font-size: 1rem; font-weight: 600; line-height: 1.3; margin-bottom: .3rem; }
+.card p { font-size: 13px; color: var(--fg-muted); line-height: 1.5; }
+.card-tags { display: flex; flex-wrap: wrap; gap: .4rem; }
+.tag {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  background: var(--tag-bg); color: var(--tag-fg);
+  border-radius: 4px; padding: 2px 7px; letter-spacing: .03em;
+}
+.card-arrow {
+  align-self: flex-end; font-size: 16px; color: var(--fg-muted);
+  transition: color .15s, transform .15s;
+}
+.card:hover .card-arrow { color: var(--accent); transform: translateX(3px); }
+
+/* Placeholder card */
+.card-placeholder {
+  border: 1.5px dashed var(--border); background: transparent;
+  box-shadow: none; color: var(--fg-muted);
+  align-items: center; justify-content: center;
+  text-align: center; min-height: 140px; cursor: default;
+}
+.card-placeholder:hover { border-color: var(--border); box-shadow: none; transform: none; }
+.card-placeholder span { font-size: 13px; line-height: 1.5; }
+.card-placeholder .plus { font-size: 1.4rem; margin-bottom: .4rem; color: var(--border); }
+
+/* ── Project Planning tab ── */
+.planning-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.2rem; gap: 1rem; flex-wrap: wrap;
+}
+.new-project-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent); color: #fff;
+  border: none; border-radius: 7px; padding: 8px 16px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  transition: opacity .15s, transform .1s; white-space: nowrap;
+}
+.new-project-btn:hover { opacity: .88; transform: translateY(-1px); }
+.new-project-btn:active { transform: none; }
+
+/* New-project inline form */
+.new-project-form {
+  background: var(--bg-card); border: 1px solid var(--accent);
+  border-radius: 10px; padding: 1.2rem 1.4rem;
+  box-shadow: var(--shadow), 0 0 0 3px var(--accent-soft);
+  margin-bottom: 1.2rem; display: none;
+}
+.new-project-form.open { display: block; }
+.new-project-form label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--fg-muted); display: block; margin-bottom: .5rem;
+}
+.new-project-form input {
+  width: 100%; padding: 8px 12px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--bg);
+  color: var(--fg); font-size: 14px; font-family: inherit;
+  outline: none; transition: border-color .15s;
+}
+.new-project-form input:focus { border-color: var(--accent); }
+.new-project-form .form-btns {
+  display: flex; gap: 8px; margin-top: .8rem; justify-content: flex-end;
+}
+.btn-cancel { background: var(--bg); border: 1px solid var(--border);
+  color: var(--fg-muted); border-radius: 6px; padding: 6px 14px;
+  font-size: 13px; cursor: pointer; font-family: inherit; }
+.btn-cancel:hover { color: var(--fg); }
+.btn-create { background: var(--accent); border: none; color: #fff;
+  border-radius: 6px; padding: 6px 16px;
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.btn-create:hover { opacity: .88; }
+
+/* Export / Restore small buttons */
+.tbtn-sm {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--fg-muted); border-radius: 6px; padding: 6px 12px;
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  transition: border-color .15s, color .15s; white-space: nowrap;
+}
+.tbtn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Restore flash overlay */
+#restoreFlash {
+  position: fixed; inset: 0; background: rgba(12,124,89,.18);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 999; opacity: 0; pointer-events: none;
+  transition: opacity .3s;
+}
+#restoreFlash.show { opacity: 1; pointer-events: auto; }
+#restoreFlash .flash-box {
+  background: var(--bg-card); border: 1px solid var(--accent);
+  border-radius: 12px; padding: 1.6rem 2rem; text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  max-width: 340px;
+}
+#restoreFlash .flash-icon { font-size: 2rem; margin-bottom: .6rem; }
+#restoreFlash h3 { font-size: 1rem; font-weight: 600; margin-bottom: .4rem; }
+#restoreFlash p { font-size: 13px; color: var(--fg-muted); }
+
+/* Project cards */
+.project-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 1.3rem 1.5rem;
+  display: flex; flex-direction: column; gap: .7rem;
+  box-shadow: var(--shadow); text-decoration: none; color: inherit;
+  transition: border-color .15s, box-shadow .15s, transform .1s;
+}
+.project-card:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow), 0 0 0 3px var(--accent-soft);
+  transform: translateY(-1px);
+}
+.project-card:active { transform: none; }
+.project-card .pc-icon { font-size: 1.4rem; }
+.project-card h2 { font-size: 1rem; font-weight: 600; }
+.project-card .pc-meta {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--fg-muted);
+}
+.project-card .card-arrow { align-self: flex-end; font-size: 15px; color: var(--fg-muted); transition: color .15s, transform .15s; }
+.project-card:hover .card-arrow { color: var(--accent); transform: translateX(3px); }
+
+.empty-projects {
+  grid-column: 1/-1; text-align: center;
+  color: var(--fg-muted); font-size: 14px; padding: 3rem 0;
+}
+.empty-projects .ep-icon { font-size: 2.5rem; margin-bottom: .8rem; opacity: .4; }
+.empty-projects p { max-width: 36ch; margin: 0 auto; line-height: 1.6; }
+
+/* ── Footer ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding-block: 1.4rem;
+  padding-left: max(24px, env(safe-area-inset-left, 0px));
+  padding-right: max(24px, env(safe-area-inset-right, 0px));
+  color: var(--fg-muted); font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="lab-eyebrow">SyPhy-lab · ETH Zürich</div>
+    <h1>Lab Resources</h1>
+    <p>Interactive tools, protocols, and project planning for the SyPhy Lab.</p>
+  </div>
+</header>
+
+<!-- Persistent tab bar with eLABFTW link -->
+<nav class="tab-bar">
+  <div class="tab-bar-inner">
+    <div class="tabs">
+      <button class="tab active" data-tab="protocols">Protocols</button>
+      <button class="tab" data-tab="planning">Project Planning</button>
+    </div>
+    <a class="elab-btn" href="https://elabftw.bsse.ethz.ch/dashboard.php" target="_blank" rel="noopener">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+        <rect x="1" y="1" width="14" height="14" rx="3" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      eLABFTW
+    </a>
+  </div>
+</nav>
+
+<main>
+
+  <!-- PROTOCOLS TAB -->
+  <div id="tab-protocols" class="tab-panel active">
+    <div class="section-label">Protocols</div>
+    <div class="grid">
+
+      <a class="card" href="aav-protocol.html" target="_blank" rel="noopener">
+        <div class="card-icon">🧬</div>
+        <div class="card-body">
+          <h2>AAV Production</h2>
+          <p>Triple-plasmid PEI transfection calculator. Scales for CellStack, HYPERFlask, or standard dishes. Includes iodixanol gradient prep, ddPCR &amp; qPCR quantification, and storage tracker.</p>
+        </div>
+        <div class="card-tags">
+          <span class="tag">PEI</span>
+          <span class="tag">purification</span>
+          <span class="tag">quantification</span>
+        </div>
+        <div class="card-arrow">→</div>
+      </a>
+
+      <a class="card" href="jetOPTIMUS_Batch_Calculator_2.html" target="_blank" rel="noopener">
+        <div class="card-icon">🧪</div>
+        <div class="card-body">
+          <h2>Transfection Batch Calculator</h2>
+          <p>Plate-map or list-based batch calculator for jetOPTIMUS® and Lipofectamine 3000. Paint conditions onto a well plate and get master-mix volumes with 10% excess.</p>
+        </div>
+        <div class="card-tags">
+          <span class="tag">jetOPTIMUS</span>
+          <span class="tag">L3000</span>
+          <span class="tag">plate map</span>
+        </div>
+        <div class="card-arrow">→</div>
+      </a>
+
+      <a class="card" href="qpcr.html" target="_blank" rel="noopener">
+        <div class="card-icon">📊</div>
+        <div class="card-body">
+          <h2>qPCR Protocol Builder</h2>
+          <p>Assign samples and primer pairs to a 96-well plate, auto-generate master-mix volumes per gene with overage, and export a full protocol summary.</p>
+        </div>
+        <div class="card-tags">
+          <span class="tag">SYBR Green</span>
+          <span class="tag">master mix</span>
+          <span class="tag">plate map</span>
+        </div>
+        <div class="card-arrow">→</div>
+      </a>
+
+      <a class="card" href="golden-gate-protocol.html" target="_blank" rel="noopener">
+        <div class="card-icon">🔬</div>
+        <div class="card-body">
+          <h2>Oligo Annealing &amp; Golden Gate Assembly</h2>
+          <p>kjahsds</p>
+        </div>
+        <div class="card-tags">
+          <span class="tag">L3000</span>
+          <span class="tag">HEK293T</span>
+          <span class="tag">reverse TF</span>
+        </div>
+        <div class="card-arrow">→</div>
+      </a>
+
+      <a class="card" href="lab-calc.html" target="_blank" rel="noopener">
+        <div class="card-icon">⚗️</div>
+        <div class="card-body">
+          <h2>Lab Calculator</h2>
+          <p>Unit conversion, dilutions (C₁V₁ = C₂V₂), molarity from mass, and Beer–Lambert law — all in one tool with smart unit auto-selection.</p>
+        </div>
+        <div class="card-tags">
+          <span class="tag">dilutions</span>
+          <span class="tag">molarity</span>
+          <span class="tag">Beer–Lambert</span>
+        </div>
+        <div class="card-arrow">→</div>
+      </a>
+
+      <div class="card card-placeholder">
+        <div class="plus">＋</div>
+        <span>More protocols coming soon</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PROJECT PLANNING TAB -->
+  <div id="tab-planning" class="tab-panel">
+
+    <div class="planning-header">
+      <div class="section-label" style="margin-bottom:0">Project Mind Maps</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="tbtn-sm" id="btnExportAll" title="Download all projects as a backup file">⬇ Export backup</button>
+        <label class="tbtn-sm" id="btnRestoreLabel" title="Restore projects from a backup file">⬆ Restore backup<input type="file" id="restoreInput" accept=".json" style="display:none"></label>
+        <button class="new-project-btn" id="btnNewProject">＋ New Mind Map</button>
+      </div>
+    </div>
+
+    <!-- Inline new-project form -->
+    <div class="new-project-form" id="newProjectForm">
+      <label for="projectNameInput">Project name</label>
+      <input type="text" id="projectNameInput" placeholder="e.g. AAV Capsid Screen" maxlength="80" autocomplete="off">
+      <div class="form-btns">
+        <button class="btn-cancel" id="btnCancelProject">Cancel</button>
+        <button class="btn-create" id="btnCreateProject">Create →</button>
+      </div>
+    </div>
+
+    <!-- Dynamic project gallery -->
+    <div class="grid" id="projectGrid"></div>
+
+  </div>
+
+</main>
+
+<!-- Restore success flash -->
+<div id="restoreFlash">
+  <div class="flash-box">
+    <div class="flash-icon">✅</div>
+    <h3 id="flashTitle">Backup restored</h3>
+    <p id="flashMsg">Projects loaded from backup file.</p>
+  </div>
+</div>
+
+<footer>
+  <span>SyPhy-lab · ETH Zürich</span>
+  <span>mrober@ethz.ch</span>
+</footer>
+
+<script>
+  /* ── Tab switching ── */
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      panels.forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      const panel = document.getElementById('tab-' + tab.dataset.tab);
+      panel.classList.add('active');
+      if (tab.dataset.tab === 'planning') renderProjects();
+    });
+  });
+
+  /* ── Project gallery ── */
+  const REGISTRY_KEY = 'lmm-projects';
+  const MINDMAP_FILE = 'mindmap.html';
+
+  function getProjects() {
+    try { return JSON.parse(localStorage.getItem(REGISTRY_KEY) || '[]'); }
+    catch(e) { return []; }
+  }
+
+  function slugify(name) {
+    return name.trim().toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      || ('project-' + Date.now());
+  }
+
+  function formatDate(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+  }
+
+  function renderProjects() {
+    const grid = document.getElementById('projectGrid');
+    const projects = getProjects();
+    if (projects.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-projects">
+          <div class="ep-icon">🗺️</div>
+          <p>No mind maps yet. Click <strong>New Mind Map</strong> to create your first project.</p>
+        </div>`;
+      return;
+    }
+    // Sort newest first
+    projects.sort((a, b) => (b.updated || 0) - (a.updated || 0));
+    grid.innerHTML = projects.map(p => {
+      const href = `${MINDMAP_FILE}?project=${encodeURIComponent(p.id)}`;
+      const nodes = p.nodeCount != null ? `${p.nodeCount} node${p.nodeCount !== 1 ? 's' : ''}` : '';
+      const updated = p.updated ? `Updated ${formatDate(p.updated)}` : '';
+      const meta = [nodes, updated].filter(Boolean).join(' · ');
+      return `
+        <a class="project-card" href="${href}" target="_blank" rel="noopener">
+          <div class="pc-icon">🗺️</div>
+          <h2>${escHtml(p.title || p.id)}</h2>
+          ${meta ? `<div class="pc-meta">${escHtml(meta)}</div>` : ''}
+          <div class="card-arrow">→</div>
+        </a>`;
+    }).join('');
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ── New project form ── */
+  const form = document.getElementById('newProjectForm');
+  const nameInput = document.getElementById('projectNameInput');
+
+  document.getElementById('btnNewProject').addEventListener('click', () => {
+    form.classList.add('open');
+    nameInput.value = '';
+    nameInput.focus();
+  });
+
+  document.getElementById('btnCancelProject').addEventListener('click', () => {
+    form.classList.remove('open');
+  });
+
+  function createProject() {
+    const name = nameInput.value.trim();
+    if (!name) { nameInput.focus(); return; }
+    const id = slugify(name);
+    // Pre-register in localStorage so mindmap picks up the title right away
+    try {
+      const reg = getProjects();
+      if (!reg.find(p => p.id === id)) {
+        reg.push({ id, title: name, nodeCount: 0, updated: Date.now() });
+        localStorage.setItem(REGISTRY_KEY, JSON.stringify(reg));
+      }
+    } catch(e) {}
+    form.classList.remove('open');
+    renderProjects();
+    // Open the new mindmap
+    window.open(`${MINDMAP_FILE}?project=${encodeURIComponent(id)}`, '_blank', 'noopener');
+  }
+
+  document.getElementById('btnCreateProject').addEventListener('click', createProject);
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') createProject(); });
+
+  /* Render on load if planning tab starts active */
+  if (document.getElementById('tab-planning').classList.contains('active')) renderProjects();
+
+  /* ── Export all projects as a single backup JSON ── */
+  document.getElementById('btnExportAll').addEventListener('click', () => {
+    const reg = getProjects();
+    if (reg.length === 0) {
+      showFlash('⚠️', 'Nothing to export', 'Create at least one mind map first.', 2200);
+      return;
+    }
+    const bundle = {
+      version: 1,
+      exported: new Date().toISOString(),
+      projects: reg.map(p => {
+        const dataKey = p.id === 'default' ? 'lmm-v3' : 'lmm-v3-' + p.id;
+        let data = null;
+        try { data = JSON.parse(localStorage.getItem(dataKey) || 'null'); } catch(e) {}
+        return { id: p.id, title: p.title, updated: p.updated, data };
+      })
+    };
+    const json = JSON.stringify(bundle, null, 2);
+    const date = new Date().toISOString().slice(0, 10);
+    const blob = new Blob([json], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `syphy-mindmaps-backup-${date}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  /* ── Restore from backup JSON ── */
+  document.getElementById('restoreInput').addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    this.value = ''; // reset so same file can be re-selected
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const bundle = JSON.parse(e.target.result);
+        if (bundle.version !== 1 || !Array.isArray(bundle.projects))
+          throw new Error('Unrecognised backup format.');
+
+        let count = 0;
+        const reg = [];
+        bundle.projects.forEach(p => {
+          if (!p.id || !p.data) return;
+          const dataKey = p.id === 'default' ? 'lmm-v3' : 'lmm-v3-' + p.id;
+          localStorage.setItem(dataKey, JSON.stringify(p.data));
+          reg.push({
+            id: p.id,
+            title: p.title || p.data.title || p.id,
+            nodeCount: (p.data.nodes || []).length,
+            updated: p.updated || Date.now()
+          });
+          count++;
+        });
+        localStorage.setItem(REGISTRY_KEY, JSON.stringify(reg));
+        renderProjects();
+        showFlash('✅', 'Backup restored', `${count} project${count !== 1 ? 's' : ''} loaded successfully.`, 2800);
+      } catch(err) {
+        showFlash('❌', 'Restore failed', err.message || 'Could not read backup file.', 3000);
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  /* ── Flash helper ── */
+  function showFlash(icon, title, msg, duration) {
+    const el = document.getElementById('restoreFlash');
+    document.getElementById('flashTitle').textContent = title;
+    document.getElementById('flashMsg').textContent = msg;
+    document.querySelector('#restoreFlash .flash-icon').textContent = icon;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), duration || 2500);
+  }
+  document.getElementById('restoreFlash').addEventListener('click', () => {
+    document.getElementById('restoreFlash').classList.remove('show');
+  });
+</script>
+
+</body>
+</html>
