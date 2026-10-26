@@ -1380,8 +1380,8 @@ td.warn{color:var(--red);font-weight:600;}
           </select>
         </div>
         <div class="inp-group">
-          <label>Column (1–39)</label>
-          <input type="number" id="store-freezer-col" min="1" max="39" placeholder="1–39" style="width:90px;">
+          <label>Column (1–13)</label>
+          <input type="number" id="store-freezer-col" min="1" max="13" placeholder="1–13" style="width:90px;">
         </div>
       </div>
       <div class="inp-row">
@@ -1409,7 +1409,7 @@ td.warn{color:var(--red);font-weight:600;}
   <div class="card">
     <div class="card-head" style="display:flex;align-items:center;gap:.6rem;">
       <h2>🧊 Freezer Map (−80°C)</h2>
-      <span style="font-size:11px;color:var(--fg-muted);margin-right:auto;">3 × 39 boxes — click a position to view or assign</span>
+      <span style="font-size:11px;color:var(--fg-muted);margin-right:auto;">3 × 13 boxes (39 positions A1–A39) — click a position to view or assign</span>
       <button class="card-toggle" id="fz-map-toggle" onclick="toggleCard('fz-map-body','fz-map-toggle')" title="Collapse/expand">▾</button>
     </div>
     <div class="card-body card-collapsible" id="fz-map-body">
@@ -2289,7 +2289,7 @@ function renderStorageRecords() {
       <div><div class="record-label">Calc. (${fmt(injPart)} vg/mouse)</div>
         <span style="font-size:11px;">Total: ${fmt(totalPart)} vg &nbsp;|&nbsp; Inj Vol: ${isNaN(injVolUl)||!isFinite(injVolUl)?'—':injVolUl.toFixed(2)} µL/mouse &nbsp;|&nbsp; ${nMice} mice</span>
       </div>
-      <div><div class="record-label">Location</div>${esc(r.location)}${r.freezerStore ? ` <span style="font-size:11px;background:var(--accent-sub);color:var(--accent);border-radius:4px;padding:.1rem .3rem;margin-left:.3rem;">🧊 ${r.freezerStore} R${r.freezerRow} C${r.freezerCol}</span>` : ''}</div>
+      <div><div class="record-label">Location</div>${esc(r.location)}${r.freezerStore ? ` <span style="font-size:11px;background:var(--accent-sub);color:var(--accent);border-radius:4px;padding:.1rem .3rem;margin-left:.3rem;">🧊 ${r.freezerStore}${(r.freezerRow-1)*13+r.freezerCol}</span>` : ''}</div>
       ${r.operator ? `<div><div class="record-label">Operator</div>${esc(r.operator)}</div>` : ''}
       <div style="display:flex;gap:.3rem;margin-left:auto;">
         <button style="background:none;border:1px solid var(--border);border-radius:5px;cursor:pointer;font-size:12px;padding:.1rem .4rem;color:var(--fg-muted);" onclick="editStorageRecord(${r.id})" title="Edit">✏️</button>
@@ -2331,7 +2331,7 @@ function renderStorageRecords() {
           <option value="2"${r.freezerRow==2?' selected':''}>2</option>
           <option value="3"${r.freezerRow==3?' selected':''}>3</option>
         </select></div>
-        <div><div style="font-size:10px;font-weight:600;color:var(--fg-muted);margin-bottom:.2rem;">Col (1–39)</div><input id="sre-freezer-col-${r.id}" type="number" min="1" max="39" value="${r.freezerCol||''}" style="width:65px;font-size:12px;padding:.25rem .4rem;border:1px solid var(--border);border-radius:5px;background:var(--bg-card);color:var(--fg);"></div>
+        <div><div style="font-size:10px;font-weight:600;color:var(--fg-muted);margin-bottom:.2rem;">Col (1–13)</div><input id="sre-freezer-col-${r.id}" type="number" min="1" max="13" value="${r.freezerCol||''}" style="width:65px;font-size:12px;padding:.25rem .4rem;border:1px solid var(--border);border-radius:5px;background:var(--bg-card);color:var(--fg);"></div>
         <div><div style="font-size:10px;font-weight:600;color:var(--fg-muted);margin-bottom:.2rem;">Operator</div><input id="sre-operator-${r.id}" value="${esc(r.operator||'')}" style="width:110px;font-size:12px;padding:.25rem .4rem;border:1px solid var(--border);border-radius:5px;background:var(--bg-card);color:var(--fg);"></div>
         <div><div style="font-size:10px;font-weight:600;color:var(--fg-muted);margin-bottom:.2rem;">Notes</div><input id="sre-notes-${r.id}" value="${esc(r.notes||'')}" style="width:130px;font-size:12px;padding:.25rem .4rem;border:1px solid var(--border);border-radius:5px;background:var(--bg-card);color:var(--fg);"></div>
         <div style="display:flex;gap:.3rem;margin-top:.1rem;">
@@ -2419,7 +2419,10 @@ function renderFreezerGrid() {
   const container = document.getElementById('fz-grid-container');
   if (!container) return;
   const store = _activeFreezerStore;
-  const ROWS = 3, COLS = 39;
+  // Physical layout: 3 rows × 13 columns = 39 positions per box (A1–A39 sequential)
+  const ROWS = 3, COLS = 13;
+  // Sequential label: row 1 → 1–13, row 2 → 14–26, row 3 → 27–39
+  const seqNum = (row, col) => (row - 1) * COLS + col;
 
   // Build lookup: key "row-col" -> record, using lab archive + _fzMap
   const lookup = {};
@@ -2449,22 +2452,23 @@ function renderFreezerGrid() {
   }
 
   let html = '';
-  // Column header row
+  // Column header row — numbers 1–13
   html += '<div class="fz-row"><div class="fz-row-label"></div>';
   for (let c = 1; c <= COLS; c++) {
-    html += `<div class="fz-col-label">${(c === 1 || c % 5 === 0) ? c : ''}</div>`;
+    html += `<div class="fz-col-label">${c}</div>`;
   }
   html += '</div>';
 
-  // Data rows — row label is 1/2/3; cell label is Store+Col (e.g. B8 in Store B)
+  // Data rows — sequential position labels (e.g. A1–A13 row1, A14–A26 row2, A27–A39 row3)
   for (let row = 1; row <= ROWS; row++) {
     html += `<div class="fz-row"><div class="fz-row-label">${row}</div>`;
     for (let col = 1; col <= COLS; col++) {
       const key = row + '-' + col;
       const rec = lookup[key];
       const occupied = !!rec;
-      const cellLabel = store + col;  // e.g. "B8" in Store B
-      const titleText = rec ? cellLabel + ' (row ' + row + '): ' + esc(rec.batch) + (rec.titre ? ' — ' + esc(rec.titre) + ' vg/µL' : '') : cellLabel + ' (row ' + row + ') — empty';
+      const posNum = seqNum(row, col);
+      const cellLabel = store + posNum;  // e.g. A1–A39, B1–B39, C1–C39
+      const titleText = rec ? cellLabel + ': ' + esc(rec.batch) + (rec.titre ? ' — ' + esc(rec.titre) + ' vg/µL' : '') : cellLabel + ' — empty';
       html += `<div class="fz-cell ${occupied?'occupied':'empty'}"
         data-batch="${rec ? esc(rec.batch.toLowerCase()) : ''}"
         data-pos="${cellLabel.toLowerCase()}"
@@ -2488,7 +2492,8 @@ function fzCellClick(store, row, col, event) {
   const actions = document.getElementById('fz-pop-actions');
   if (!pop) return;
 
-  title.textContent = `Store ${store} — ${store}${col} (row ${row})`;
+  const posNum = (row - 1) * 13 + col;
+  title.textContent = `Store ${store} — ${store}${posNum}`;
 
   // Source: prefer lab archive (Sheets); fall back to local storageRecords
   const source = _labArchiveRecords.length ? _labArchiveRecords : storageRecords.map(r => ({
@@ -2925,7 +2930,7 @@ function saveNotes() {
 }
 
 // ─── Google Sheets ───────────────────────────────────────
-const gsUrl = 'https://script.google.com/macros/s/AKfycbybRGLQ0DbGz_FqxaDBYQUwFEx3dS7QKNawM2rvs3mI70m0WvEKRqw-nT_MTNvaf9ik/exec';
+const gsUrl = 'https://script.google.com/macros/s/AKfycbxhVYhWb9nbQWRZngTple3AytSrOkKrtZnqGluK9YnlICVVwDwO-ryvL0D83E1EetaU/exec';
 
 function saveGsConfig() { /* URL is hard-coded; nothing to save */ }
 
