@@ -39,17 +39,34 @@
 
 @media print {
   body{background:#fff!important;color:#000!important;font-size:11px;padding:0!important;}
-  .tabs-bar,.theme-btn,.btn-row,.config-panel,details>summary,.sub-tabs-bar,button:not(.rg-print-ok){display:none!important;}
+  /* Hide everything that isn't the injection protocol */
+  .tabs-bar,.theme-btn,.btn-row,.config-panel,details>summary,.sub-tabs-bar{display:none!important;}
+  button{display:none!important;}
+  button.rg-print-ok{display:none!important;}
+  /* Show only the injection sub-tab content */
   .tab-panel,.sub-tab-panel{display:block!important;}
+  /* Hide all sub-tabs except injection */
+  #tab-storage,#tab-plasmid,#tab-transfection,#tab-config,#tab-lab-archive,
+  .sub-tabs-bar{display:none!important;}
+  /* Show injection cards */
+  #inj-results-card,#inj-batch-info-card,#inj-param-card{display:block!important;}
+  /* Hide the log card (logging is a screen action) */
+  #inj-log-card{display:none!important;}
+  /* Notes textarea prints as readable text */
+  #inj-notes-text{border:1px solid #ccc!important;background:#fff!important;color:#000!important;resize:none!important;}
   .card{border:1px solid #ccc!important;break-inside:avoid;margin-bottom:.6rem!important;}
   .card-head{background:#f0f0f0!important;color:#000!important;}
   th{background:#ddd!important;color:#000!important;}
   details>div{display:block!important;}
   .rg-item.checked label{text-decoration:none!important;color:#000!important;}
   a{color:#000!important;}
-  input,select{border:1px solid #ccc!important;background:#fff!important;}
+  input,select{border:1px solid #ccc!important;background:#fff!important;color:#000!important;}
   #qp-plate{display:none!important;}
   .print-hide{display:none!important;}
+  /* Result boxes look clean on paper */
+  .inj-result-box{background:#f8f8f8!important;border:1px solid #ccc!important;}
+  .irb-val{color:#000!important;}
+  #inj-protocol-summary{background:#f8f8f8!important;border:1px solid #ccc!important;color:#000!important;}
 }
 *,*::before,*::after{box-sizing:border-box;}
 body{background:var(--bg);color:var(--fg);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.65;margin:0;padding:0 max(16px,env(safe-area-inset-left,0px)) 3rem;}
@@ -1405,20 +1422,21 @@ td.warn{color:var(--red);font-weight:600;}
   <div class="card">
     <div class="card-head"><h2>Injection parameters</h2></div>
     <div class="card-body">
-      <div class="inp-row">
-        <div class="inp-group" style="flex:1;">
-          <label>Viral genomes per mouse (vg)</label>
-          <input type="number" id="inj-vg" value="1e11" step="any" placeholder="e.g. 1e11" oninput="calcInjection()" style="font-size:13px;">
-          <div style="font-size:11px;color:var(--fg-muted);margin-top:.2rem;" id="inj-vg-display">—</div>
+      <div class="inp-row" style="flex-wrap:nowrap;gap:.8rem;align-items:flex-start;">
+        <div class="inp-group" style="flex:2;min-width:0;">
+          <label>Viral genomes / mouse <span style="text-transform:none;">(vg)</span></label>
+          <input type="number" id="inj-vg" value="1e11" step="any" placeholder="e.g. 1e11" oninput="calcInjection()" style="font-size:13px;width:100%;">
+          <div style="font-size:11px;color:var(--fg-muted);margin-top:.15rem;white-space:nowrap;" id="inj-vg-display"></div>
         </div>
-        <div class="inp-group" style="flex:1;">
+        <div class="inp-group" style="flex:1.2;min-width:0;">
           <label>Number of mice</label>
-          <input type="number" id="inj-mice" value="10" min="1" step="1" oninput="calcInjection()" style="font-size:13px;">
-          <div style="font-size:11px;color:var(--fg-muted);margin-top:.2rem;">+10% overage → <strong id="inj-mice-overage">11</strong> mice prepped</div>
+          <input type="number" id="inj-mice" value="10" min="1" step="1" oninput="calcInjection()" style="font-size:13px;width:100%;">
+          <div style="font-size:11px;color:var(--fg-muted);margin-top:.15rem;white-space:nowrap;">+10% vol overage → <strong id="inj-vol-overage-display"></strong></div>
         </div>
-        <div class="inp-group" style="flex:1;">
-          <label>Injection volume / mouse <span style="text-transform:none;">(µL)</span></label>
-          <input type="number" id="inj-vol" value="100" min="1" step="1" oninput="calcInjection()" style="font-size:13px;">
+        <div class="inp-group" style="flex:1.2;min-width:0;">
+          <label>Inj. vol / mouse <span style="text-transform:none;">(µL)</span></label>
+          <input type="number" id="inj-vol" value="100" min="1" step="1" oninput="calcInjection()" style="font-size:13px;width:100%;">
+          <div style="font-size:11px;color:var(--fg-muted);margin-top:.15rem;white-space:nowrap;" id="inj-totalvol-hint"></div>
         </div>
       </div>
     </div>
@@ -1433,7 +1451,7 @@ td.warn{color:var(--red);font-weight:600;}
 
       <div class="inj-results">
         <div class="inj-result-box">
-          <div class="irb-label">Mice to prep (with overage)</div>
+          <div class="irb-label">Mice to inject</div>
           <div class="irb-val" id="res-mice">—</div>
           <div class="irb-unit">mice</div>
         </div>
@@ -1466,6 +1484,16 @@ td.warn{color:var(--red);font-weight:600;}
 
       <!-- Step summary -->
       <div style="margin-top:.8rem;padding:.6rem .8rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12.5px;line-height:1.7;" id="inj-protocol-summary"></div>
+
+      <!-- Notes (print-friendly) -->
+      <div id="inj-notes-section" style="margin-top:.8rem;">
+        <div style="font-size:12px;color:var(--fg-muted);margin-bottom:.3rem;">Notes / observations (printed with protocol)</div>
+        <textarea id="inj-notes-text" rows="3" placeholder="e.g. anaesthesia details, mice excluded, observations…" style="width:100%;font-size:12.5px;padding:.4rem .6rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg);resize:vertical;box-sizing:border-box;"></textarea>
+      </div>
+
+      <div style="margin-top:.8rem;text-align:right;">
+        <button class="rg-print-ok" onclick="window.print()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:.35rem .9rem;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;">🖨 Print / Save PDF</button>
+      </div>
     </div>
   </div>
 
@@ -1491,33 +1519,6 @@ td.warn{color:var(--red);font-weight:600;}
         <button class="btn btn-primary" onclick="logInjection()">📤 Log injection &amp; update Storage</button>
         <span style="font-size:11px;color:var(--fg-muted);">Appends a row to the <em>Injections</em> sheet <strong>and</strong> updates <em>stock_volume_ul</em> in the <em>Storage</em> sheet for this batch.</span>
       </div>
-      <details style="margin-top:.8rem;">
-        <summary style="font-size:11.5px;cursor:pointer;color:var(--fg-muted);">⚙ Apps Script snippet needed to handle Stock updates</summary>
-        <div style="margin-top:.5rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;font-size:11.5px;line-height:1.7;">
-          Add this block inside your <code>doPost(e)</code> handler — it finds the matching row in
-          the <em>Storage</em> sheet by <code>record_id</code> (or batch name) and overwrites <em>stock_volume_ul</em>:
-          <pre style="margin:.5rem 0 0;overflow-x:auto;white-space:pre;font-size:10.5px;background:var(--stripe);padding:.5rem .7rem;border-radius:6px;">// ── inside doPost(e), after JSON.parse ──
-if (data.sheet === 'Storage' &amp;&amp; data.mode === 'updateStock') {
-  const ss   = SpreadsheetApp.getActiveSpreadsheet();
-  const sh   = ss.getSheetByName('Storage');
-  const rows = sh.getDataRange().getValues();
-  const hdr  = rows[0];
-  const colId  = hdr.indexOf('record_id');
-  const colBatch = hdr.indexOf('batch_exp');
-  const colVol = hdr.indexOf('stock_volume_ul');
-  if (colVol === -1) return ContentService.createTextOutput('col not found');
-  for (let i = 1; i &lt; rows.length; i++) {
-    const matchId    = data.record_id &amp;&amp; rows[i][colId]    == data.record_id;
-    const matchBatch = data.batch     &amp;&amp; rows[i][colBatch] == data.batch;
-    if (matchId || matchBatch) {
-      sh.getRange(i + 1, colVol + 1).setValue(data.stock_vol_after);
-      break;
-    }
-  }
-  return ContentService.createTextOutput('ok');
-}</pre>
-        </div>
-      </details>
     </div>
   </div>
 
@@ -2394,7 +2395,7 @@ function saveNotes() {
 }
 
 // ─── Google Sheets ───────────────────────────────────────
-const gsUrl = 'https://script.google.com/macros/s/AKfycbxV1b-Juf22maT8pCnoIii-rurY0kVCSK8IDPjXsglq3OIgTW9hCjB-ORRdwDEAetzU/exec';
+const gsUrl = 'https://script.google.com/macros/s/AKfycbybRGLQ0DbGz_FqxaDBYQUwFEx3dS7QKNawM2rvs3mI70m0WvEKRqw-nT_MTNvaf9ik/exec';
 
 function saveGsConfig() { /* URL is hard-coded; nothing to save */ }
 
@@ -2694,8 +2695,13 @@ function calcInjection() {
   const vgDisp = document.getElementById('inj-vg-display');
   if (vgDisp) vgDisp.innerHTML = vgPerMouse ? '= ' + sciHtml(vgPerMouse) + ' vg / mouse' : '';
 
-  const miceWithOverage = Math.ceil(nMice * 1.10);
-  document.getElementById('inj-mice-overage').textContent = miceWithOverage;
+  // Overage: +10% on prep VOLUME, not extra mice
+  const totalVolUlExact  = nMice * volPerMouse;
+  const totalVolUlPrep   = totalVolUlExact * 1.10;  // 10% more total working solution
+  const ovEl = document.getElementById('inj-vol-overage-display');
+  if (ovEl) ovEl.textContent = totalVolUlPrep.toFixed(0) + ' µL total';
+  const hintEl = document.getElementById('inj-totalvol-hint');
+  if (hintEl) hintEl.textContent = nMice + ' × ' + volPerMouse + ' µL + 10%';
 
   if (!vgPerMouse || !nMice) {
     document.getElementById('inj-results-card').style.display = 'none';
@@ -2706,9 +2712,10 @@ function calcInjection() {
   const titre    = injSelectedBatch.titre;
   const stockVol = injSelectedBatch.stockVol;
 
-  const totalVgNeeded  = vgPerMouse * miceWithOverage;
-  const ulStockNeeded  = titre > 0 ? (totalVgNeeded / titre) * 1000 : Infinity; // titre vg/mL → result µL
-  const totalVolUl     = miceWithOverage * volPerMouse;
+  // Exact AAV needed for N mice; then add 10% overage to total prep volume (PBS scales with it)
+  const totalVgNeeded  = vgPerMouse * nMice;
+  const ulStockNeeded  = titre > 0 ? (totalVgNeeded / titre) * 1000 : Infinity; // µL AAV stock
+  const totalVolUl     = totalVolUlPrep;                                          // total prep vol with 10% overage
   const ulPBS          = totalVolUl - ulStockNeeded;
   const dilutionFactor = ulStockNeeded > 0 ? totalVolUl / ulStockNeeded : 1;
   const remaining      = stockVol - ulStockNeeded;
@@ -2716,7 +2723,7 @@ function calcInjection() {
   document.getElementById('inj-results-card').style.display = 'block';
   document.getElementById('inj-log-card').style.display = 'block';
 
-  document.getElementById('res-mice').textContent      = miceWithOverage;
+  document.getElementById('res-mice').textContent      = nMice;
   document.getElementById('res-aav').textContent       = isFinite(ulStockNeeded) ? ulStockNeeded.toFixed(1) : '∞';
   document.getElementById('res-pbs').textContent       = isFinite(ulPBS) ? Math.max(0, ulPBS).toFixed(1) : '—';
   document.getElementById('res-total-vol').textContent = totalVolUl.toFixed(0);
@@ -2742,14 +2749,14 @@ function calcInjection() {
     const noAAV = dilutionFactor <= 1.01;
     summaryEl.innerHTML = `
       <strong>Protocol summary</strong><br>
-      Prep for <strong>${miceWithOverage} mice</strong> (${nMice} requested + 10% overage).<br>
+      Prep for <strong>${nMice} mice</strong> with 10% volume overage → <strong>${totalVolUl.toFixed(0)} µL</strong> total prep.<br>
       ${noAAV
-        ? `Inject neat stock: <strong>${ulStockNeeded.toFixed(1)} µL</strong> total — no PBS dilution required.`
+        ? `Inject neat stock: <strong>${ulStockNeeded.toFixed(1)} µL</strong> AAV — no PBS dilution required.`
         : `Add <strong>${ulStockNeeded.toFixed(1)} µL</strong> AAV stock to <strong>${Math.max(0,ulPBS).toFixed(1)} µL</strong> PBS
-           → total prep volume <strong>${totalVolUl.toFixed(0)} µL</strong>.`
+           → total prep volume <strong>${totalVolUl.toFixed(0)} µL</strong> (${dilutionFactor.toFixed(1)}× dilution).`
       }<br>
       Inject <strong>${volPerMouse} µL / mouse</strong> at ${sciHtml(vgPerMouse)} vg / mouse
-      (working titre ${sciHtml(vgPerMouse / volPerMouse)} vg/µL, ${dilutionFactor.toFixed(1)}× dilution).
+      (working titre ${sciHtml(vgPerMouse / volPerMouse)} vg/µL).
     `;
   }
 }
@@ -2761,12 +2768,11 @@ function logInjection() {
   const volPerMouse = parseFloat(document.getElementById('inj-vol').value)   || 100;
   if (!vgPerMouse || !nMice) { toast('Fill in vg/mouse and number of mice first'); return; }
 
-  const miceWithOverage = Math.ceil(nMice * 1.10);
   const titre      = injSelectedBatch.titre;
   const stockVol   = injSelectedBatch.stockVol;
-  const totalVgNeeded  = vgPerMouse * miceWithOverage;
-  const ulStockNeeded  = titre > 0 ? (totalVgNeeded / titre) * 1000 : 0; // titre vg/mL → result µL
-  const totalVolUl     = miceWithOverage * volPerMouse;
+  const totalVgNeeded  = vgPerMouse * nMice;
+  const ulStockNeeded  = titre > 0 ? (totalVgNeeded / titre) * 1000 : 0; // titre vg/mL → µL
+  const totalVolUl     = nMice * volPerMouse * 1.10;                       // +10% volume overage
   const ulPBS          = Math.max(0, totalVolUl - ulStockNeeded);
   const dilutionFactor = ulStockNeeded > 0 ? totalVolUl / ulStockNeeded : 1;
   const remaining      = Math.max(0, stockVol - ulStockNeeded);
@@ -2790,7 +2796,7 @@ function logInjection() {
       stock_vol_before:  parseFloat(stockVol.toFixed(2)),
       vg_per_mouse:      vgPerMouse,
       n_mice_actual:     nMice,
-      n_mice_prepped:    miceWithOverage,
+      n_mice_prepped:    nMice,
       vol_per_mouse_ul:  volPerMouse,
       total_vol_ul:      parseFloat(totalVolUl.toFixed(2)),
       aav_used_ul:       parseFloat(ulStockNeeded.toFixed(2)),
