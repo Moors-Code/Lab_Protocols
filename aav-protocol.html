@@ -1391,9 +1391,11 @@ td.warn{color:var(--red);font-weight:600;}
       <div class="inp-row" style="align-items:flex-end;">
         <div class="inp-group" style="flex:2;">
           <label>Select batch</label>
-          <select id="inj-batch-sel" onchange="selectInjBatch()" style="width:100%;font-size:13px;padding:.4rem .6rem;border:1px solid var(--input-border);border-radius:6px;background:var(--input-bg);color:var(--fg);">
+          <input id="inj-batch-filter" type="text" placeholder="🔍 Filter by batch name, capsid, date…" oninput="filterInjBatches(this.value)" style="width:100%;font-size:13px;padding:.35rem .6rem;border:1px solid var(--input-border);border-radius:6px 6px 0 0;background:var(--input-bg);color:var(--fg);border-bottom:none;box-sizing:border-box;">
+          <select id="inj-batch-sel" onchange="selectInjBatch()" size="6" style="width:100%;font-size:13px;padding:.25rem .4rem;border:1px solid var(--input-border);border-radius:0 0 6px 6px;background:var(--input-bg);color:var(--fg);overflow-y:auto;">
             <option value="">— choose a batch —</option>
           </select>
+          <div style="font-size:11px;color:var(--fg-muted);margin-top:.2rem;" id="inj-batch-count"></div>
         </div>
         <div class="inp-group" style="flex:1;">
           <label>Source</label>
@@ -1492,7 +1494,7 @@ td.warn{color:var(--red);font-weight:600;}
       </div>
 
       <div style="margin-top:.8rem;text-align:right;">
-        <button class="rg-print-ok" onclick="window.print()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:.35rem .9rem;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;">🖨 Print / Save PDF</button>
+        <button class="rg-print-ok" onclick="printInjection()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:.35rem .9rem;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;">🖨 Print / Save PDF</button>
       </div>
     </div>
   </div>
@@ -2273,6 +2275,14 @@ function savePlasmidEdit(id) {
   toast('Plasmid updated ✓');
 }
 
+function togglePlasmidStar(id) {
+  const p = plasmidLibrary.find(x => x.id === id);
+  if (!p) return;
+  p.starred = !p.starred;
+  saveLS();
+  renderPlasmidLibrary();
+}
+
 function renderPlasmidLibrary() {
   const el = document.getElementById('plasmid-library-list');
   if (!el) return;
@@ -2281,9 +2291,12 @@ function renderPlasmidLibrary() {
     updateLibraryDropdowns();
     return;
   }
+  // Starred plasmids sort to top within each role group
+  const sorted = [...plasmidLibrary].sort((a, b) => (b.starred ? 1 : 0) - (a.starred ? 1 : 0));
   const roleColor = {Helper:'var(--s1)',Capsid:'var(--s2)',Transgene:'var(--s3)',Other:'var(--fg-muted)'};
   el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px;">
     <thead><tr style="background:var(--stripe);">
+      <th style="padding:.4rem .5rem;text-align:left;width:1.8rem;">⭐</th>
       <th style="padding:.4rem .6rem;text-align:left;">Name</th>
       <th style="padding:.4rem .6rem;text-align:left;">Role</th>
       <th style="padding:.4rem .6rem;text-align:right;">Size (bp)</th>
@@ -2295,7 +2308,10 @@ function renderPlasmidLibrary() {
       <th style="padding:.4rem .6rem;"></th>
     </tr></thead>
     <tbody>
-    ${plasmidLibrary.map(p => `<tr id="pl-row-${p.id}" style="border-top:1px solid var(--border);">
+    ${sorted.map(p => `<tr id="pl-row-${p.id}" style="border-top:1px solid var(--border);${p.starred ? 'background:var(--accent-sub);' : ''}">
+      <td style="padding:.3rem .5rem;text-align:center;">
+        <button onclick="togglePlasmidStar(${p.id})" title="${p.starred ? 'Unstar' : 'Star — rises to top of its dropdown'}" style="background:none;border:none;cursor:pointer;font-size:15px;padding:0;line-height:1;">${p.starred ? '⭐' : '☆'}</button>
+      </td>
       <td style="padding:.4rem .6rem;font-weight:600;">${esc(p.name)}</td>
       <td style="padding:.4rem .6rem;color:${roleColor[p.role]||'var(--fg-muted)'};">${esc(p.role)}</td>
       <td style="padding:.4rem .6rem;text-align:right;">${p.bp||'—'}</td>
@@ -2344,14 +2360,18 @@ function updateLibraryDropdowns() {
     if (!sel) return;
     const current = sel.value;
     const role = roleFilter[i];
-    // Matching plasmids first, then others in a separator group
-    const matching = plasmidLibrary.filter(p => p.role === role);
-    const others   = plasmidLibrary.filter(p => p.role !== role);
-    const makeOpt  = p => `<option value="${p.id}">${esc(p.name)} [${esc(p.labcollector||'')}] – ${p.role}, ${p.bp}bp, ${p.conc}ng/µl</option>`;
+    // Matching role: starred ones float to top, then alphabetical
+    const matching = plasmidLibrary
+      .filter(p => p.role === role)
+      .sort((a, b) => (b.starred ? 1 : 0) - (a.starred ? 1 : 0));
+    const others = plasmidLibrary.filter(p => p.role !== role);
+    // Starred plasmids get ⭐ prefix in their role dropdown only
+    const makeOpt = (p, showStar) =>
+      `<option value="${p.id}">${showStar && p.starred ? '⭐ ' : ''}${esc(p.name)} [${esc(p.labcollector||'')}] – ${p.role}, ${p.bp}bp, ${p.conc}ng/µl</option>`;
     let inner = '<option value="">— select —</option>';
-    if (matching.length) inner += matching.map(makeOpt).join('');
+    if (matching.length) inner += matching.map(p => makeOpt(p, true)).join('');
     if (others.length) {
-      inner += `<option disabled>── other plasmids ──</option>` + others.map(makeOpt).join('');
+      inner += `<option disabled>── other plasmids ──</option>` + others.map(p => makeOpt(p, false)).join('');
     }
     sel.innerHTML = inner;
     sel.value = current;
@@ -2396,7 +2416,7 @@ function saveNotes() {
 
 // ─── Google Sheets ───────────────────────────────────────
 const gsUrl = 'https://script.google.com/macros/s/AKfycbybRGLQ0DbGz_FqxaDBYQUwFEx3dS7QKNawM2rvs3mI70m0WvEKRqw-nT_MTNvaf9ik/exec';
-
+  
 function saveGsConfig() { /* URL is hard-coded; nothing to save */ }
 
 // ─── Shared Library (plasmids + batch recipes via Google Sheets) ──────────────
@@ -2573,32 +2593,28 @@ let injSelectedBatch = null;
 // Lab archive records (populated after loadStorageArchive)
 let _injArchiveRecords = [];
 
+// All raw option data for the injection batch selector (used by filter)
+let _allInjOpts = [];
+
 function populateInjectionBatches() {
-  const sel = document.getElementById('inj-batch-sel');
-  if (!sel) return;
-  const prev = sel.value;
-  sel.innerHTML = '<option value="">— choose a batch —</option>';
+  _allInjOpts = [];
 
   // LOCAL records
   storageRecords.forEach(r => {
     const titre = parseFloat(r.titre) || 0;
     const stockVol = (r.aliquot || 0) * (r.nAliquots || 0);
     if (!r.batch) return;
-    const opt = document.createElement('option');
-    opt.value = 'local:' + r.id;
-    opt.textContent = r.batch + (r.date ? '  (' + r.date + ')' : '') + ' — local';
-    opt.dataset.titre     = titre;
-    opt.dataset.stockvol  = stockVol;
-    opt.dataset.recordid  = r.id;
-    opt.dataset.batchname = r.batch;
-    opt.dataset.helper    = r.helperName   || '—';
-    opt.dataset.capsid    = r.capsidName   || '—';
-    opt.dataset.transgene = r.transgeneName|| '—';
-    opt.dataset.location  = r.location     || '—';
-    opt.dataset.date      = r.date         || '—';
-    opt.dataset.operator  = r.operator     || '—';
-    opt.dataset.src       = 'Local storage';
-    sel.appendChild(opt);
+    _allInjOpts.push({
+      value:     'local:' + r.id,
+      label:     r.batch + (r.date ? '  (' + r.date + ')' : '') + ' — local',
+      search:    [r.batch, r.date, r.capsidName, r.helperName, r.transgeneName, r.location, r.operator].join(' ').toLowerCase(),
+      titre, stockvol: stockVol,
+      recordid:  r.id, batchname: r.batch,
+      helper:    r.helperName   || '—', capsid: r.capsidName || '—',
+      transgene: r.transgeneName|| '—', location: r.location || '—',
+      date:      r.date || '—', operator: r.operator || '—',
+      src:       'Local storage'
+    });
   });
 
   // ARCHIVE records (from Google Sheets)
@@ -2606,25 +2622,42 @@ function populateInjectionBatches() {
     const titre = parseFloat(r.titre) || 0;
     const stockVol = parseFloat(r.stockVol) || 0;
     if (!r.batch) return;
-    const opt = document.createElement('option');
-    opt.value = 'archive:' + i;
-    opt.textContent = r.batch + (r.date ? '  (' + r.date + ')' : '') + ' — lab sheet';
-    opt.dataset.titre     = titre;
-    opt.dataset.stockvol  = stockVol;
-    opt.dataset.recordid  = r.record_id || '';
-    opt.dataset.batchname = r.batch;
-    opt.dataset.helper    = r.helper   || '—';
-    opt.dataset.capsid    = r.capsid   || '—';
-    opt.dataset.transgene = r.transgene|| '—';
-    opt.dataset.location  = r.storage  || '—';
-    opt.dataset.date      = r.date     || '—';
-    opt.dataset.operator  = r.operator || '—';
-    opt.dataset.src       = 'Lab archive (Sheets)';
-    sel.appendChild(opt);
+    _allInjOpts.push({
+      value:     'archive:' + i,
+      label:     r.batch + (r.date ? '  (' + r.date + ')' : '') + ' — lab sheet',
+      search:    [r.batch, r.date, r.capsid, r.helper, r.transgene, r.storage, r.operator].join(' ').toLowerCase(),
+      titre, stockvol: stockVol,
+      recordid:  r.record_id || '', batchname: r.batch,
+      helper:    r.helper || '—', capsid: r.capsid || '—',
+      transgene: r.transgene || '—', location: r.storage || '—',
+      date:      r.date || '—', operator: r.operator || '—',
+      src:       'Lab archive (Sheets)'
+    });
   });
 
-  if (prev) sel.value = prev;
-  if (sel.value) selectInjBatch();
+  const filterEl = document.getElementById('inj-batch-filter');
+  filterInjBatches(filterEl ? filterEl.value : '');
+}
+
+function filterInjBatches(query) {
+  const sel = document.getElementById('inj-batch-sel');
+  const countEl = document.getElementById('inj-batch-count');
+  if (!sel) return;
+  const prev = sel.value;
+  const q = (query || '').toLowerCase().trim();
+  const hits = q ? _allInjOpts.filter(o => o.search.includes(q)) : _allInjOpts;
+
+  sel.innerHTML = '<option value="">— choose a batch —</option>';
+  hits.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.value;
+    opt.textContent = o.label;
+    Object.entries(o).forEach(([k,v]) => { if (k !== 'label' && k !== 'search') opt.dataset[k] = v; });
+    sel.appendChild(opt);
+  });
+  if (countEl) countEl.textContent = hits.length ? hits.length + ' batch' + (hits.length === 1 ? '' : 'es') + (q ? ' match' : '') : (q ? 'No matches' : '');
+  sel.value = prev;
+  if (!sel.value) { injSelectedBatch = null; }
 }
 
 function selectInjBatch() {
@@ -2759,6 +2792,124 @@ function calcInjection() {
       (working titre ${sciHtml(vgPerMouse / volPerMouse)} vg/µL).
     `;
   }
+}
+
+function printInjection() {
+  // Gather content from the live DOM
+  const batchInfoGrid = document.getElementById('inj-batch-info-grid');
+  const resultsCard   = document.getElementById('inj-results-card');
+  const notesText     = (document.getElementById('inj-notes-text') || {}).value || '';
+
+  if (!resultsCard || resultsCard.style.display === 'none') {
+    alert('Please select a batch and calculate injection parameters first.');
+    return;
+  }
+
+  // Snapshot the batch info items as simple key-value pairs
+  const batchItems = [];
+  if (batchInfoGrid) {
+    batchInfoGrid.querySelectorAll('.ib-item').forEach(item => {
+      const lbl = item.querySelector('.ib-label');
+      const val = item.querySelector('.ib-val');
+      if (lbl && val) batchItems.push({ label: lbl.textContent.trim(), val: val.innerHTML });
+    });
+  }
+  const batchRows = batchItems.map(x =>
+    `<div class="ib-item"><div class="ib-label">${x.label}</div><div class="ib-val">${x.val}</div></div>`
+  ).join('');
+
+  // Snapshot result boxes
+  const resultBoxes = [];
+  (resultsCard.querySelectorAll('.inj-result-box') || []).forEach(box => {
+    const lbl  = box.querySelector('.irb-label');
+    const val  = box.querySelector('.irb-val');
+    const unit = box.querySelector('.irb-unit');
+    resultBoxes.push({
+      label: lbl  ? lbl.textContent.trim()  : '',
+      val:   val  ? val.textContent.trim()   : '',
+      unit:  unit ? unit.textContent.trim()  : ''
+    });
+  });
+  const resultBoxesHTML = resultBoxes.map(b =>
+    `<div class="inj-result-box"><div class="irb-label">${b.label}</div><div class="irb-val">${b.val}</div><div class="irb-unit">${b.unit}</div></div>`
+  ).join('');
+
+  // Summary text
+  const injSummaryEl  = resultsCard.querySelector('#inj-summary');
+  const injSummaryHTML = injSummaryEl ? injSummaryEl.innerHTML : '';
+
+  // Parameter display values
+  const vgVal  = (document.getElementById('inj-vg')   || {}).value  || '—';
+  const micVal = (document.getElementById('inj-mice') || {}).value  || '—';
+  const volVal = (document.getElementById('inj-vol')  || {}).value  || '—';
+  const overEl = document.getElementById('inj-vol-overage-display');
+  const overText = overEl ? overEl.textContent : '';
+
+  // Format vg as scientific notation for display
+  const vgNum = parseFloat(vgVal);
+  let vgDisplay = isNaN(vgNum) ? vgVal : vgNum.toExponential(1).replace('e+','×10^').replace('e','×10^');
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
+
+  const win = window.open('', '_blank', 'width=750,height=900');
+  if (!win) { alert('Pop-up blocked — please allow pop-ups for this page.'); return; }
+
+  win.document.write(`<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>AAV Injection Protocol</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#111;padding:1.4cm 1.6cm;max-width:720px;margin:auto;}
+  h1{font-size:17px;font-weight:700;margin-bottom:.15rem;}
+  .sub{font-size:11px;color:#666;margin-bottom:1rem;}
+  h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin:1rem 0 .4rem;border-bottom:1px solid #ddd;padding-bottom:.25rem;}
+  .inj-batch-info{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem .8rem;padding:.5rem .7rem;border:1px solid #ccc;border-radius:6px;background:#f9f9f9;margin-bottom:.8rem;}
+  .ib-item{display:flex;flex-direction:column;gap:.05rem;}
+  .ib-label{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.03em;}
+  .ib-val{font-size:12px;font-weight:600;}
+  .params-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:.5rem;}
+  .param-box{border:1px solid #ddd;border-radius:6px;padding:.5rem .7rem;background:#f9f9f9;text-align:center;}
+  .param-box .plabel{font-size:10px;color:#777;margin-bottom:.2rem;}
+  .param-box .pval{font-size:14px;font-weight:700;color:#1869B4;}
+  .overage-note{font-size:11px;color:#777;margin-bottom:.8rem;}
+  .inj-results{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin:.5rem 0 .8rem;}
+  .inj-result-box{background:#f9f9f9;border:1px solid #ccc;border-radius:8px;padding:.55rem .7rem;text-align:center;}
+  .irb-label{font-size:10px;color:#777;margin-bottom:.15rem;}
+  .irb-val{font-size:17px;font-weight:700;color:#1869B4;}
+  .irb-unit{font-size:10px;color:#888;}
+  .inj-summary-box{font-size:12px;background:#EEF4FB;border:1px solid #BFCFE8;border-radius:6px;padding:.55rem .8rem;margin-bottom:.8rem;line-height:1.6;}
+  .notes-box{border:1px solid #ccc;border-radius:6px;padding:.55rem .7rem;min-height:70px;font-size:12px;white-space:pre-wrap;line-height:1.6;background:#fff;}
+  .footer{margin-top:1.2rem;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:.4rem;}
+  @media print{@page{margin:1.2cm 1.5cm;}body{padding:0;}}
+</style>
+</head><body>
+<h1>AAV Injection Protocol</h1>
+<div class="sub">Printed: ${dateStr}</div>
+
+<h2>Batch</h2>
+<div class="inj-batch-info">${batchRows}</div>
+
+<h2>Injection Parameters</h2>
+<div class="params-row">
+  <div class="param-box"><div class="plabel">Viral genomes / mouse</div><div class="pval">${vgDisplay} vg</div></div>
+  <div class="param-box"><div class="plabel">Number of mice</div><div class="pval">${micVal}</div></div>
+  <div class="param-box"><div class="plabel">Inj. vol / mouse</div><div class="pval">${volVal} µL</div></div>
+</div>
+<div class="overage-note">Total prep volume (+10% overage): <strong>${overText}</strong></div>
+
+<h2>Results</h2>
+<div class="inj-results">${resultBoxesHTML}</div>
+<div class="inj-summary-box">${injSummaryHTML}</div>
+
+<h2>Notes / Observations</h2>
+<div class="notes-box">${notesText.trim() ? notesText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '<span style="color:#aaa;font-style:italic;">No notes entered.</span>'}</div>
+
+<div class="footer">AAV Protocol App · Syphy-lab · ${dateStr}</div>
+<script>window.onload = function(){ window.focus(); window.print(); }<\/script>
+</body></html>`);
+  win.document.close();
 }
 
 function logInjection() {
