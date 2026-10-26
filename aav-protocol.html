@@ -2394,7 +2394,7 @@ function saveNotes() {
 }
 
 // ─── Google Sheets ───────────────────────────────────────
-const gsUrl = 'https://script.google.com/macros/s/AKfycbxJHo7v-VuIsR_v0_3t0VaJQ0PByA1ua1p14miMtn6bCVm6IRbXJ2MR_K5VMHo68bxU/exec';
+const gsUrl = 'https://script.google.com/macros/s/AKfycbxV1b-Juf22maT8pCnoIii-rurY0kVCSK8IDPjXsglq3OIgTW9hCjB-ORRdwDEAetzU/exec';
 
 function saveGsConfig() { /* URL is hard-coded; nothing to save */ }
 
@@ -2482,11 +2482,16 @@ function loadStorageArchive() {
   fetch(gsUrl + '?mode=getStorage', { method: 'GET' })
     .then(r => r.json())
     .then(data => {
-      if (data && Array.isArray(data.records)) renderStorageArchive(data.records);
-      else if (el) el.innerHTML = '<p style="color:var(--fg-muted);font-size:12px;font-style:italic;">No records in sheet yet.</p>';
+      if (data && data.error) {
+        if (el) el.innerHTML = '<p style="color:var(--red);font-size:12px;">⚠ Script error: ' + esc(data.error) + '</p>';
+      } else if (data && Array.isArray(data.records)) {
+        renderStorageArchive(data.records);
+      } else {
+        if (el) el.innerHTML = '<p style="color:var(--fg-muted);font-size:12px;font-style:italic;">No records in sheet yet.</p>';
+      }
     })
-    .catch(() => {
-      if (el) el.innerHTML = '<p style="color:var(--fg-muted);font-size:12px;font-style:italic;">⚠ Could not load — offline or sheet empty.</p>';
+    .catch(err => {
+      if (el) el.innerHTML = '<p style="color:var(--red);font-size:12px;">⚠ Could not reach script — check URL or network. (' + (err && err.message ? esc(err.message) : 'fetch error') + ')</p>';
     });
 }
 
@@ -2548,11 +2553,16 @@ function loadTransfectionHistory() {
   fetch(gsUrl + '?mode=getTransfections', { method: 'GET' })
     .then(r => r.json())
     .then(data => {
-      if (data && Array.isArray(data.entries)) renderTransfectionHistory(data.entries);
-      else if (el) el.innerHTML = '<p style="color:var(--fg-muted);font-size:12px;font-style:italic;">No entries in sheet yet.</p>';
+      if (data && data.error) {
+        if (el) el.innerHTML = '<p style="color:var(--red);font-size:12px;">⚠ Script error: ' + esc(data.error) + '</p>';
+      } else if (data && Array.isArray(data.entries)) {
+        renderTransfectionHistory(data.entries);
+      } else {
+        if (el) el.innerHTML = '<p style="color:var(--fg-muted);font-size:12px;font-style:italic;">No entries in sheet yet. Send a calculation to Sheets to start the history.</p>';
+      }
     })
-    .catch(() => {
-      if (el) el.innerHTML = '<p style="color:var(--fg-muted);font-size:12px;font-style:italic;">⚠ Could not load — offline or sheet empty.</p>';
+    .catch(err => {
+      if (el) el.innerHTML = '<p style="color:var(--red);font-size:12px;">⚠ Could not reach script — check URL or network. (' + (err && err.message ? esc(err.message) : 'fetch error') + ')</p>';
     });
 }
 
