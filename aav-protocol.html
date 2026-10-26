@@ -2666,7 +2666,7 @@ function selectInjBatch() {
   const titre = injSelectedBatch.titre;
   const stock = injSelectedBatch.stockVol;
   const total = titre * stock;
-  document.getElementById('ibi-titre').innerHTML    = titre ? sciHtml(titre) + ' vg/mL' : '—';
+  document.getElementById('ibi-titre').innerHTML    = titre ? sciHtml(titre) + ' vg/µL' : '—';
   document.getElementById('ibi-stockvol').textContent = stock ? stock.toLocaleString() + ' µL' : '—';
   document.getElementById('ibi-total').innerHTML    = total ? sciHtml(total) + ' vg' : '—';
   document.getElementById('ibi-helper').textContent    = injSelectedBatch.helper;
@@ -2714,7 +2714,7 @@ function calcInjection() {
 
   // Exact AAV needed for N mice; then add 10% overage to total prep volume (PBS scales with it)
   const totalVgNeeded  = vgPerMouse * nMice;
-  const ulStockNeeded  = titre > 0 ? (totalVgNeeded / titre) * 1000 : Infinity; // µL AAV stock
+  const ulStockNeeded  = titre > 0 ? totalVgNeeded / titre : Infinity; // vg ÷ (vg/µL) = µL
   const totalVolUl     = totalVolUlPrep;                                          // total prep vol with 10% overage
   const ulPBS          = totalVolUl - ulStockNeeded;
   const dilutionFactor = ulStockNeeded > 0 ? totalVolUl / ulStockNeeded : 1;
@@ -2771,7 +2771,7 @@ function logInjection() {
   const titre      = injSelectedBatch.titre;
   const stockVol   = injSelectedBatch.stockVol;
   const totalVgNeeded  = vgPerMouse * nMice;
-  const ulStockNeeded  = titre > 0 ? (totalVgNeeded / titre) * 1000 : 0; // titre vg/mL → µL
+  const ulStockNeeded  = titre > 0 ? totalVgNeeded / titre : 0; // vg ÷ (vg/µL) = µL
   const totalVolUl     = nMice * volPerMouse * 1.10;                       // +10% volume overage
   const ulPBS          = Math.max(0, totalVolUl - ulStockNeeded);
   const dilutionFactor = ulStockNeeded > 0 ? totalVolUl / ulStockNeeded : 1;
