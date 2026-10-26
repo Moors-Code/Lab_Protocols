@@ -1391,11 +1391,30 @@ td.warn{color:var(--red);font-weight:600;}
       <div class="inp-row" style="align-items:flex-end;">
         <div class="inp-group" style="flex:2;">
           <label>Select batch</label>
-          <input id="inj-batch-filter" type="text" placeholder="🔍 Filter by batch name, capsid, date…" oninput="filterInjBatches(this.value)" style="width:100%;font-size:13px;padding:.35rem .6rem;border:1px solid var(--input-border);border-radius:6px 6px 0 0;background:var(--input-bg);color:var(--fg);border-bottom:none;box-sizing:border-box;">
-          <select id="inj-batch-sel" onchange="selectInjBatch()" size="6" style="width:100%;font-size:13px;padding:.25rem .4rem;border:1px solid var(--input-border);border-radius:0 0 6px 6px;background:var(--input-bg);color:var(--fg);overflow-y:auto;">
-            <option value="">— choose a batch —</option>
-          </select>
-          <div style="font-size:11px;color:var(--fg-muted);margin-top:.2rem;" id="inj-batch-count"></div>
+          <!-- Batch autocomplete widget -->
+          <div id="inj-batch-combo" style="position:relative;">
+            <div style="display:flex;align-items:center;gap:.4rem;border:1px solid var(--input-border);border-radius:8px;padding:.42rem .7rem;background:var(--input-bg);cursor:text;" onclick="document.getElementById('inj-batch-filter').focus()">
+              <span style="font-size:13px;color:var(--fg-muted);flex-shrink:0;">🔍</span>
+              <input id="inj-batch-filter" type="text" autocomplete="off"
+                placeholder="Search batches…"
+                oninput="filterInjBatches(this.value)"
+                onfocus="openInjDropdown()"
+                onkeydown="injBatchKeydown(event)"
+                style="flex:1;font-size:13px;border:none;background:transparent;color:var(--fg);outline:none;min-width:0;">
+              <button id="inj-batch-clear" onclick="clearInjBatch()"
+                style="display:none;background:none;border:none;cursor:pointer;color:var(--fg-muted);font-size:16px;padding:0;line-height:1;flex-shrink:0;" title="Clear selection">×</button>
+            </div>
+            <!-- Floating dropdown list — hidden until typing/focus -->
+            <div id="inj-batch-dropdown"
+              style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:200;
+                     background:var(--input-bg);border:1px solid var(--input-border);border-radius:8px;
+                     box-shadow:0 6px 20px rgba(0,0,0,.18);overflow:hidden;">
+              <div id="inj-batch-list" style="max-height:220px;overflow-y:auto;font-size:13px;"></div>
+              <div id="inj-batch-count" style="font-size:11px;color:var(--fg-muted);padding:.25rem .7rem .35rem;border-top:1px solid var(--border);"></div>
+            </div>
+          </div>
+          <!-- Hidden <select> kept for data storage only, not shown -->
+          <select id="inj-batch-sel" style="display:none;"></select>
         </div>
         <div class="inp-group" style="flex:1;">
           <label>Source</label>
@@ -1583,8 +1602,16 @@ td.warn{color:var(--red);font-weight:600;}
 
   <!-- Saved plasmids -->
   <div class="card">
-    <div class="card-head">
-      <h2>Saved Plasmids</h2>
+    <div class="card-head" style="flex-wrap:wrap;gap:.5rem;">
+      <h2 style="margin-right:auto;">Saved Plasmids</h2>
+      <div style="display:flex;align-items:center;gap:.4rem;border:1px solid var(--border);border-radius:8px;padding:.25rem .6rem;background:var(--bg);flex:1;min-width:160px;max-width:280px;">
+        <span style="color:var(--fg-muted);font-size:13px;">🔍</span>
+        <input id="plasmid-search" type="text" placeholder="Filter plasmids…"
+          oninput="filterPlasmidLibrary(this.value)"
+          style="border:none;background:transparent;color:var(--fg);font-size:13px;outline:none;flex:1;min-width:0;">
+        <button id="plasmid-search-clear" onclick="document.getElementById('plasmid-search').value='';filterPlasmidLibrary('');"
+          style="display:none;background:none;border:none;cursor:pointer;color:var(--fg-muted);font-size:15px;padding:0;line-height:1;" title="Clear">×</button>
+      </div>
       <button class="btn btn-green" style="font-size:12px;" onclick="sendPlasmidLibToSheets()">📤 Send to Sheets</button>
     </div>
     <div class="card-body">
@@ -1623,6 +1650,11 @@ window.addEventListener('DOMContentLoaded', () => {
   loadStorageArchive();
   loadTransfectionHistory();
   populateInjectionBatches();
+  // Close injection batch dropdown when clicking outside
+  document.addEventListener('mousedown', e => {
+    const combo = document.getElementById('inj-batch-combo');
+    if (combo && !combo.contains(e.target)) closeInjDropdown();
+  });
 });
 
 function setTodayDates() {
@@ -2275,6 +2307,22 @@ function savePlasmidEdit(id) {
   toast('Plasmid updated ✓');
 }
 
+function filterPlasmidLibrary(query) {
+  const clearBtn = document.getElementById('plasmid-search-clear');
+  if (clearBtn) clearBtn.style.display = query ? 'block' : 'none';
+  const q = (query || '').toLowerCase().trim();
+  // Filter rows in the rendered table (both display rows and edit rows)
+  document.querySelectorAll('#plasmid-library-list tbody tr[id^="pl-row-"]').forEach(row => {
+    const text = row.textContent.toLowerCase();
+    const show = !q || text.includes(q);
+    row.style.display = show ? '' : 'none';
+    // Also hide the matching edit row
+    const id = row.id.replace('pl-row-', '');
+    const editRow = document.getElementById('pl-edit-' + id);
+    if (editRow && !show) editRow.style.display = 'none';
+  });
+}
+
 function togglePlasmidStar(id) {
   const p = plasmidLibrary.find(x => x.id === id);
   if (!p) return;
@@ -2416,7 +2464,7 @@ function saveNotes() {
 
 // ─── Google Sheets ───────────────────────────────────────
 const gsUrl = 'https://script.google.com/macros/s/AKfycbybRGLQ0DbGz_FqxaDBYQUwFEx3dS7QKNawM2rvs3mI70m0WvEKRqw-nT_MTNvaf9ik/exec';
-  
+
 function saveGsConfig() { /* URL is hard-coded; nothing to save */ }
 
 // ─── Shared Library (plasmids + batch recipes via Google Sheets) ──────────────
@@ -2639,25 +2687,140 @@ function populateInjectionBatches() {
   filterInjBatches(filterEl ? filterEl.value : '');
 }
 
-function filterInjBatches(query) {
-  const sel = document.getElementById('inj-batch-sel');
-  const countEl = document.getElementById('inj-batch-count');
-  if (!sel) return;
-  const prev = sel.value;
-  const q = (query || '').toLowerCase().trim();
-  const hits = q ? _allInjOpts.filter(o => o.search.includes(q)) : _allInjOpts;
+let _injDropdownOpen = false;
+let _injHighlightIdx = -1;
 
-  sel.innerHTML = '<option value="">— choose a batch —</option>';
-  hits.forEach(o => {
-    const opt = document.createElement('option');
-    opt.value = o.value;
-    opt.textContent = o.label;
-    Object.entries(o).forEach(([k,v]) => { if (k !== 'label' && k !== 'search') opt.dataset[k] = v; });
-    sel.appendChild(opt);
+function openInjDropdown() {
+  const dd = document.getElementById('inj-batch-dropdown');
+  if (!dd) return;
+  // Populate with current query (or all if empty)
+  const filterEl = document.getElementById('inj-batch-filter');
+  const q = filterEl ? filterEl.value.toLowerCase().trim() : '';
+  _renderInjDropdownItems(q);
+  dd.style.display = 'block';
+  _injDropdownOpen = true;
+}
+
+function closeInjDropdown() {
+  const dd = document.getElementById('inj-batch-dropdown');
+  if (dd) dd.style.display = 'none';
+  _injDropdownOpen = false;
+  _injHighlightIdx = -1;
+}
+
+function clearInjBatch() {
+  const filterEl = document.getElementById('inj-batch-filter');
+  const clearBtn = document.getElementById('inj-batch-clear');
+  if (filterEl) { filterEl.value = ''; filterEl.placeholder = 'Search batches…'; }
+  if (clearBtn) clearBtn.style.display = 'none';
+  injSelectedBatch = null;
+  const infoCard = document.getElementById('inj-batch-info-card');
+  if (infoCard) infoCard.style.display = 'none';
+  const resultsCard = document.getElementById('inj-results-card');
+  if (resultsCard) resultsCard.style.display = 'none';
+  const logCard = document.getElementById('inj-log-card');
+  if (logCard) logCard.style.display = 'none';
+  const srcEl = document.getElementById('inj-batch-src');
+  if (srcEl) srcEl.textContent = '—';
+  closeInjDropdown();
+}
+
+function filterInjBatches(query) {
+  const clearBtn = document.getElementById('inj-batch-clear');
+  if (clearBtn) clearBtn.style.display = (query && injSelectedBatch) ? 'block' : 'none';
+  const q = (query || '').toLowerCase().trim();
+  _renderInjDropdownItems(q);
+  const dd = document.getElementById('inj-batch-dropdown');
+  if (dd) dd.style.display = 'block';
+  _injDropdownOpen = true;
+  _injHighlightIdx = -1;
+}
+
+function _renderInjDropdownItems(q) {
+  const list    = document.getElementById('inj-batch-list');
+  const countEl = document.getElementById('inj-batch-count');
+  if (!list) return;
+  const hits = q ? _allInjOpts.filter(o => o.search.includes(q)) : _allInjOpts;
+  if (!hits.length) {
+    list.innerHTML = `<div style="padding:.5rem .8rem;color:var(--fg-muted);font-style:italic;">${q ? 'No matches' : 'No batches loaded yet'}</div>`;
+    if (countEl) countEl.textContent = q ? 'No matches' : '';
+    return;
+  }
+  // Highlight matching text in label
+  list.innerHTML = hits.map((o, i) => {
+    let label = esc(o.label);
+    if (q) {
+      // simple highlight: bold the matching portion
+      const idx = o.label.toLowerCase().indexOf(q);
+      if (idx >= 0) {
+        label = esc(o.label.slice(0,idx)) +
+          '<strong style="color:var(--accent);">' + esc(o.label.slice(idx, idx+q.length)) + '</strong>' +
+          esc(o.label.slice(idx+q.length));
+      }
+    }
+    const isSel = injSelectedBatch && injSelectedBatch.optionValue === o.value;
+    return `<div class="inj-drop-item" data-idx="${i}"
+      style="padding:.38rem .75rem;cursor:pointer;${isSel ? 'background:var(--accent-sub);font-weight:600;' : ''}"
+      onmousedown="pickInjBatch(${i})"
+      onmouseover="highlightInjItem(${i})">${label}</div>`;
+  }).join('');
+  if (countEl) countEl.textContent = hits.length + ' batch' + (hits.length === 1 ? '' : 'es') + (q ? ' match' : '');
+  // store hits for keyboard nav
+  list._hits = hits;
+}
+
+function highlightInjItem(idx) {
+  _injHighlightIdx = idx;
+  document.querySelectorAll('#inj-batch-list .inj-drop-item').forEach((el, i) => {
+    el.style.background = i === idx ? 'var(--stripe)' : '';
   });
-  if (countEl) countEl.textContent = hits.length ? hits.length + ' batch' + (hits.length === 1 ? '' : 'es') + (q ? ' match' : '') : (q ? 'No matches' : '');
-  sel.value = prev;
-  if (!sel.value) { injSelectedBatch = null; }
+}
+
+function pickInjBatch(idx) {
+  const list = document.getElementById('inj-batch-list');
+  const hits = list._hits || _allInjOpts;
+  const o = hits[idx];
+  if (!o) return;
+  // Reflect selection in the hidden <select> (for compatibility with selectInjBatch)
+  const sel = document.getElementById('inj-batch-sel');
+  sel.innerHTML = '';
+  const opt = document.createElement('option');
+  opt.value = o.value;
+  opt.textContent = o.label;
+  Object.entries(o).forEach(([k,v]) => { if (k !== 'label' && k !== 'search') opt.dataset[k] = v; });
+  sel.appendChild(opt);
+  sel.value = o.value;
+  // Update input to show selected batch name (short form)
+  const filterEl = document.getElementById('inj-batch-filter');
+  if (filterEl) { filterEl.value = ''; filterEl.placeholder = o.batchname || o.label; }
+  const clearBtn = document.getElementById('inj-batch-clear');
+  if (clearBtn) clearBtn.style.display = 'block';
+  closeInjDropdown();
+  selectInjBatch();
+}
+
+function injBatchKeydown(e) {
+  const list = document.getElementById('inj-batch-list');
+  const hits = (list && list._hits) || _allInjOpts;
+  if (!_injDropdownOpen) { if (e.key !== 'Escape') openInjDropdown(); return; }
+  if (e.key === 'Escape')  { closeInjDropdown(); return; }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _injHighlightIdx = Math.min(_injHighlightIdx + 1, hits.length - 1);
+    highlightInjItem(_injHighlightIdx);
+    // scroll into view
+    const items = list.querySelectorAll('.inj-drop-item');
+    if (items[_injHighlightIdx]) items[_injHighlightIdx].scrollIntoView({block:'nearest'});
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _injHighlightIdx = Math.max(_injHighlightIdx - 1, 0);
+    highlightInjItem(_injHighlightIdx);
+    const items = list.querySelectorAll('.inj-drop-item');
+    if (items[_injHighlightIdx]) items[_injHighlightIdx].scrollIntoView({block:'nearest'});
+  } else if (e.key === 'Enter' && _injHighlightIdx >= 0) {
+    e.preventDefault();
+    pickInjBatch(_injHighlightIdx);
+  }
 }
 
 function selectInjBatch() {
@@ -2999,20 +3162,28 @@ function logInjection() {
 }
 // ──────────────────────────────────────────────────────────
 
+// Store history entries for loadTxnRecipe access
+let _txnHistoryEntries = [];
+
 function renderTransfectionHistory(entries) {
+  _txnHistoryEntries = entries || [];
   const el = document.getElementById('txn-history-list');
   if (!el) return;
   if (!entries || !entries.length) {
     el.innerHTML = '<p style="color:var(--fg-muted);font-size:12px;font-style:italic;">No entries in sheet yet. Send a calculation to Sheets to start the history.</p>';
     return;
   }
-  el.innerHTML = entries.map(e => `
+  el.innerHTML = entries.map((e, idx) => `
     <div class="txn-history-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:.7rem 1rem;margin-bottom:.5rem;font-size:12px;">
-      <div style="display:flex;flex-wrap:wrap;gap:.4rem 1rem;align-items:baseline;margin-bottom:.4rem;">
-        <strong style="font-size:13px;">${esc(e.recipeName||'Untitled')}</strong>
-        ${e.vessel ? '<span style="color:var(--fg-muted);">'+esc(e.vessel)+'</span>' : ''}
-        ${e.date   ? '<span style="color:var(--fg-muted);">📅 '+esc(e.date)+'</span>' : ''}
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem 1rem;align-items:center;margin-bottom:.4rem;">
+        <strong style="font-size:13px;flex:1;min-width:0;">${esc(e.recipeName||'Untitled')}</strong>
+        ${e.vessel   ? '<span style="color:var(--fg-muted);">'+esc(e.vessel)+'</span>' : ''}
+        ${e.date     ? '<span style="color:var(--fg-muted);">📅 '+esc(e.date)+'</span>' : ''}
         ${e.operator ? '<span style="color:var(--fg-muted);">👤 '+esc(e.operator)+'</span>' : ''}
+        <button onclick="loadTxnRecipe(${idx})"
+          style="flex-shrink:0;background:var(--accent-sub);color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:.2rem .65rem;font-size:11.5px;cursor:pointer;font-weight:600;white-space:nowrap;">
+          ↩ Load
+        </button>
       </div>
       <div style="display:flex;flex-direction:column;gap:.15rem;">
         ${(e.plasmids||[]).map(p => `
@@ -3026,6 +3197,41 @@ function renderTransfectionHistory(entries) {
       </div>
     </div>
   `).join('');
+}
+
+function loadTxnRecipe(idx) {
+  const e = _txnHistoryEntries[idx];
+  if (!e) return;
+  // Switch to calc tab
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const calcPanel = document.getElementById('tab-calc');
+  if (calcPanel) calcPanel.classList.add('active');
+  const calcBtn = document.querySelector('.tab-btn[onclick*="calc"]');
+  if (calcBtn) calcBtn.classList.add('active');
+  // Fill recipe name and operator
+  const nameEl = document.getElementById('recipe-name');
+  const opEl   = document.getElementById('recipe-operator');
+  if (nameEl) nameEl.value = e.recipeName || '';
+  if (opEl)   opEl.value   = e.operator   || '';
+  // Fill plasmid fields (index 0=Helper, 1=Capsid, 2=Transgene)
+  (e.plasmids || []).forEach((p, i) => {
+    if (i > 2) return;
+    const nameF = document.getElementById(`p${i}-name`);
+    const concF = document.getElementById(`p${i}-conc`);
+    const bpF   = document.getElementById(`p${i}-bp`);
+    if (nameF && p.name) nameF.value = p.name;
+    if (concF && p.conc) concF.value = parseFloat(p.conc) || concF.value;
+    // bp is not stored in history — try to find from library
+    if (bpF) {
+      const match = plasmidLibrary.find(pl => pl.name === p.name);
+      if (match && match.bp) bpF.value = match.bp;
+    }
+  });
+  // Scroll to top and recalc
+  window.scrollTo(0, 0);
+  recalc();
+  toast('Recipe loaded — check plasmid sizes and adjust if needed');
 }
 
 function filterTxnHistory(q) {
