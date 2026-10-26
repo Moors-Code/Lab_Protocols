@@ -167,6 +167,19 @@ td.warn{color:var(--red);font-weight:600;}
 .storage-record{display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:.5rem;align-items:center;padding:.5rem .7rem;border-radius:6px;border:1px solid var(--border);margin-bottom:.4rem;background:var(--bg-card);font-size:13px;}
 .storage-record .del-btn{background:none;border:none;cursor:pointer;color:var(--red);font-size:16px;padding:0 .2rem;}
 .record-label{font-size:11px;color:var(--fg-muted);}
+
+/* Injection Calc tab */
+.inj-batch-info{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem .8rem;padding:.6rem .8rem;border-radius:8px;border:1px solid var(--border);background:var(--bg);margin-bottom:.8rem;}
+.inj-batch-info .ib-item{display:flex;flex-direction:column;gap:.1rem;}
+.inj-batch-info .ib-label{font-size:10px;color:var(--fg-muted);text-transform:uppercase;letter-spacing:.03em;}
+.inj-batch-info .ib-val{font-size:13px;font-weight:600;}
+.inj-results{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin:.5rem 0;}
+.inj-result-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.65rem .8rem;text-align:center;}
+.inj-result-box .irb-label{font-size:10px;color:var(--fg-muted);margin-bottom:.2rem;}
+.inj-result-box .irb-val{font-size:18px;font-weight:700;color:var(--accent);}
+.inj-result-box .irb-unit{font-size:10px;color:var(--fg-muted);}
+.inj-warn{background:rgba(230,80,50,.12);border:1px solid var(--red);border-radius:8px;padding:.5rem .8rem;color:var(--red);font-size:12.5px;font-weight:600;margin:.5rem 0;}
+.inj-ok{background:rgba(40,180,100,.1);border:1px solid var(--green);border-radius:8px;padding:.4rem .8rem;color:var(--green);font-size:12px;margin:.5rem 0;}
 </style>
 
 <div style="position:relative;">
@@ -217,6 +230,7 @@ td.warn{color:var(--red);font-weight:600;}
   <button class="tab-btn" onclick="switchTab('protocol',this)">📋 Protocol &amp; Notes</button>
   <button class="tab-btn" onclick="switchTab('analytics',this)">🔬 ddPCR / qPCR</button>
   <button class="tab-btn" onclick="switchTab('storage',this)">🗄 Storage</button>
+  <button class="tab-btn" onclick="switchTab('injection',this)">💉 Injection Calc</button>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════
@@ -1350,6 +1364,165 @@ td.warn{color:var(--red);font-weight:600;}
   </div>
 </div><!-- /tab-storage -->
 
+<!-- ══ INJECTION CALC ════════════════════════════════════════ -->
+<div id="tab-injection" class="tab-panel">
+
+  <!-- Batch selector -->
+  <div class="card">
+    <div class="card-head"><h2>💉 Injection Calculator</h2></div>
+    <div class="card-body">
+      <div class="inp-row" style="align-items:flex-end;">
+        <div class="inp-group" style="flex:2;">
+          <label>Select batch</label>
+          <select id="inj-batch-sel" onchange="selectInjBatch()" style="width:100%;font-size:13px;padding:.4rem .6rem;border:1px solid var(--input-border);border-radius:6px;background:var(--input-bg);color:var(--fg);">
+            <option value="">— choose a batch —</option>
+          </select>
+        </div>
+        <div class="inp-group" style="flex:1;">
+          <label>Source</label>
+          <div id="inj-batch-src" style="font-size:12px;color:var(--fg-muted);padding:.45rem 0;">—</div>
+        </div>
+      </div>
+
+      <!-- Batch info summary card (hidden until batch selected) -->
+      <div id="inj-batch-info-card" style="display:none;">
+        <div class="inj-batch-info" id="inj-batch-info-grid">
+          <div class="ib-item"><span class="ib-label">Titre</span><span class="ib-val" id="ibi-titre">—</span></div>
+          <div class="ib-item"><span class="ib-label">Stock vol</span><span class="ib-val" id="ibi-stockvol">—</span></div>
+          <div class="ib-item"><span class="ib-label">Total particles</span><span class="ib-val" id="ibi-total">—</span></div>
+          <div class="ib-item"><span class="ib-label">Helper</span><span class="ib-val" id="ibi-helper" style="font-size:12px;">—</span></div>
+          <div class="ib-item"><span class="ib-label">Capsid</span><span class="ib-val" id="ibi-capsid" style="font-size:12px;">—</span></div>
+          <div class="ib-item"><span class="ib-label">Transgene</span><span class="ib-val" id="ibi-transgene" style="font-size:12px;">—</span></div>
+          <div class="ib-item"><span class="ib-label">Location</span><span class="ib-val" id="ibi-location" style="font-size:12px;">—</span></div>
+          <div class="ib-item"><span class="ib-label">Date made</span><span class="ib-val" id="ibi-date" style="font-size:12px;">—</span></div>
+          <div class="ib-item"><span class="ib-label">Operator</span><span class="ib-val" id="ibi-operator" style="font-size:12px;">—</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Parameters -->
+  <div class="card">
+    <div class="card-head"><h2>Injection parameters</h2></div>
+    <div class="card-body">
+      <div class="inp-row">
+        <div class="inp-group" style="flex:1;">
+          <label>Viral genomes per mouse (vg)</label>
+          <input type="number" id="inj-vg" value="1e11" step="any" placeholder="e.g. 1e11" oninput="calcInjection()" style="font-size:13px;">
+          <div style="font-size:11px;color:var(--fg-muted);margin-top:.2rem;" id="inj-vg-display">—</div>
+        </div>
+        <div class="inp-group" style="flex:1;">
+          <label>Number of mice</label>
+          <input type="number" id="inj-mice" value="10" min="1" step="1" oninput="calcInjection()" style="font-size:13px;">
+          <div style="font-size:11px;color:var(--fg-muted);margin-top:.2rem;">+10% overage → <strong id="inj-mice-overage">11</strong> mice prepped</div>
+        </div>
+        <div class="inp-group" style="flex:1;">
+          <label>Injection volume / mouse <span style="text-transform:none;">(µL)</span></label>
+          <input type="number" id="inj-vol" value="100" min="1" step="1" oninput="calcInjection()" style="font-size:13px;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card" id="inj-results-card" style="display:none;">
+    <div class="card-head"><h2>Results</h2></div>
+    <div class="card-body">
+      <div id="inj-warn-box" style="display:none;" class="inj-warn">⚠ Insufficient stock for this experiment.</div>
+      <div id="inj-ok-box" style="display:none;" class="inj-ok"></div>
+
+      <div class="inj-results">
+        <div class="inj-result-box">
+          <div class="irb-label">Mice to prep (with overage)</div>
+          <div class="irb-val" id="res-mice">—</div>
+          <div class="irb-unit">mice</div>
+        </div>
+        <div class="inj-result-box">
+          <div class="irb-label">AAV stock needed</div>
+          <div class="irb-val" id="res-aav">—</div>
+          <div class="irb-unit">µL</div>
+        </div>
+        <div class="inj-result-box">
+          <div class="irb-label">PBS to add</div>
+          <div class="irb-val" id="res-pbs">—</div>
+          <div class="irb-unit">µL</div>
+        </div>
+        <div class="inj-result-box">
+          <div class="irb-label">Total prep volume</div>
+          <div class="irb-val" id="res-total-vol">—</div>
+          <div class="irb-unit">µL</div>
+        </div>
+        <div class="inj-result-box">
+          <div class="irb-label">Dilution factor in PBS</div>
+          <div class="irb-val" id="res-dilution">—</div>
+          <div class="irb-unit">×</div>
+        </div>
+        <div class="inj-result-box" style="border-color:var(--accent);">
+          <div class="irb-label">Remaining stock after</div>
+          <div class="irb-val" id="res-remaining" style="color:var(--fg);">—</div>
+          <div class="irb-unit">µL</div>
+        </div>
+      </div>
+
+      <!-- Step summary -->
+      <div style="margin-top:.8rem;padding:.6rem .8rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12.5px;line-height:1.7;" id="inj-protocol-summary"></div>
+    </div>
+  </div>
+
+  <!-- Log injection usage -->
+  <div class="card" id="inj-log-card" style="display:none;">
+    <div class="card-head"><h2>Log injection & update stock</h2></div>
+    <div class="card-body">
+      <div class="inp-row">
+        <div class="inp-group" style="flex:1;">
+          <label>Date of injection</label>
+          <input type="date" id="inj-date" style="font-size:13px;">
+        </div>
+        <div class="inp-group" style="flex:1;">
+          <label>Operator</label>
+          <input type="text" id="inj-operator" placeholder="Initials / name" style="font-size:13px;">
+        </div>
+        <div class="inp-group" style="flex:2;">
+          <label>Notes</label>
+          <input type="text" id="inj-notes" placeholder="Brain region, route, project…" style="font-size:13px;">
+        </div>
+      </div>
+      <div style="margin-top:.8rem;display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-primary" onclick="logInjection()">📤 Log injection &amp; update Storage</button>
+        <span style="font-size:11px;color:var(--fg-muted);">Appends a row to the <em>Injections</em> sheet <strong>and</strong> updates <em>stock_volume_ul</em> in the <em>Storage</em> sheet for this batch.</span>
+      </div>
+      <details style="margin-top:.8rem;">
+        <summary style="font-size:11.5px;cursor:pointer;color:var(--fg-muted);">⚙ Apps Script snippet needed to handle Stock updates</summary>
+        <div style="margin-top:.5rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;font-size:11.5px;line-height:1.7;">
+          Add this block inside your <code>doPost(e)</code> handler — it finds the matching row in
+          the <em>Storage</em> sheet by <code>record_id</code> (or batch name) and overwrites <em>stock_volume_ul</em>:
+          <pre style="margin:.5rem 0 0;overflow-x:auto;white-space:pre;font-size:10.5px;background:var(--stripe);padding:.5rem .7rem;border-radius:6px;">// ── inside doPost(e), after JSON.parse ──
+if (data.sheet === 'Storage' &amp;&amp; data.mode === 'updateStock') {
+  const ss   = SpreadsheetApp.getActiveSpreadsheet();
+  const sh   = ss.getSheetByName('Storage');
+  const rows = sh.getDataRange().getValues();
+  const hdr  = rows[0];
+  const colId  = hdr.indexOf('record_id');
+  const colBatch = hdr.indexOf('batch_exp');
+  const colVol = hdr.indexOf('stock_volume_ul');
+  if (colVol === -1) return ContentService.createTextOutput('col not found');
+  for (let i = 1; i &lt; rows.length; i++) {
+    const matchId    = data.record_id &amp;&amp; rows[i][colId]    == data.record_id;
+    const matchBatch = data.batch     &amp;&amp; rows[i][colBatch] == data.batch;
+    if (matchId || matchBatch) {
+      sh.getRange(i + 1, colVol + 1).setValue(data.stock_vol_after);
+      break;
+    }
+  }
+  return ContentService.createTextOutput('ok');
+}</pre>
+        </div>
+      </details>
+    </div>
+  </div>
+
+</div><!-- /tab-injection -->
+
 <!-- ══ PLASMID LIBRARY ══════════════════════════════════════ -->
 <div id="tab-plasmids" class="tab-panel">
   <div class="card">
@@ -1446,6 +1619,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderBatchRecipeSelect();
   loadStorageArchive();
   loadTransfectionHistory();
+  populateInjectionBatches();
 });
 
 function setTodayDates() {
@@ -1455,6 +1629,7 @@ function setTodayDates() {
   if(document.getElementById('dd-date')) document.getElementById('dd-date').value = t;
   if(document.getElementById('qr-date')) document.getElementById('qr-date').value = t;
   if(document.getElementById('pl-date')) document.getElementById('pl-date').value = t;
+  if(document.getElementById('inj-date')) document.getElementById('inj-date').value = t;
 }
 
 // ─── Tabs ────────────────────────────────────────────────
@@ -2219,7 +2394,7 @@ function saveNotes() {
 }
 
 // ─── Google Sheets ───────────────────────────────────────
-const gsUrl = 'https://script.google.com/macros/s/AKfycbxlfZl75_src8PxB-QrW8NXAMiqgT5Wxb-9HfAXvSatSs4FWUWsyvG3b89aMZkuWwUN/exec';
+const gsUrl = 'https://script.google.com/macros/s/AKfycbxJHo7v-VuIsR_v0_3t0VaJQ0PByA1ua1p14miMtn6bCVm6IRbXJ2MR_K5VMHo68bxU/exec';
 
 function saveGsConfig() { /* URL is hard-coded; nothing to save */ }
 
@@ -2316,6 +2491,11 @@ function loadStorageArchive() {
 }
 
 function renderStorageArchive(records) {
+  // Also feed the injection batch selector
+  if (records && records.length) {
+    _injArchiveRecords = records;
+    populateInjectionBatches();
+  }
   const el = document.getElementById('lab-archive-list');
   if (!el) return;
   if (!records || !records.length) {
@@ -2375,6 +2555,282 @@ function loadTransfectionHistory() {
       if (el) el.innerHTML = '<p style="color:var(--fg-muted);font-size:12px;font-style:italic;">⚠ Could not load — offline or sheet empty.</p>';
     });
 }
+
+// ─── Injection Calc ───────────────────────────────────────
+// Holds the currently-selected batch data for the injection tab
+let injSelectedBatch = null;
+// Lab archive records (populated after loadStorageArchive)
+let _injArchiveRecords = [];
+
+function populateInjectionBatches() {
+  const sel = document.getElementById('inj-batch-sel');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— choose a batch —</option>';
+
+  // LOCAL records
+  storageRecords.forEach(r => {
+    const titre = parseFloat(r.titre) || 0;
+    const stockVol = (r.aliquot || 0) * (r.nAliquots || 0);
+    if (!r.batch) return;
+    const opt = document.createElement('option');
+    opt.value = 'local:' + r.id;
+    opt.textContent = r.batch + (r.date ? '  (' + r.date + ')' : '') + ' — local';
+    opt.dataset.titre     = titre;
+    opt.dataset.stockvol  = stockVol;
+    opt.dataset.recordid  = r.id;
+    opt.dataset.batchname = r.batch;
+    opt.dataset.helper    = r.helperName   || '—';
+    opt.dataset.capsid    = r.capsidName   || '—';
+    opt.dataset.transgene = r.transgeneName|| '—';
+    opt.dataset.location  = r.location     || '—';
+    opt.dataset.date      = r.date         || '—';
+    opt.dataset.operator  = r.operator     || '—';
+    opt.dataset.src       = 'Local storage';
+    sel.appendChild(opt);
+  });
+
+  // ARCHIVE records (from Google Sheets)
+  _injArchiveRecords.forEach((r, i) => {
+    const titre = parseFloat(r.titre) || 0;
+    const stockVol = parseFloat(r.stockVol) || 0;
+    if (!r.batch) return;
+    const opt = document.createElement('option');
+    opt.value = 'archive:' + i;
+    opt.textContent = r.batch + (r.date ? '  (' + r.date + ')' : '') + ' — lab sheet';
+    opt.dataset.titre     = titre;
+    opt.dataset.stockvol  = stockVol;
+    opt.dataset.recordid  = r.record_id || '';
+    opt.dataset.batchname = r.batch;
+    opt.dataset.helper    = r.helper   || '—';
+    opt.dataset.capsid    = r.capsid   || '—';
+    opt.dataset.transgene = r.transgene|| '—';
+    opt.dataset.location  = r.storage  || '—';
+    opt.dataset.date      = r.date     || '—';
+    opt.dataset.operator  = r.operator || '—';
+    opt.dataset.src       = 'Lab archive (Sheets)';
+    sel.appendChild(opt);
+  });
+
+  if (prev) sel.value = prev;
+  if (sel.value) selectInjBatch();
+}
+
+function selectInjBatch() {
+  const sel = document.getElementById('inj-batch-sel');
+  const opt = sel.options[sel.selectedIndex];
+  const infoCard = document.getElementById('inj-batch-info-card');
+
+  if (!opt || !opt.value) {
+    injSelectedBatch = null;
+    infoCard.style.display = 'none';
+    document.getElementById('inj-results-card').style.display = 'none';
+    document.getElementById('inj-log-card').style.display = 'none';
+    document.getElementById('inj-batch-src').textContent = '—';
+    return;
+  }
+
+  injSelectedBatch = {
+    label:       opt.textContent,
+    src:         opt.dataset.src,
+    titre:       parseFloat(opt.dataset.titre)    || 0,
+    stockVol:    parseFloat(opt.dataset.stockvol) || 0,
+    recordId:    opt.dataset.recordid  || '',
+    batchName:   opt.dataset.batchname || '',
+    helper:      opt.dataset.helper,
+    capsid:      opt.dataset.capsid,
+    transgene:   opt.dataset.transgene,
+    location:    opt.dataset.location,
+    date:        opt.dataset.date,
+    operator:    opt.dataset.operator,
+    optionValue: opt.value,
+  };
+
+  function sciHtml(v) {
+    if (!v || isNaN(v) || !isFinite(v)) return '—';
+    const e = Math.floor(Math.log10(Math.abs(v)));
+    return (v / Math.pow(10, e)).toFixed(2) + ' × 10<sup>' + e + '</sup>';
+  }
+
+  const titre = injSelectedBatch.titre;
+  const stock = injSelectedBatch.stockVol;
+  const total = titre * stock;
+  document.getElementById('ibi-titre').innerHTML    = titre ? sciHtml(titre) + ' vg/mL' : '—';
+  document.getElementById('ibi-stockvol').textContent = stock ? stock.toLocaleString() + ' µL' : '—';
+  document.getElementById('ibi-total').innerHTML    = total ? sciHtml(total) + ' vg' : '—';
+  document.getElementById('ibi-helper').textContent    = injSelectedBatch.helper;
+  document.getElementById('ibi-capsid').textContent    = injSelectedBatch.capsid;
+  document.getElementById('ibi-transgene').textContent = injSelectedBatch.transgene;
+  document.getElementById('ibi-location').textContent  = injSelectedBatch.location;
+  document.getElementById('ibi-date').textContent      = injSelectedBatch.date;
+  document.getElementById('ibi-operator').textContent  = injSelectedBatch.operator;
+  document.getElementById('inj-batch-src').textContent = injSelectedBatch.src;
+  infoCard.style.display = 'block';
+  calcInjection();
+}
+
+function calcInjection() {
+  if (!injSelectedBatch) return;
+
+  const vgPerMouse  = parseFloat(document.getElementById('inj-vg').value)   || 0;
+  const nMice       = parseInt(document.getElementById('inj-mice').value)    || 0;
+  const volPerMouse = parseFloat(document.getElementById('inj-vol').value)   || 100;
+
+  function sciHtml(v) {
+    if (!v || isNaN(v) || !isFinite(v)) return '—';
+    const e = Math.floor(Math.log10(Math.abs(v)));
+    return (v / Math.pow(10, e)).toFixed(2) + ' × 10<sup>' + e + '</sup>';
+  }
+  const vgDisp = document.getElementById('inj-vg-display');
+  if (vgDisp) vgDisp.innerHTML = vgPerMouse ? '= ' + sciHtml(vgPerMouse) + ' vg / mouse' : '';
+
+  const miceWithOverage = Math.ceil(nMice * 1.10);
+  document.getElementById('inj-mice-overage').textContent = miceWithOverage;
+
+  if (!vgPerMouse || !nMice) {
+    document.getElementById('inj-results-card').style.display = 'none';
+    document.getElementById('inj-log-card').style.display = 'none';
+    return;
+  }
+
+  const titre    = injSelectedBatch.titre;
+  const stockVol = injSelectedBatch.stockVol;
+
+  const totalVgNeeded  = vgPerMouse * miceWithOverage;
+  const ulStockNeeded  = titre > 0 ? (totalVgNeeded / titre) * 1000 : Infinity; // titre vg/mL → result µL
+  const totalVolUl     = miceWithOverage * volPerMouse;
+  const ulPBS          = totalVolUl - ulStockNeeded;
+  const dilutionFactor = ulStockNeeded > 0 ? totalVolUl / ulStockNeeded : 1;
+  const remaining      = stockVol - ulStockNeeded;
+
+  document.getElementById('inj-results-card').style.display = 'block';
+  document.getElementById('inj-log-card').style.display = 'block';
+
+  document.getElementById('res-mice').textContent      = miceWithOverage;
+  document.getElementById('res-aav').textContent       = isFinite(ulStockNeeded) ? ulStockNeeded.toFixed(1) : '∞';
+  document.getElementById('res-pbs').textContent       = isFinite(ulPBS) ? Math.max(0, ulPBS).toFixed(1) : '—';
+  document.getElementById('res-total-vol').textContent = totalVolUl.toFixed(0);
+  document.getElementById('res-dilution').textContent  = isFinite(dilutionFactor) ? dilutionFactor.toFixed(1) : '—';
+  document.getElementById('res-remaining').textContent = isFinite(remaining) ? remaining.toFixed(1) : '—';
+
+  const warnBox = document.getElementById('inj-warn-box');
+  const okBox   = document.getElementById('inj-ok-box');
+  if (!isFinite(ulStockNeeded) || ulStockNeeded > stockVol) {
+    warnBox.style.display = 'block';
+    warnBox.textContent   = `⚠ Insufficient stock: need ${isFinite(ulStockNeeded) ? ulStockNeeded.toFixed(1) : '?'} µL but only ${stockVol.toFixed(1)} µL available.`;
+    okBox.style.display   = 'none';
+    document.getElementById('res-remaining').style.color = 'var(--red)';
+  } else {
+    warnBox.style.display = 'none';
+    okBox.style.display   = 'block';
+    okBox.textContent     = `✓ Stock sufficient — ${remaining.toFixed(1)} µL will remain after injection.`;
+    document.getElementById('res-remaining').style.color = remaining >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+
+  const summaryEl = document.getElementById('inj-protocol-summary');
+  if (summaryEl) {
+    const noAAV = dilutionFactor <= 1.01;
+    summaryEl.innerHTML = `
+      <strong>Protocol summary</strong><br>
+      Prep for <strong>${miceWithOverage} mice</strong> (${nMice} requested + 10% overage).<br>
+      ${noAAV
+        ? `Inject neat stock: <strong>${ulStockNeeded.toFixed(1)} µL</strong> total — no PBS dilution required.`
+        : `Add <strong>${ulStockNeeded.toFixed(1)} µL</strong> AAV stock to <strong>${Math.max(0,ulPBS).toFixed(1)} µL</strong> PBS
+           → total prep volume <strong>${totalVolUl.toFixed(0)} µL</strong>.`
+      }<br>
+      Inject <strong>${volPerMouse} µL / mouse</strong> at ${sciHtml(vgPerMouse)} vg / mouse
+      (working titre ${sciHtml(vgPerMouse / volPerMouse)} vg/µL, ${dilutionFactor.toFixed(1)}× dilution).
+    `;
+  }
+}
+
+function logInjection() {
+  if (!injSelectedBatch) { toast('No batch selected'); return; }
+  const vgPerMouse  = parseFloat(document.getElementById('inj-vg').value)   || 0;
+  const nMice       = parseInt(document.getElementById('inj-mice').value)    || 0;
+  const volPerMouse = parseFloat(document.getElementById('inj-vol').value)   || 100;
+  if (!vgPerMouse || !nMice) { toast('Fill in vg/mouse and number of mice first'); return; }
+
+  const miceWithOverage = Math.ceil(nMice * 1.10);
+  const titre      = injSelectedBatch.titre;
+  const stockVol   = injSelectedBatch.stockVol;
+  const totalVgNeeded  = vgPerMouse * miceWithOverage;
+  const ulStockNeeded  = titre > 0 ? (totalVgNeeded / titre) * 1000 : 0; // titre vg/mL → result µL
+  const totalVolUl     = miceWithOverage * volPerMouse;
+  const ulPBS          = Math.max(0, totalVolUl - ulStockNeeded);
+  const dilutionFactor = ulStockNeeded > 0 ? totalVolUl / ulStockNeeded : 1;
+  const remaining      = Math.max(0, stockVol - ulStockNeeded);
+
+  const date     = document.getElementById('inj-date').value     || new Date().toISOString().slice(0,10);
+  const operator = document.getElementById('inj-operator').value || '—';
+  const notes    = document.getElementById('inj-notes').value    || '';
+  const ts       = new Date().toISOString();
+
+  // ── 1. Log to Injections sheet ──────────────────────────
+  const injPayload = {
+    sheet: 'Injections',
+    timestamp: ts,
+    records: [{
+      batch:             injSelectedBatch.batchName,
+      record_id:         injSelectedBatch.recordId,
+      batch_src:         injSelectedBatch.src,
+      date_injected:     date,
+      operator:          operator,
+      titre_vg_ul:       titre,
+      stock_vol_before:  parseFloat(stockVol.toFixed(2)),
+      vg_per_mouse:      vgPerMouse,
+      n_mice_actual:     nMice,
+      n_mice_prepped:    miceWithOverage,
+      vol_per_mouse_ul:  volPerMouse,
+      total_vol_ul:      parseFloat(totalVolUl.toFixed(2)),
+      aav_used_ul:       parseFloat(ulStockNeeded.toFixed(2)),
+      pbs_ul:            parseFloat(ulPBS.toFixed(2)),
+      dilution_factor:   parseFloat(dilutionFactor.toFixed(2)),
+      stock_vol_after:   parseFloat(remaining.toFixed(2)),
+      notes:             notes
+    }]
+  };
+  gsPost(injPayload);
+
+  // ── 2. Update Storage sheet — deduct used volume ────────
+  // The Apps Script should find the Storage row matching record_id (or batch
+  // if record_id is blank) and overwrite stock_volume_ul with stock_vol_after.
+  const storageUpdatePayload = {
+    sheet:           'Storage',
+    mode:            'updateStock',      // tells the script to UPDATE, not append
+    timestamp:       ts,
+    record_id:       injSelectedBatch.recordId,
+    batch:           injSelectedBatch.batchName,
+    stock_vol_after: parseFloat(remaining.toFixed(2)),
+    aav_used_ul:     parseFloat(ulStockNeeded.toFixed(2)),
+    date_updated:    date,
+    operator:        operator,
+    injection_notes: notes
+  };
+  gsPost(storageUpdatePayload);
+
+  toast(`✓ Logged — ${ulStockNeeded.toFixed(1)} µL used · Storage updated · ${remaining.toFixed(1)} µL remaining`);
+
+  // ── 3. Update local record if from local storage ────────
+  if (injSelectedBatch.optionValue && injSelectedBatch.optionValue.startsWith('local:')) {
+    const localId = parseInt(injSelectedBatch.optionValue.replace('local:',''));
+    const idx = storageRecords.findIndex(r => r.id === localId);
+    if (idx !== -1) {
+      const aliquotSize = storageRecords[idx].aliquot || 0;
+      if (aliquotSize > 0) {
+        storageRecords[idx].nAliquots = parseFloat((remaining / aliquotSize).toFixed(1));
+      }
+      saveLS();
+      renderStorageRecords();
+      populateInjectionBatches();
+    }
+  }
+
+  // ── 4. Refresh displayed remaining stock ────────────────
+  injSelectedBatch.stockVol = remaining;
+  calcInjection();
+}
+// ──────────────────────────────────────────────────────────
 
 function renderTransfectionHistory(entries) {
   const el = document.getElementById('txn-history-list');
@@ -2573,7 +3029,7 @@ function fmtTitre(v) {
   if(!v||isNaN(v)) return '—';
   const exp = Math.floor(Math.log10(v));
   const mant = (v/Math.pow(10,exp)).toFixed(2);
-  return `${mant} × 10^${exp} vg/ml`;
+  return `${mant} × 10^${exp} vg/mL`;
 }
 
 // ─── ddPCR results ────────────────────────────────────────
