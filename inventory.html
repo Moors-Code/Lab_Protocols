@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* ── Tokens ──────────────────────────────────────────────────────────── */
+/* ── Tokens ─────────────────────────────────────────────────────────────── */
 :root {
   --accent:      #0c7c59;
   --accent-lite: #d6f0e8;
@@ -22,90 +22,97 @@
   --text3:       #8a93a8;
   --danger:      #c0392b;
   --danger-bg:   #fdecea;
+  --warn:        #b45309;
+  --warn-bg:     #fef3c7;
   --mono:        'IBM Plex Mono', monospace;
   --radius:      8px;
   --shadow:      0 1px 4px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --accent:      #2ab88a;
-    --accent-lite: #0d3328;
-    --accent-text: #2ab88a;
-    --bg:          #111318;
-    --bg2:         #1a1d24;
-    --bg3:         #22262f;
-    --surface:     #1a1d24;
-    --border:      #2e3340;
-    --text:        #e8eaf0;
-    --text2:       #8a93a8;
-    --text3:       #5a6072;
-    --danger:      #e05c4b;
-    --danger-bg:   #2c1510;
+    --accent:      #2ab88a;  --accent-lite: #0d3328;  --accent-text: #2ab88a;
+    --bg:          #111318;  --bg2:         #1a1d24;   --bg3:         #22262f;
+    --surface:     #1a1d24;  --border:      #2e3340;
+    --text:        #e8eaf0;  --text2:       #8a93a8;   --text3:       #5a6072;
+    --danger:      #e05c4b;  --danger-bg:   #2c1510;
+    --warn:        #f59e0b;  --warn-bg:     #1c1708;
     --shadow:      0 1px 4px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
   }
 }
 :root[data-theme="dark"] {
-  --accent:      #2ab88a;
-  --accent-lite: #0d3328;
-  --accent-text: #2ab88a;
-  --bg:          #111318;
-  --bg2:         #1a1d24;
-  --bg3:         #22262f;
-  --surface:     #1a1d24;
-  --border:      #2e3340;
-  --text:        #e8eaf0;
-  --text2:       #8a93a8;
-  --text3:       #5a6072;
-  --danger:      #e05c4b;
-  --danger-bg:   #2c1510;
+  --accent:      #2ab88a;  --accent-lite: #0d3328;  --accent-text: #2ab88a;
+  --bg:          #111318;  --bg2:         #1a1d24;   --bg3:         #22262f;
+  --surface:     #1a1d24;  --border:      #2e3340;
+  --text:        #e8eaf0;  --text2:       #8a93a8;   --text3:       #5a6072;
+  --danger:      #e05c4b;  --danger-bg:   #2c1510;
+  --warn:        #f59e0b;  --warn-bg:     #1c1708;
   --shadow:      0 1px 4px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 15px; }
-body {
-  font-family: 'IBM Plex Sans', sans-serif;
-  background: var(--bg); color: var(--text);
-  min-height: 100vh; display: flex; flex-direction: column;
-}
+body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
 
-/* ── Header ──────────────────────────────────────────────────────────── */
+/* ── Header ─────────────────────────────────────────────────────────────── */
 .app-header {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 24px; background: var(--bg2);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 20px; background: var(--bg2);
   border-bottom: 1px solid var(--border);
   position: sticky; top: 0; z-index: 100;
 }
-.app-title { font-weight: 600; font-size: 1rem; }
+.app-title { font-weight: 600; font-size: .95rem; white-space: nowrap; }
 .app-title span { color: var(--accent); }
-.header-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.global-search-wrap { flex: 1; min-width: 180px; max-width: 380px; position: relative; }
+.global-search {
+  width: 100%; padding: 6px 10px 6px 30px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); color: var(--text);
+  font-family: inherit; font-size: .85rem;
+}
+.global-search:focus { outline: none; border-color: var(--accent); }
+.search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: .85rem; pointer-events: none; }
+.search-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: none; color: var(--text3); cursor: pointer; font-size: .9rem; display: none; }
+.search-clear.show { display: block; }
+.header-actions { margin-left: auto; display: flex; gap: 6px; align-items: center; }
 .btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 14px; border-radius: var(--radius);
-  font-family: inherit; font-size: .85rem; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 13px; border-radius: var(--radius);
+  font-family: inherit; font-size: .82rem; font-weight: 500;
   border: 1px solid var(--border); background: var(--surface);
-  color: var(--text); cursor: pointer; transition: background .15s;
+  color: var(--text); cursor: pointer; transition: background .15s; white-space: nowrap;
 }
 .btn:hover { background: var(--bg3); }
 .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-.btn-primary:hover { opacity: .88; }
+.btn-primary:hover { opacity: .88; background: var(--accent); }
 .btn-icon { padding: 6px 9px; }
-.btn-sm { padding: 4px 10px; font-size: .8rem; }
+.btn-sm { padding: 4px 9px; font-size: .78rem; }
 .btn-danger { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
 
-/* ── Status ──────────────────────────────────────────────────────────── */
+/* ── Status / Cross-tab bar ─────────────────────────────────────────────── */
 #status-bar {
-  padding: 8px 24px; font-size: .83rem;
-  display: none; align-items: center; gap: 8px;
+  padding: 7px 20px; font-size: .82rem; display: none; align-items: center; gap: 8px;
   background: var(--accent-lite); color: var(--accent-text);
 }
 #status-bar.show { display: flex; }
 #status-bar.err  { background: var(--danger-bg); color: var(--danger); }
+#cross-tab-bar {
+  display: none; flex-wrap: wrap; gap: 6px; align-items: center;
+  padding: 7px 20px; font-size: .82rem; color: var(--text2);
+  background: var(--warn-bg); border-bottom: 1px solid var(--border);
+}
+#cross-tab-bar.show { display: flex; }
+#cross-tab-bar strong { color: var(--warn); margin-right: 4px; }
+.cross-tab-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 9px; background: var(--warn); color: #fff;
+  border-radius: 99px; cursor: pointer; font-size: .78rem; font-weight: 500;
+}
+.cross-tab-chip:hover { opacity: .85; }
 
-/* ── Setup banner ────────────────────────────────────────────────────── */
+/* ── Setup banner ───────────────────────────────────────────────────────── */
 #setup-banner {
   display: none; align-items: center; flex-wrap: wrap; gap: 10px;
-  padding: 14px 24px; background: var(--bg2);
-  border-bottom: 1px solid var(--border); font-size: .87rem;
+  padding: 12px 20px; background: var(--bg2);
+  border-bottom: 1px solid var(--border); font-size: .85rem;
 }
 #setup-banner.show { display: flex; }
 #setup-banner label { color: var(--text2); white-space: nowrap; }
@@ -113,193 +120,150 @@ body {
   flex: 1; min-width: 260px; max-width: 520px;
   padding: 7px 10px; border: 1px solid var(--border);
   border-radius: var(--radius); background: var(--surface);
-  color: var(--text); font-family: var(--mono); font-size: .82rem;
+  color: var(--text); font-family: var(--mono); font-size: .8rem;
 }
 
-/* ── Freezer tab bar ─────────────────────────────────────────────────── */
-.freezer-tabs {
-  display: flex; flex-wrap: wrap; gap: 0;
-  background: var(--bg2); border-bottom: 1px solid var(--border);
-  padding: 0 20px;
-}
+/* ── Freezer tab bar ────────────────────────────────────────────────────── */
+.freezer-tabs { display: flex; flex-wrap: wrap; gap: 0; background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 16px; }
 .freezer-tab {
-  padding: 10px 18px; cursor: pointer;
-  font-size: .87rem; font-weight: 500; color: var(--text2);
-  border-bottom: 3px solid transparent;
-  transition: color .15s, border-color .15s; white-space: nowrap;
+  padding: 9px 16px; cursor: pointer; font-size: .85rem; font-weight: 500; color: var(--text2);
+  border-bottom: 3px solid transparent; transition: color .15s, border-color .15s; white-space: nowrap;
+  display: flex; align-items: center; gap: 6px;
 }
 .freezer-tab:hover { color: var(--text); }
 .freezer-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-match-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); display: none; }
+.tab-match-dot.show { display: inline-block; }
 
-/* ── Main ────────────────────────────────────────────────────────────── */
-.main { flex: 1; padding: 24px; max-width: 1400px; width: 100%; margin: 0 auto; }
+/* ── Main ───────────────────────────────────────────────────────────────── */
+.main { flex: 1; padding: 20px; max-width: 1500px; width: 100%; margin: 0 auto; }
 .section-title {
-  font-size: .78rem; font-weight: 600; text-transform: uppercase;
+  font-size: .75rem; font-weight: 600; text-transform: uppercase;
   letter-spacing: .06em; color: var(--text3); margin-bottom: 10px;
 }
-.loading-panel {
-  display: flex; align-items: center; justify-content: center;
-  gap: 10px; padding: 60px; color: var(--text2);
-}
-.spinner {
-  width: 20px; height: 20px; border: 2px solid var(--border);
-  border-top-color: var(--accent); border-radius: 50%;
-  animation: spin .7s linear infinite;
-}
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.loading-panel { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 60px; color: var(--text2); }
+.spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── 9×9 grid ────────────────────────────────────────────────────────── */
-.grid-section { margin-bottom: 30px; }
-.freezer-grid {
-  display: grid;
-  grid-template-columns: 26px repeat(9, 1fr);
-  gap: 3px; max-width: 580px;
-}
-.grid-corner { }
-.grid-col-hdr, .grid-row-hdr {
-  display: flex; align-items: center; justify-content: center;
-  font-size: .7rem; font-weight: 600; color: var(--text3);
-  font-family: var(--mono); height: 26px;
-}
+/* ── 9×9 Grid ───────────────────────────────────────────────────────────── */
+.grid-section { margin-bottom: 28px; }
+.freezer-grid { display: grid; grid-template-columns: 26px repeat(9, 1fr); gap: 3px; max-width: 580px; }
+.grid-col-hdr, .grid-row-hdr { display: flex; align-items: center; justify-content: center; font-size: .68rem; font-weight: 600; color: var(--text3); font-family: var(--mono); height: 26px; }
 .grid-row-hdr { width: 26px; }
 .grid-cell {
-  height: 52px; border-radius: 5px;
-  border: 1px solid var(--border); background: var(--bg2);
-  cursor: pointer; display: flex; align-items: center;
-  justify-content: center; font-size: .62rem;
-  font-family: var(--mono); color: var(--text);
-  text-align: center; padding: 3px; overflow: hidden;
-  line-height: 1.2; word-break: break-word;
-  transition: background .12s, border-color .12s;
+  height: 52px; border-radius: 5px; border: 1px solid var(--border); background: var(--bg2);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: .6rem; font-family: var(--mono); color: var(--text);
+  text-align: center; padding: 3px; overflow: hidden; line-height: 1.2; word-break: break-word;
+  transition: background .12s, border-color .12s; position: relative;
 }
 .grid-cell:hover { background: var(--bg3); border-color: var(--accent); }
 .grid-cell.filled { background: var(--accent-lite); border-color: var(--accent); color: var(--accent-text); }
 .grid-cell.dot { color: var(--border); }
+.grid-cell.nav-cell { cursor: pointer; }
+.grid-cell.nav-cell:hover { box-shadow: 0 0 0 2px var(--accent); }
+.grid-cell .cell-edit-btn {
+  position: absolute; top: 2px; right: 2px; font-size: .55rem;
+  opacity: 0; background: var(--bg2); border: none; border-radius: 3px;
+  cursor: pointer; padding: 1px 3px; color: var(--text2); transition: opacity .12s;
+}
+.grid-cell:hover .cell-edit-btn { opacity: 1; }
 
-/* ── Box panels ──────────────────────────────────────────────────────── */
-.boxes-section { }
-.boxes-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-}
-.box-panel {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); box-shadow: var(--shadow);
-  display: flex; flex-direction: column; overflow: hidden;
-}
-.box-header {
-  display: flex; align-items: center; gap: 8px;
-  padding: 12px 16px; border-bottom: 1px solid var(--border);
-  background: var(--bg2);
-}
-.box-name { font-weight: 600; font-size: .93rem; flex: 1; }
-.box-count {
-  font-size: .74rem; color: var(--text3); font-family: var(--mono);
-  background: var(--bg3); padding: 2px 7px; border-radius: 4px;
-}
-.box-search-row { padding: 8px 12px; border-bottom: 1px solid var(--border); }
-.box-search {
-  width: 100%; padding: 5px 8px; border: 1px solid var(--border);
-  border-radius: 5px; background: var(--bg); color: var(--text);
-  font-family: inherit; font-size: .82rem;
-}
+/* ── Box panels ─────────────────────────────────────────────────────────── */
+.boxes-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.box-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden; transition: opacity .2s; }
+.box-panel.dimmed { opacity: .35; }
+.box-header { display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 1px solid var(--border); background: var(--bg2); }
+.box-name { font-weight: 600; font-size: .91rem; flex: 1; }
+.box-count { font-size: .72rem; color: var(--text3); font-family: var(--mono); background: var(--bg3); padding: 2px 7px; border-radius: 4px; }
+.box-match-badge { font-size: .7rem; background: var(--accent); color: #fff; padding: 1px 7px; border-radius: 99px; }
+.box-warn-badge { font-size: .7rem; background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); padding: 1px 7px; border-radius: 99px; }
+.box-search-row { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+.box-search { width: 100%; padding: 5px 8px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg); color: var(--text); font-family: inherit; font-size: .8rem; }
 .box-search::placeholder { color: var(--text3); }
-.box-body { flex: 1; overflow-y: auto; max-height: 300px; }
-.box-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
-.box-table th {
-  padding: 6px 10px; background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  color: var(--text2); font-weight: 600; text-align: left;
-  white-space: nowrap; position: sticky; top: 0; z-index: 2;
-}
-.box-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.box-body { flex: 1; overflow-x: auto; overflow-y: auto; max-height: 340px; }
+.box-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.box-table th { padding: 5px 9px; background: var(--bg2); border-bottom: 1px solid var(--border); color: var(--text2); font-weight: 600; text-align: left; white-space: nowrap; position: sticky; top: 0; z-index: 2; }
+.box-table td { padding: 6px 9px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .box-table tr:last-child td { border-bottom: none; }
 .box-table tr:hover td { background: var(--bg2); }
-.item-name { font-family: var(--mono); font-size: .76rem; word-break: break-word; }
-.item-meta { font-size: .76rem; color: var(--text2); }
-.item-lab  { font-family: var(--mono); font-size: .74rem; color: var(--accent-text); }
+.box-table tr.dim td { opacity: .35; }
+.box-table tr.low-warn td:first-child { border-left: 3px solid var(--warn); }
+.box-table tr.crit-warn td:first-child { border-left: 3px solid var(--danger); }
+.item-name { font-family: var(--mono); font-size: .74rem; word-break: break-word; }
+.item-meta { font-size: .74rem; color: var(--text2); }
+.item-lab a { font-family: var(--mono); font-size: .74rem; color: var(--accent-text); text-decoration: none; }
+.item-lab a:hover { text-decoration: underline; }
 .item-actions { white-space: nowrap; }
 .btn-edit, .btn-del {
   border: none; background: none; cursor: pointer;
-  font-size: .8rem; padding: 2px 5px; border-radius: 4px;
-  opacity: .5; transition: opacity .12s, background .12s;
+  font-size: .78rem; padding: 2px 5px; border-radius: 4px;
+  opacity: .55; transition: opacity .12s, background .12s;
 }
 .btn-edit:hover { opacity: 1; background: var(--bg3); }
 .btn-del:hover  { opacity: 1; background: var(--danger-bg); }
-.box-empty {
-  padding: 24px; text-align: center; color: var(--text3); font-size: .85rem;
-}
-.box-footer {
-  padding: 10px 12px; border-top: 1px solid var(--border);
-  display: flex; justify-content: flex-end;
-}
+.vol-cell { white-space: nowrap; }
+.vol-val { font-family: var(--mono); font-size: .74rem; }
+.btn-use-vol { border: 1px solid var(--border); background: var(--bg2); color: var(--text2); cursor: pointer; font-size: .7rem; padding: 1px 5px; border-radius: 4px; margin-left: 4px; transition: background .12s; }
+.btn-use-vol:hover { background: var(--bg3); color: var(--text); }
+.vol-inline-form { display: none; margin-top: 4px; display: none; align-items: center; gap: 4px; }
+.vol-inline-form.show { display: flex; }
+.vol-inline-input { width: 60px; padding: 3px 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: var(--mono); font-size: .75rem; }
+.vol-inline-input:focus { outline: none; border-color: var(--accent); }
+.box-empty { padding: 22px; text-align: center; color: var(--text3); font-size: .83rem; }
+.box-footer { padding: 9px 12px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; }
 
-/* ── Modal ───────────────────────────────────────────────────────────── */
-.overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,.45);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 200; opacity: 0; pointer-events: none; transition: opacity .2s;
-}
+/* ── Modal ──────────────────────────────────────────────────────────────── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; pointer-events: none; transition: opacity .2s; }
 .overlay.open { opacity: 1; pointer-events: auto; }
-.modal {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 10px; box-shadow: var(--shadow);
-  width: 100%; max-width: 420px; max-height: 90vh;
-  overflow-y: auto; margin: 16px;
-  transform: translateY(12px); transition: transform .2s;
-}
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; margin: 16px; transform: translateY(12px); transition: transform .2s; }
 .overlay.open .modal { transform: none; }
-.modal-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px; border-bottom: 1px solid var(--border);
-}
-.modal-title { font-weight: 600; font-size: 1rem; }
-.modal-close {
-  border: none; background: none; cursor: pointer;
-  color: var(--text3); font-size: 1.2rem; line-height: 1;
-  padding: 4px 6px; border-radius: 4px;
-}
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.modal-title { font-weight: 600; font-size: .97rem; }
+.modal-close { border: none; background: none; cursor: pointer; color: var(--text3); font-size: 1.2rem; line-height: 1; padding: 3px 6px; border-radius: 4px; }
 .modal-close:hover { background: var(--bg3); color: var(--text); }
-.modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
-.form-field { display: flex; flex-direction: column; gap: 5px; }
-.form-label { font-size: .82rem; font-weight: 500; color: var(--text2); }
-.form-input {
-  width: 100%; padding: 8px 10px; border: 1px solid var(--border);
-  border-radius: var(--radius); background: var(--bg);
-  color: var(--text); font-family: inherit; font-size: .87rem;
-}
+.modal-body { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.form-field { display: flex; flex-direction: column; gap: 4px; }
+.form-label { font-size: .8rem; font-weight: 500; color: var(--text2); }
+.form-label .req { color: var(--danger); margin-left: 2px; }
+.form-input { width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-family: inherit; font-size: .85rem; }
 .form-input:focus { outline: none; border-color: var(--accent); }
-.modal-foot {
-  display: flex; justify-content: flex-end; gap: 8px;
-  padding: 14px 20px; border-top: 1px solid var(--border);
-}
+.form-input.error { border-color: var(--danger); }
+.form-hint { font-size: .74rem; color: var(--text3); }
+.lc-preview { font-size: .74rem; margin-top: 2px; }
+.lc-preview a { color: var(--accent-text); text-decoration: none; }
+.lc-preview a:hover { text-decoration: underline; }
+.modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border); }
 
-/* ── Grid popup ──────────────────────────────────────────────────────── */
-#grid-popup {
-  position: fixed; background: var(--surface);
-  border: 1px solid var(--border); border-radius: var(--radius);
-  box-shadow: var(--shadow); padding: 12px; z-index: 150;
-  display: none; flex-direction: column; gap: 8px;
-  min-width: 190px;
-}
+/* ── Grid popup ─────────────────────────────────────────────────────────── */
+#grid-popup { position: fixed; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 11px; z-index: 150; display: none; flex-direction: column; gap: 7px; min-width: 190px; }
 #grid-popup.show { display: flex; }
-.grid-popup-label { font-size: .75rem; color: var(--text2); font-weight: 500; }
-.grid-popup-input {
-  padding: 6px 8px; border: 1px solid var(--border);
-  border-radius: 5px; background: var(--bg); color: var(--text);
-  font-family: var(--mono); font-size: .8rem; width: 100%;
-}
+.grid-popup-label { font-size: .74rem; color: var(--text2); font-weight: 500; }
+.grid-popup-input { padding: 5px 8px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg); color: var(--text); font-family: var(--mono); font-size: .78rem; width: 100%; }
 .grid-popup-input:focus { outline: none; border-color: var(--accent); }
-.grid-popup-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.grid-popup-actions { display: flex; gap: 5px; justify-content: flex-end; }
 
-/* ── Responsive ──────────────────────────────────────────────────────── */
+/* ── Settings modal ─────────────────────────────────────────────────────── */
+.settings-section { font-size: .8rem; font-weight: 600; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .05em; }
+.settings-row { display: flex; align-items: center; gap: 8px; font-size: .85rem; }
+.settings-row label { flex: 1; color: var(--text2); }
+.settings-row input[type=number] { width: 80px; padding: 5px 7px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg); color: var(--text); font-family: var(--mono); font-size: .82rem; }
+.settings-row input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); }
+
+/* ── Add Box modal ──────────────────────────────────────────────────────── */
+.col-checkboxes { display: flex; flex-direction: column; gap: 6px; }
+.col-check-row { display: flex; align-items: center; gap: 7px; font-size: .84rem; }
+.col-check-row input[type=checkbox] { accent-color: var(--accent); }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
-  .main { padding: 12px; }
-  .freezer-tabs { padding: 0 8px; }
-  .freezer-tab { padding: 8px 12px; font-size: .82rem; }
+  .main { padding: 10px; }
+  .freezer-tabs { padding: 0 6px; }
+  .freezer-tab { padding: 8px 10px; font-size: .8rem; }
   .boxes-row { grid-template-columns: 1fr; }
   .freezer-grid { max-width: 100%; }
+  .app-header { gap: 6px; padding: 8px 12px; }
 }
 </style>
 </head>
@@ -307,6 +271,11 @@ body {
 
 <header class="app-header">
   <div class="app-title">🧊 <span>Freezer</span> Inventory</div>
+  <div class="global-search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="global-search" id="global-search" type="text" placeholder="Search all items…" autocomplete="off">
+    <button class="search-clear" id="search-clear" title="Clear">✕</button>
+  </div>
   <div class="header-actions">
     <button class="btn btn-icon" id="theme-btn" title="Toggle theme">🌓</button>
     <button class="btn btn-icon" id="settings-btn" title="Settings">⚙️</button>
@@ -315,6 +284,7 @@ body {
 </header>
 
 <div id="status-bar"></div>
+<div id="cross-tab-bar"></div>
 
 <div id="setup-banner" class="show">
   <label for="url-input">Apps Script URL:</label>
@@ -331,7 +301,7 @@ body {
   </div>
 </main>
 
-<!-- Item modal -->
+<!-- ── Item modal ───────────────────────────────────────────────────────── -->
 <div class="overlay" id="item-overlay">
   <div class="modal">
     <div class="modal-head">
@@ -340,16 +310,29 @@ body {
     </div>
     <div class="modal-body">
       <div class="form-field">
-        <label class="form-label" for="f-name">Name *</label>
+        <label class="form-label" for="f-name">Name <span class="req">*</span></label>
         <input class="form-input" id="f-name" placeholder="e.g. pT4-U6-sgApp…">
       </div>
-      <div class="form-field">
-        <label class="form-label" for="f-date">Date (DD.MM.YYYY)</label>
-        <input class="form-input" id="f-date" placeholder="17.02.2026">
-      </div>
       <div class="form-field" id="f-lab-row">
-        <label class="form-label" for="f-lab">LabCollector no.</label>
-        <input class="form-input" id="f-lab" placeholder="e.g. 1175">
+        <label class="form-label" for="f-lab">LabCollector ID <span class="req">*</span></label>
+        <input class="form-input" id="f-lab" placeholder="e.g. 1175" type="text" oninput="updateLcPreview()">
+        <div class="lc-preview" id="lc-preview"></div>
+      </div>
+      <div class="form-field" id="f-date-row">
+        <label class="form-label" for="f-date">Date prepared (DD.MM.YYYY)</label>
+        <input class="form-input" id="f-date" placeholder="27.10.2026">
+      </div>
+      <div class="form-field" id="f-prep-row">
+        <label class="form-label" for="f-prep">Prepared by</label>
+        <input class="form-input" id="f-prep" placeholder="e.g. Morgan">
+      </div>
+      <div class="form-field" id="f-conc-row">
+        <label class="form-label" for="f-conc">Concentration (ng/µL)</label>
+        <input class="form-input" id="f-conc" placeholder="e.g. 500" type="number" min="0" step="any">
+      </div>
+      <div class="form-field" id="f-vol-row">
+        <label class="form-label" for="f-vol">Volume (µL)</label>
+        <input class="form-input" id="f-vol" placeholder="e.g. 50" type="number" min="0" step="any">
       </div>
       <div class="form-field" id="f-glyc-row">
         <label class="form-label" for="f-glyc">Glycerol stock position</label>
@@ -363,36 +346,109 @@ body {
   </div>
 </div>
 
-<!-- Grid cell popup -->
+<!-- ── Grid cell popup ──────────────────────────────────────────────────── -->
 <div id="grid-popup">
   <span class="grid-popup-label" id="popup-label">Cell</span>
-  <input class="grid-popup-input" id="popup-input" placeholder="Item label…">
+  <input class="grid-popup-input" id="popup-input" placeholder="Box label…">
   <div class="grid-popup-actions">
     <button class="btn btn-sm" onclick="closeGridPopup()">Cancel</button>
     <button class="btn btn-sm btn-primary" onclick="saveGridCell()">Update</button>
   </div>
 </div>
 
+<!-- ── Settings overlay ─────────────────────────────────────────────────── -->
+<div class="overlay" id="settings-overlay">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-head">
+      <span class="modal-title">⚙️ Settings</span>
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-section">Connection</div>
+      <div class="form-field">
+        <label class="form-label" for="url-input-s">Apps Script URL</label>
+        <input class="form-input" id="url-input-s" type="url" placeholder="https://script.google.com/macros/s/…/exec">
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:4px 0">
+      <div class="settings-section">Low-volume warnings</div>
+      <div class="settings-row">
+        <input type="checkbox" id="s-lv-enabled">
+        <label for="s-lv-enabled">Enable low-volume warnings</label>
+      </div>
+      <div class="settings-row">
+        <label for="s-conc-thresh">Concentration threshold (ng/µL)</label>
+        <input type="number" id="s-conc-thresh" min="0" step="1" value="50">
+      </div>
+      <div class="settings-row">
+        <label for="s-vol-thresh">Volume threshold (µL)</label>
+        <input type="number" id="s-vol-thresh" min="0" step="1" value="10">
+      </div>
+      <div class="form-hint">Items below EITHER threshold are highlighted in orange. Items below BOTH are highlighted in red.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Box overlay ──────────────────────────────────────────────────── -->
+<div class="overlay" id="addbox-overlay">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-head">
+      <span class="modal-title">➕ Add New Box</span>
+      <button class="modal-close" onclick="closeAddBox()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field">
+        <label class="form-label" for="ab-name">Box name <span class="req">*</span></label>
+        <input class="form-input" id="ab-name" placeholder="e.g. Plasmids">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Columns to include</label>
+        <div class="col-checkboxes">
+          <label class="col-check-row"><input type="checkbox" id="ab-col-date" checked> Date</label>
+          <label class="col-check-row"><input type="checkbox" id="ab-col-lab" checked> LabCollector no.</label>
+          <label class="col-check-row"><input type="checkbox" id="ab-col-conc" checked> Concentration (ng/µL)</label>
+          <label class="col-check-row"><input type="checkbox" id="ab-col-vol" checked> Volume (µL)</label>
+          <label class="col-check-row"><input type="checkbox" id="ab-col-prep" checked> Preparer</label>
+          <label class="col-check-row"><input type="checkbox" id="ab-col-glyc"> Glycerol stock</label>
+        </div>
+      </div>
+      <div class="form-hint">The new box columns will be appended to the right of existing boxes in the sheet.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeAddBox()">Cancel</button>
+      <button class="btn btn-primary" id="ab-save" onclick="doAddBox()">Add Box</button>
+    </div>
+  </div>
+</div>
+
 <script>
-/* ── State ───────────────────────────────────────────────────────────── */
+'use strict';
+var LC_BASE = 'https://bs-labcollect01.ethz.ch/moor/plasmids.php?search=1&strict=on&by_id=';
+
+/* ── State ─────────────────────────────────────────────────────────────── */
 var S = {
-  url: '',
-  sheets: [],
-  active: '',
-  cache: {},    // sheetName → {grid, boxes}
-  modal: null,  // {mode, sheet, box, item}
-  gridCtx: null // {sheet, r, c, el}
+  url:     '',
+  sheets:  [],
+  active:  '',
+  cache:   {},     // sheetName → {grid, boxes}
+  modal:   null,   // {mode, sheet, box, item}
+  gridCtx: null,
+  search:  '',
+  lowVol:  { enabled: false, concThresh: 50, volThresh: 10 }
 };
 
-/* ── Storage ─────────────────────────────────────────────────────────── */
+/* ── Storage ────────────────────────────────────────────────────────────── */
 function ls(k, v) {
   try {
     if (v === undefined) return localStorage.getItem(k) || '';
     localStorage.setItem(k, v);
-  } catch(e){}
+  } catch(e) {}
 }
 
-/* ── Theme ───────────────────────────────────────────────────────────── */
+/* ── Theme ──────────────────────────────────────────────────────────────── */
 function setTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   document.getElementById('theme-btn').textContent = t === 'dark' ? '☀️' : '🌓';
@@ -403,15 +459,17 @@ document.getElementById('theme-btn').onclick = function() {
   setTheme(cur === 'dark' ? 'light' : 'dark');
 };
 
-/* ── Status ──────────────────────────────────────────────────────────── */
+/* ── Status ─────────────────────────────────────────────────────────────── */
+var _stid;
 function status(msg, isErr) {
+  clearTimeout(_stid);
   var b = document.getElementById('status-bar');
   b.textContent = msg || '';
   b.className = msg ? ('status-bar show' + (isErr ? ' err' : '')) : 'status-bar';
-  if (msg && !isErr) setTimeout(function(){ b.className = 'status-bar'; }, 3000);
+  if (msg && !isErr) _stid = setTimeout(function(){ b.className = 'status-bar'; }, 3000);
 }
 
-/* ── JSONP ───────────────────────────────────────────────────────────── */
+/* ── JSONP ──────────────────────────────────────────────────────────────── */
 var _ci = 0;
 function api(params, ms) {
   return new Promise(function(res, rej) {
@@ -436,16 +494,25 @@ function api(params, ms) {
   });
 }
 
-/* ── Boot ────────────────────────────────────────────────────────────── */
+/* ── Boot ───────────────────────────────────────────────────────────────── */
 (function init() {
   var t = ls('inv-theme');
   if (t) setTheme(t);
 
-  var DEFAULT_INV_URL = 'https://script.google.com/macros/s/AKfycbzFuscUa8xiBZEGeajFze0ahDQMgyLfR6h0zf9lU0YMqL5GAgepO5H-3ifZuyRUByJBjQ/exec';
-  var u = ls('inv-url') || DEFAULT_INV_URL;
+  // Low-vol settings
+  try {
+    var lv = JSON.parse(ls('inv-lowvol') || '{}');
+    if (lv.enabled !== undefined) S.lowVol.enabled = !!lv.enabled;
+    if (lv.concThresh) S.lowVol.concThresh = parseFloat(lv.concThresh);
+    if (lv.volThresh)  S.lowVol.volThresh  = parseFloat(lv.volThresh);
+  } catch(e) {}
+
+  var DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbwipyONVQsR24BTXXLl7syPxyQJvaNu1h0JFgnHiVV0IvcVt92AzoeLNJP7EI7_HCTk9w/exec';
+  var u = ls('inv-url') || DEFAULT_URL;
   if (u) {
     S.url = u;
     document.getElementById('url-input').value = u;
+    document.getElementById('url-input-s').value = u;
     document.getElementById('setup-banner').classList.remove('show');
     loadSheets();
   }
@@ -454,28 +521,40 @@ function api(params, ms) {
     var u = document.getElementById('url-input').value.trim();
     if (!u) return;
     S.url = u; ls('inv-url', u);
+    document.getElementById('url-input-s').value = u;
     document.getElementById('setup-banner').classList.remove('show');
     loadSheets();
   };
   document.getElementById('dismiss-setup').onclick = function(){
     document.getElementById('setup-banner').classList.remove('show');
   };
-  document.getElementById('settings-btn').onclick = function(){
-    document.getElementById('setup-banner').classList.toggle('show');
-  };
+  document.getElementById('settings-btn').onclick = openSettings;
   document.getElementById('refresh-btn').onclick = function(){
     S.cache = {};
     if (S.active) loadSheet(S.active);
   };
-  document.getElementById('item-overlay').onclick = function(e){
-    if (e.target === this) closeModal();
-  };
+  document.getElementById('item-overlay').onclick = function(e){ if (e.target === this) closeModal(); };
+  document.getElementById('settings-overlay').onclick = function(e){ if (e.target === this) closeSettings(); };
+  document.getElementById('addbox-overlay').onclick = function(e){ if (e.target === this) closeAddBox(); };
   document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape') { closeModal(); closeGridPopup(); }
+    if (e.key === 'Escape') { closeModal(); closeGridPopup(); closeSettings(); closeAddBox(); }
   });
+
+  // Global search
+  var gsi = document.getElementById('global-search');
+  var gsc = document.getElementById('search-clear');
+  var _st;
+  gsi.oninput = function() {
+    clearTimeout(_st);
+    _st = setTimeout(function(){ applySearch(gsi.value.trim()); }, 250);
+    gsc.classList.toggle('show', !!gsi.value);
+  };
+  gsc.onclick = function() {
+    gsi.value = ''; gsc.classList.remove('show'); applySearch('');
+  };
 })();
 
-/* ── Load sheet list ─────────────────────────────────────────────────── */
+/* ── Load sheets ────────────────────────────────────────────────────────── */
 function loadSheets() {
   status('Connecting…');
   api({ action: 'getSheets' }).then(function(d) {
@@ -492,7 +571,10 @@ function buildTabs() {
   bar.innerHTML = '';
   S.sheets.forEach(function(sh) {
     var t = el('div', 'freezer-tab');
-    t.textContent = sh.name;
+    var dot = el('span', 'tab-match-dot');
+    dot.id = 'tab-dot-' + sh.name;
+    t.appendChild(document.createTextNode(sh.name));
+    t.appendChild(dot);
     t.onclick = function(){ loadSheet(sh.name); };
     bar.appendChild(t);
   });
@@ -501,15 +583,15 @@ function buildTabs() {
 function setActive(name) {
   S.active = name;
   qsa('.freezer-tab').forEach(function(t){
-    t.classList.toggle('active', t.textContent === name);
+    t.classList.toggle('active', t.firstChild.textContent === name);
   });
 }
 
-/* ── Load & render sheet ─────────────────────────────────────────────── */
+/* ── Load & render sheet ────────────────────────────────────────────────── */
 function loadSheet(name) {
   if (!name) return;
   setActive(name);
-  if (S.cache[name]) { render(name, S.cache[name]); return; }
+  if (S.cache[name]) { render(name, S.cache[name]); applySearch(S.search); return; }
   var m = document.getElementById('main-content');
   m.innerHTML = '<div class="loading-panel"><div class="spinner"></div><span>Loading '+esc(name)+'…</span></div>';
   status('Loading ' + name + '…');
@@ -518,64 +600,87 @@ function loadSheet(name) {
     S.cache[name] = d;
     status('');
     render(name, d);
+    applySearch(S.search);
   }).catch(function(e){
     m.innerHTML = '<div class="loading-panel" style="color:var(--danger)">Failed: '+esc(e.message)+'</div>';
     status('Error: ' + e.message, true);
   });
 }
 
+/* ── Render ─────────────────────────────────────────────────────────────── */
 function render(name, data) {
   var m = document.getElementById('main-content');
   m.innerHTML = '';
 
+  // Collect box names for grid navigation
+  var boxNames = (data.boxes || []).map(function(b){ return b.name.toLowerCase(); });
+
   // Grid
   var gs = el('div', 'grid-section');
-  gs.appendChild(sectionTitle('Box positions — click to label'));
-  gs.appendChild(buildGrid(name, data.grid || []));
+  gs.appendChild(sectionTitle('Freezer map — click to navigate or label'));
+  gs.appendChild(buildGrid(name, data.grid || [], boxNames));
   m.appendChild(gs);
 
   // Boxes
+  var bsHdr = el('div', 'section-header');
+  bsHdr.appendChild(sectionTitle('Box contents'));
+  var addBoxBtn = el('button', 'btn btn-sm btn-primary');
+  addBoxBtn.innerHTML = '➕ Add Box';
+  addBoxBtn.onclick = function(){ openAddBox(name); };
+  bsHdr.appendChild(addBoxBtn);
+  m.appendChild(bsHdr);
+
   if ((data.boxes || []).length) {
-    var bs = el('div', 'boxes-section');
-    bs.appendChild(sectionTitle('Box contents'));
     var row = el('div', 'boxes-row');
+    row.id = 'boxes-row-' + name;
     (data.boxes || []).forEach(function(box){
       row.appendChild(buildBoxPanel(name, box));
     });
-    bs.appendChild(row);
-    m.appendChild(bs);
+    m.appendChild(row);
   } else {
     var note = el('div', 'loading-panel');
     note.style.color = 'var(--text3)';
-    note.textContent = 'No box sections detected in this tab.';
+    note.textContent = 'No box sections found. Add a box to get started.';
     m.appendChild(note);
   }
 }
 
-/* ── 9×9 Grid ────────────────────────────────────────────────────────── */
-function buildGrid(sheet, grid) {
+/* ── 9×9 Grid ───────────────────────────────────────────────────────────── */
+function buildGrid(sheet, grid, boxNames) {
   var wrap = el('div');
   var g = el('div', 'freezer-grid');
 
   g.appendChild(el('div', 'grid-corner'));
   for (var c = 1; c <= 9; c++) {
-    var ch = el('div', 'grid-col-hdr');
-    ch.textContent = c;
-    g.appendChild(ch);
+    var ch = el('div', 'grid-col-hdr'); ch.textContent = c; g.appendChild(ch);
   }
   for (var r = 0; r < 9; r++) {
-    var rh = el('div', 'grid-row-hdr');
-    rh.textContent = r + 1;
-    g.appendChild(rh);
+    var rh = el('div', 'grid-row-hdr'); rh.textContent = r + 1; g.appendChild(rh);
     for (var cc = 0; cc < 9; cc++) {
       var v = (grid[r] && grid[r][cc]) || '';
-      var cell = el('div', 'grid-cell ' + (v ? 'filled' : 'dot'));
-      cell.textContent = v || '·';
-      cell.title = v || ('Row '+(r+1)+', Col '+(cc+1));
+      var isNav = v && boxNames.indexOf(v.toLowerCase()) !== -1;
+      var cls = 'grid-cell' + (v ? (isNav ? ' filled nav-cell' : ' filled') : ' dot');
+      var cell = el('div', cls);
+      if (isNav) {
+        // Show navigate + edit buttons
+        var navSpan = el('span', '');
+        navSpan.textContent = v;
+        cell.appendChild(navSpan);
+        var editBtn = el('button', 'cell-edit-btn');
+        editBtn.textContent = '✏️';
+        editBtn.title = 'Edit label';
+        editBtn.onclick = (function(ce, rv, cv){ return function(e){ e.stopPropagation(); openGridPopup(ce, rv, cv); }; })(cell, r + 1, cc + 1);
+        cell.appendChild(editBtn);
+        cell.title = 'Jump to ' + v;
+        cell.onclick = (function(boxName){ return function(){ scrollToBox(boxName); }; })(v);
+      } else {
+        cell.textContent = v || '·';
+        cell.title = v || ('Row '+(r+1)+', Col '+(cc+1));
+        cell.onclick = (function(ce){ return function(){ openGridPopup(ce, parseInt(ce.dataset.r), parseInt(ce.dataset.c)); }; })(cell);
+      }
       cell.dataset.r = r + 1;
       cell.dataset.c = cc + 1;
       cell.dataset.sheet = sheet;
-      cell.onclick = function(){ openGridPopup(this); };
       g.appendChild(cell);
     }
   }
@@ -583,20 +688,28 @@ function buildGrid(sheet, grid) {
   return wrap;
 }
 
-function openGridPopup(cellEl) {
-  S.gridCtx = {
-    sheet: cellEl.dataset.sheet,
-    r: parseInt(cellEl.dataset.r),
-    c: parseInt(cellEl.dataset.c),
-    el: cellEl
-  };
+function scrollToBox(boxName) {
+  var panels = qsa('.box-panel');
+  for (var i = 0; i < panels.length; i++) {
+    var nameEl = panels[i].querySelector('.box-name');
+    if (nameEl && nameEl.textContent === boxName) {
+      panels[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
+      panels[i].style.boxShadow = '0 0 0 3px var(--accent)';
+      setTimeout(function(p){ p.style.boxShadow = ''; }, 1500, panels[i]);
+      return;
+    }
+  }
+  status('Box "' + boxName + '" not found on this tab', true);
+}
+
+function openGridPopup(cellEl, r, c) {
+  S.gridCtx = { sheet: cellEl.dataset.sheet, r: r, c: c, el: cellEl };
   var p = document.getElementById('grid-popup');
-  document.getElementById('popup-label').textContent =
-    'Row ' + cellEl.dataset.r + ', Col ' + cellEl.dataset.c;
-  var cur = cellEl.classList.contains('dot') ? '' : cellEl.textContent;
-  document.getElementById('popup-input').value = cur;
+  document.getElementById('popup-label').textContent = 'Row ' + r + ', Col ' + c;
+  var cur = cellEl.classList.contains('dot') ? '' : (cellEl.firstChild ? cellEl.firstChild.textContent || cellEl.textContent : cellEl.textContent);
+  document.getElementById('popup-input').value = cur === '·' ? '' : cur;
   var rect = cellEl.getBoundingClientRect();
-  p.style.top  = Math.min(rect.bottom + window.scrollY + 4, window.innerHeight + window.scrollY - 120) + 'px';
+  p.style.top  = Math.min(rect.bottom + window.scrollY + 4, window.innerHeight + window.scrollY - 130) + 'px';
   p.style.left = Math.min(rect.left, window.innerWidth - 210) + 'px';
   p.classList.add('show');
   document.getElementById('popup-input').focus();
@@ -616,96 +729,178 @@ function saveGridCell() {
     .then(function(d){
       if (d.success) {
         var cached = S.cache[ctx.sheet];
-        if (cached && cached.grid && cached.grid[ctx.r-1]) {
-          cached.grid[ctx.r-1][ctx.c-1] = v;
-        }
-        ctx.el.textContent = v || '·';
-        ctx.el.className = 'grid-cell ' + (v ? 'filled' : 'dot');
-        ctx.el.title = v || ('Row '+ctx.r+', Col '+ctx.c);
+        if (cached && cached.grid && cached.grid[ctx.r-1]) cached.grid[ctx.r-1][ctx.c-1] = v;
+        // Re-render grid
+        delete S.cache[ctx.sheet];
+        loadSheet(ctx.sheet);
         status('Grid updated');
       } else status('Error: ' + (d.error || ''), true);
     }).catch(function(e){ status('Error: ' + e.message, true); });
 }
 
-/* ── Box panel ───────────────────────────────────────────────────────── */
+/* ── Box panel ──────────────────────────────────────────────────────────── */
+function panelId(sheet, boxName) {
+  return 'bp-' + sheet.replace(/\s/g,'_') + '-' + boxName.replace(/\W/g,'_');
+}
+
 function buildBoxPanel(sheet, box) {
   var panel = el('div', 'box-panel');
-  var pid = 'bp-' + sheet.replace(/\s/g,'_') + '-' + box.name.replace(/\s/g,'_');
-  panel.id = pid;
+  panel.id = panelId(sheet, box.name);
 
   var hdr = el('div', 'box-header');
   var nm = el('span', 'box-name'); nm.textContent = box.name;
-  var cnt = el('span', 'box-count'); cnt.textContent = (box.items||[]).length + ' items';
+  var cnt = el('span', 'box-count'); cnt.id = 'cnt-' + panelId(sheet, box.name); cnt.textContent = (box.items||[]).length + ' items';
   hdr.appendChild(nm); hdr.appendChild(cnt);
+  // Low-vol badge placeholder
+  var warnBadge = el('span', 'box-warn-badge'); warnBadge.id = 'warnbadge-' + panelId(sheet, box.name); warnBadge.style.display = 'none';
+  hdr.appendChild(warnBadge);
+  // Match badge placeholder
+  var matchBadge = el('span', 'box-match-badge'); matchBadge.id = 'matchbadge-' + panelId(sheet, box.name); matchBadge.style.display = 'none';
+  hdr.appendChild(matchBadge);
   panel.appendChild(hdr);
 
-  var sr = el('div', 'box-search-row');
-  var si = el('input', 'box-search');
-  si.type = 'text'; si.placeholder = 'Search…';
-  si.oninput = function(){ rebuildTable(panel, sheet, box, this.value); };
-  sr.appendChild(si); panel.appendChild(sr);
-
   var body = el('div', 'box-body');
-  body.appendChild(boxTable(sheet, box, ''));
+  body.appendChild(boxTable(sheet, box, '', ''));
   panel.appendChild(body);
 
   var foot = el('div', 'box-footer');
   var ab = el('button', 'btn btn-primary btn-sm');
   ab.textContent = '+ Add item';
   ab.onclick = function(){ openAdd(sheet, box); };
-  foot.appendChild(ab); panel.appendChild(foot);
+  foot.appendChild(ab);
+  panel.appendChild(foot);
+
+  // Update low-vol badge
+  updateWarnBadge(sheet, box);
 
   return panel;
 }
 
-function boxTable(sheet, box, q) {
-  var items = (box.items || []).filter(function(it){
-    if (!q) return true;
-    var lq = q.toLowerCase();
-    return [it.name, it.date, it.labcollector, it.glycerol]
-      .some(function(v){ return (v||'').toLowerCase().indexOf(lq) !== -1; });
+function updateWarnBadge(sheet, box) {
+  if (!S.lowVol.enabled) return;
+  var warnCount = 0;
+  (box.items || []).forEach(function(it){
+    var conc = parseFloat(it.concentration) || 0;
+    var vol  = parseFloat(it.volume)        || 0;
+    var lowC = box.hasConc   && conc > 0 && conc < S.lowVol.concThresh;
+    var lowV = box.hasVolume && vol  > 0 && vol  < S.lowVol.volThresh;
+    if (lowC || lowV) warnCount++;
   });
+  var badge = document.getElementById('warnbadge-' + panelId(sheet, box.name));
+  if (badge) {
+    badge.textContent = '⚠ ' + warnCount + ' low';
+    badge.style.display = warnCount > 0 ? '' : 'none';
+  }
+}
+
+/* ── Box table ──────────────────────────────────────────────────────────── */
+function boxTable(sheet, box, q, globalQ) {
+  var searchQ = globalQ || q;
+  var items = (box.items || []).filter(function(it){ return true; }); // always show all rows, dim non-matches
 
   if (!items.length) {
     var d = el('div', 'box-empty');
-    d.textContent = q ? 'No matches.' : 'No items yet.';
+    d.textContent = 'No items yet.';
     return d;
   }
 
   var tbl = el('table', 'box-table');
   var thead = document.createElement('thead');
   var hr = document.createElement('tr');
-  ['#','Name','Date'].forEach(function(h){
+  ['#','Name','Date','By','LC #','Conc. (ng/µL)','Vol. (µL)'].forEach(function(h){
     var th = document.createElement('th'); th.textContent = h; hr.appendChild(th);
   });
-  if (box.hasLabCollector) { var th2 = document.createElement('th'); th2.textContent = 'LabCol'; hr.appendChild(th2); }
-  if (box.hasGlycerol)     { var th3 = document.createElement('th'); th3.textContent = 'Glycerol'; hr.appendChild(th3); }
+  if (box.hasGlycerol) { var thG = document.createElement('th'); thG.textContent = 'Glycerol'; hr.appendChild(thG); }
   var thA = document.createElement('th'); hr.appendChild(thA);
   thead.appendChild(hr); tbl.appendChild(thead);
 
   var tbody = document.createElement('tbody');
   items.forEach(function(item, idx){
     var tr = document.createElement('tr');
+    tr.dataset.row = item._row;
+
+    // Check low-vol
+    if (S.lowVol.enabled) {
+      var conc = parseFloat(item.concentration) || 0;
+      var vol  = parseFloat(item.volume)        || 0;
+      var lowC = box.hasConc   && conc > 0 && conc < S.lowVol.concThresh;
+      var lowV = box.hasVolume && vol  > 0 && vol  < S.lowVol.volThresh;
+      if (lowC && lowV) tr.classList.add('crit-warn');
+      else if (lowC || lowV) tr.classList.add('low-warn');
+    }
+
+    // Check search dim
+    if (searchQ) {
+      var lq = searchQ.toLowerCase();
+      var hit = [item.name, item.date, item.labcollector, item.glycerol, item.concentration, item.volume, item.preparer]
+        .some(function(v){ return (v||'').toLowerCase().indexOf(lq) !== -1; });
+      if (!hit) tr.classList.add('dim');
+    }
+
     var td0 = el('td','item-meta'); td0.textContent = idx+1; tr.appendChild(td0);
-    var td1 = el('td',''); var ns = el('span','item-name'); ns.textContent = item.name; td1.appendChild(ns); tr.appendChild(td1);
-    var td2 = el('td','item-meta'); td2.textContent = item.date || ''; tr.appendChild(td2);
-    if (box.hasLabCollector) { var td3 = el('td','item-lab'); td3.textContent = item.labcollector || ''; tr.appendChild(td3); }
-    if (box.hasGlycerol)     { var td4 = el('td','item-meta'); td4.textContent = item.glycerol || ''; tr.appendChild(td4); }
+
+    var td1 = el('td',''); var ns = el('span','item-name'); ns.textContent = item.name||''; td1.appendChild(ns); tr.appendChild(td1);
+    var td2 = el('td','item-meta'); td2.textContent = item.date||''; tr.appendChild(td2);
+    var td3 = el('td','item-meta'); td3.textContent = item.preparer||''; tr.appendChild(td3);
+
+    // LabCollector link
+    var td4 = el('td','item-lab');
+    if (item.labcollector) {
+      var a = document.createElement('a');
+      a.href = LC_BASE + encodeURIComponent(item.labcollector);
+      a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = item.labcollector;
+      td4.appendChild(a);
+    }
+    tr.appendChild(td4);
+
+    var td5 = el('td','item-meta'); td5.textContent = item.concentration || ''; tr.appendChild(td5);
+
+    // Volume cell with "Use" button
+    var td6 = el('td','vol-cell');
+    var volSpan = el('span','vol-val'); volSpan.id = 'vol-'+sheet.replace(/\W/g,'_')+'-'+item._row; volSpan.textContent = item.volume !== undefined ? item.volume : '';
+    td6.appendChild(volSpan);
+    if (box.hasVolume) {
+      var useBtn = el('button','btn-use-vol'); useBtn.textContent = 'Use';
+      var volForm = el('div','vol-inline-form');
+      var volInp = el('input','vol-inline-input'); volInp.type='number'; volInp.min='0'; volInp.step='any'; volInp.placeholder='µL used';
+      var volConfirm = el('button','btn btn-sm btn-primary'); volConfirm.textContent='−Use';
+      var volCancel  = el('button','btn btn-sm'); volCancel.textContent='✕';
+      volForm.appendChild(volInp); volForm.appendChild(volConfirm); volForm.appendChild(volCancel);
+      td6.appendChild(useBtn); td6.appendChild(volForm);
+      useBtn.onclick = function(){ volForm.classList.toggle('show'); if (volForm.classList.contains('show')) volInp.focus(); };
+      volCancel.onclick = function(){ volForm.classList.remove('show'); volInp.value=''; };
+      volConfirm.onclick = (function(it, vs, vi, vf, b2, s){ return function(){
+        var used = parseFloat(vi.value);
+        if (isNaN(used) || used <= 0) return;
+        api({ action: 'useVolume', sheet: s, box: b2.name, row: it._row, used: used })
+          .then(function(d){
+            if (d.success) {
+              vs.textContent = d.newVolume;
+              it.volume = String(d.newVolume);
+              vf.classList.remove('show'); vi.value='';
+              status('Volume updated → ' + d.newVolume + ' µL');
+              updateWarnBadge(s, b2);
+            } else status('Error: '+(d.error||''), true);
+          }).catch(function(e){ status('Error: '+e.message, true); });
+      }; })(item, volSpan, volInp, volForm, box, sheet);
+    }
+    tr.appendChild(td6);
+
+    if (box.hasGlycerol) {
+      var td7 = el('td','item-meta'); td7.textContent = item.glycerol||''; tr.appendChild(td7);
+    }
+
     var tdA = el('td','item-actions');
-    var eb = el('button','btn-edit'); eb.textContent = '✏️'; eb.title = 'Edit';
+    var eb = el('button','btn-edit'); eb.textContent='✏️'; eb.title='Edit';
     eb.onclick = (function(it){ return function(){ openEdit(sheet, box, it); }; })(item);
-    var db = el('button','btn-del'); db.textContent = '🗑'; db.title = 'Delete';
+    var db = el('button','btn-del'); db.textContent='🗑'; db.title='Delete';
     db.onclick = (function(it){ return function(){ doDelete(sheet, box, it); }; })(item);
     tdA.appendChild(eb); tdA.appendChild(db); tr.appendChild(tdA);
     tbody.appendChild(tr);
   });
   tbl.appendChild(tbody);
   return tbl;
-}
-
-function rebuildTable(panel, sheet, box, q) {
-  var body = panel.querySelector('.box-body');
-  body.innerHTML = ''; body.appendChild(boxTable(sheet, box, q));
 }
 
 function refreshBox(sheet, boxName) {
@@ -716,27 +911,36 @@ function refreshBox(sheet, boxName) {
     var box = null;
     (d.boxes||[]).forEach(function(b){ if (b.name === boxName) box = b; });
     if (!box) return;
-    var pid = 'bp-' + sheet.replace(/\s/g,'_') + '-' + boxName.replace(/\s/g,'_');
+    var pid = panelId(sheet, boxName);
     var panel = document.getElementById(pid);
     if (!panel) return;
     panel.querySelector('.box-count').textContent = (box.items||[]).length + ' items';
     var body = panel.querySelector('.box-body');
-    var si = panel.querySelector('.box-search');
     body.innerHTML = '';
-    body.appendChild(boxTable(sheet, box, si ? si.value : ''));
+    body.appendChild(boxTable(sheet, box, '', S.search));
+    updateWarnBadge(sheet, box);
+    applySearch(S.search);
   }).catch(function(e){ status('Error: ' + e.message, true); });
 }
 
-/* ── Modal ───────────────────────────────────────────────────────────── */
+/* ── Modal ──────────────────────────────────────────────────────────────── */
+function updateLcPreview() {
+  var v = document.getElementById('f-lab').value.trim();
+  var prev = document.getElementById('lc-preview');
+  if (v) {
+    prev.innerHTML = 'Preview: <a href="' + LC_BASE + encodeURIComponent(v) + '" target="_blank" rel="noopener">' + esc(v) + ' ↗</a>';
+  } else {
+    prev.innerHTML = '';
+  }
+}
+
 function openAdd(sheet, box) {
   S.modal = { mode: 'add', sheet: sheet, box: box, item: null };
   document.getElementById('modal-title').textContent = 'Add to ' + box.name;
-  document.getElementById('f-name').value = '';
-  document.getElementById('f-date').value = '';
-  document.getElementById('f-lab').value  = '';
-  document.getElementById('f-glyc').value = '';
-  document.getElementById('f-lab-row').style.display  = box.hasLabCollector ? '' : 'none';
-  document.getElementById('f-glyc-row').style.display = box.hasGlycerol     ? '' : 'none';
+  ['f-name','f-lab','f-date','f-prep','f-conc','f-vol','f-glyc'].forEach(function(id){ document.getElementById(id).value = ''; });
+  document.getElementById('lc-preview').innerHTML = '';
+  ['f-name','f-lab'].forEach(function(id){ document.getElementById(id).classList.remove('error'); });
+  document.getElementById('f-glyc-row').style.display = box.hasGlycerol ? '' : 'none';
   document.getElementById('item-overlay').classList.add('open');
   setTimeout(function(){ document.getElementById('f-name').focus(); }, 50);
 }
@@ -744,12 +948,15 @@ function openAdd(sheet, box) {
 function openEdit(sheet, box, item) {
   S.modal = { mode: 'edit', sheet: sheet, box: box, item: item };
   document.getElementById('modal-title').textContent = 'Edit — ' + item.name;
-  document.getElementById('f-name').value = item.name || '';
-  document.getElementById('f-date').value = item.date || '';
-  document.getElementById('f-lab').value  = item.labcollector || '';
-  document.getElementById('f-glyc').value = item.glycerol || '';
-  document.getElementById('f-lab-row').style.display  = box.hasLabCollector ? '' : 'none';
-  document.getElementById('f-glyc-row').style.display = box.hasGlycerol     ? '' : 'none';
+  document.getElementById('f-name').value  = item.name          || '';
+  document.getElementById('f-lab').value   = item.labcollector  || '';
+  document.getElementById('f-date').value  = item.date          || '';
+  document.getElementById('f-prep').value  = item.preparer      || '';
+  document.getElementById('f-conc').value  = item.concentration || '';
+  document.getElementById('f-vol').value   = item.volume        || '';
+  document.getElementById('f-glyc').value  = item.glycerol      || '';
+  document.getElementById('f-glyc-row').style.display = box.hasGlycerol ? '' : 'none';
+  updateLcPreview();
   document.getElementById('item-overlay').classList.add('open');
   setTimeout(function(){ document.getElementById('f-name').focus(); }, 50);
 }
@@ -763,14 +970,24 @@ function saveItem() {
   var ctx = S.modal;
   if (!ctx) return;
   var name = document.getElementById('f-name').value.trim();
-  if (!name) { document.getElementById('f-name').focus(); return; }
+  var lab  = document.getElementById('f-lab').value.trim();
+  var ok = true;
+  if (!name) { document.getElementById('f-name').classList.add('error'); document.getElementById('f-name').focus(); ok = false; }
+  else document.getElementById('f-name').classList.remove('error');
+  if (!lab)  { document.getElementById('f-lab').classList.add('error'); if (ok) document.getElementById('f-lab').focus(); ok = false; }
+  else document.getElementById('f-lab').classList.remove('error');
+  if (!ok) return;
+
   var btn = document.getElementById('modal-save');
   btn.textContent = 'Saving…'; btn.disabled = true;
   var itemData = {
-    name: name,
-    date: document.getElementById('f-date').value.trim(),
-    labcollector: document.getElementById('f-lab').value.trim(),
-    glycerol: document.getElementById('f-glyc').value.trim()
+    name:          name,
+    date:          document.getElementById('f-date').value.trim(),
+    labcollector:  lab,
+    preparer:      document.getElementById('f-prep').value.trim(),
+    concentration: document.getElementById('f-conc').value.trim(),
+    volume:        document.getElementById('f-vol').value.trim(),
+    glycerol:      document.getElementById('f-glyc').value.trim()
   };
   var params = {
     action: ctx.mode === 'add' ? 'addItem' : 'updateItem',
@@ -794,18 +1011,152 @@ function doDelete(sheet, box, item) {
     }).catch(function(e){ status('Error: '+e.message, true); });
 }
 
-/* ── Util ────────────────────────────────────────────────────────────── */
-function el(tag, cls) {
-  var e = document.createElement(tag);
-  if (cls) e.className = cls;
-  return e;
+/* ── Search ─────────────────────────────────────────────────────────────── */
+function applySearch(q) {
+  S.search = q;
+  var lq = q.toLowerCase();
+
+  // Apply to current tab's rendered panels
+  var panels = qsa('.box-panel');
+  var allDimmed = q.length > 0;
+  panels.forEach(function(panel){
+    var rows = panel.querySelectorAll('tbody tr');
+    var matchCount = 0;
+    rows.forEach(function(tr){
+      var cells = tr.querySelectorAll('td');
+      var text = '';
+      cells.forEach(function(td){ text += ' ' + td.textContent; });
+      var hit = !q || text.toLowerCase().indexOf(lq) !== -1;
+      tr.classList.toggle('dim', !hit);
+      if (hit) matchCount++;
+    });
+    var mbid = 'matchbadge-' + panel.id;
+    var mb = document.getElementById(mbid);
+    if (mb) {
+      mb.textContent = matchCount + ' match' + (matchCount !== 1 ? 'es' : '');
+      mb.style.display = (q && matchCount > 0) ? '' : 'none';
+    }
+    panel.classList.toggle('dimmed', q.length > 0 && matchCount === 0);
+    if (matchCount > 0) allDimmed = false;
+  });
+
+  // Cross-tab: search cached data for other tabs
+  var ctBar = document.getElementById('cross-tab-bar');
+  ctBar.innerHTML = '';
+  if (q) {
+    var otherMatches = [];
+    S.sheets.forEach(function(sh){
+      if (sh.name === S.active) return;
+      var cached = S.cache[sh.name];
+      if (!cached) return;
+      var count = 0;
+      (cached.boxes||[]).forEach(function(box){
+        (box.items||[]).forEach(function(it){
+          var text = [it.name, it.date, it.labcollector, it.glycerol, it.concentration, it.volume, it.preparer].join(' ').toLowerCase();
+          if (text.indexOf(lq) !== -1) count++;
+        });
+      });
+      if (count > 0) otherMatches.push({ name: sh.name, count: count });
+      var dot = document.getElementById('tab-dot-' + sh.name);
+      if (dot) dot.classList.toggle('show', count > 0);
+    });
+    // Also update dot for active tab
+    var activeDot = document.getElementById('tab-dot-' + S.active);
+    if (activeDot) activeDot.classList.toggle('show', !allDimmed);
+
+    if (otherMatches.length > 0) {
+      var strong = el('strong', ''); strong.textContent = 'Also found in:';
+      ctBar.appendChild(strong);
+      otherMatches.forEach(function(m){
+        var chip = el('span', 'cross-tab-chip');
+        chip.textContent = m.name + ' (' + m.count + ')';
+        chip.onclick = (function(n){ return function(){ loadSheet(n); }; })(m.name);
+        ctBar.appendChild(chip);
+      });
+      ctBar.classList.add('show');
+    } else {
+      ctBar.classList.remove('show');
+    }
+  } else {
+    ctBar.classList.remove('show');
+    qsa('.tab-match-dot').forEach(function(d){ d.classList.remove('show'); });
+  }
 }
+
+/* ── Settings ───────────────────────────────────────────────────────────── */
+function openSettings() {
+  document.getElementById('url-input-s').value = S.url;
+  document.getElementById('s-lv-enabled').checked    = S.lowVol.enabled;
+  document.getElementById('s-conc-thresh').value     = S.lowVol.concThresh;
+  document.getElementById('s-vol-thresh').value      = S.lowVol.volThresh;
+  document.getElementById('settings-overlay').classList.add('open');
+}
+
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('open');
+}
+
+function saveSettings() {
+  var newUrl = document.getElementById('url-input-s').value.trim();
+  if (newUrl && newUrl !== S.url) {
+    S.url = newUrl; ls('inv-url', newUrl);
+    document.getElementById('url-input').value = newUrl;
+    S.cache = {}; loadSheets();
+  }
+  S.lowVol.enabled    = document.getElementById('s-lv-enabled').checked;
+  S.lowVol.concThresh = parseFloat(document.getElementById('s-conc-thresh').value) || 50;
+  S.lowVol.volThresh  = parseFloat(document.getElementById('s-vol-thresh').value)  || 10;
+  ls('inv-lowvol', JSON.stringify(S.lowVol));
+  closeSettings();
+  // Re-render current tab to apply warnings
+  if (S.active && S.cache[S.active]) render(S.active, S.cache[S.active]);
+  status('Settings saved');
+}
+
+/* ── Add Box ────────────────────────────────────────────────────────────── */
+var _addBoxSheet = '';
+function openAddBox(sheet) {
+  _addBoxSheet = sheet;
+  document.getElementById('ab-name').value = '';
+  document.getElementById('addbox-overlay').classList.add('open');
+  setTimeout(function(){ document.getElementById('ab-name').focus(); }, 50);
+}
+
+function closeAddBox() {
+  document.getElementById('addbox-overlay').classList.remove('open');
+}
+
+function doAddBox() {
+  var name = document.getElementById('ab-name').value.trim();
+  if (!name) { document.getElementById('ab-name').focus(); return; }
+  var cols = ['Name'];
+  if (document.getElementById('ab-col-date').checked) cols.push('Date');
+  if (document.getElementById('ab-col-lab').checked)  cols.push('LabCollector no.');
+  if (document.getElementById('ab-col-conc').checked) cols.push('Concentration (ng/µL)');
+  if (document.getElementById('ab-col-vol').checked)  cols.push('Volume (µL)');
+  if (document.getElementById('ab-col-prep').checked) cols.push('Preparer');
+  if (document.getElementById('ab-col-glyc').checked) cols.push('Glycerol stock');
+
+  var btn = document.getElementById('ab-save');
+  btn.textContent = 'Adding…'; btn.disabled = true;
+  api({ action: 'addBox', sheet: _addBoxSheet, boxName: name, columns: cols.join(',') })
+    .then(function(d){
+      btn.textContent = 'Add Box'; btn.disabled = false;
+      if (d.success) {
+        closeAddBox();
+        status('Box "' + name + '" added — reloading…');
+        delete S.cache[_addBoxSheet];
+        loadSheet(_addBoxSheet);
+      } else status('Error: ' + (d.error||''), true);
+    }).catch(function(e){ btn.textContent = 'Add Box'; btn.disabled = false; status('Error: '+e.message, true); });
+}
+
+/* ── Util ───────────────────────────────────────────────────────────────── */
+function el(tag, cls) { var e = document.createElement(tag); if (cls) e.className = cls; return e; }
 function qsa(sel) { return Array.from(document.querySelectorAll(sel)); }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function sectionTitle(t) {
-  var d = el('div', 'section-title'); d.textContent = t;
-  d.style.marginBottom = '12px';
-  return d;
+  var d = el('div','section-title'); d.textContent = t; return d;
 }
 </script>
 </body>
