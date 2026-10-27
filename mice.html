@@ -1222,7 +1222,7 @@ function openCSVWizard() {
   WIZ.filters = { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', endDate: '', query: '' };
   WIZ.conditions = {}; WIZ.groupLabel = '';
   WIZ.groups = []; WIZ.step2SubSel = new Set();
-  WIZ.step2Sex = ''; WIZ.step2Query = ''; WIZ.step2ProcType = 'AAV inj.';
+  WIZ.step2Sex = ''; WIZ.step2Query = ''; WIZ.step2ProcType = '';
   WIZ.step2CondLabel = ''; WIZ.step2ProcDate = '';
   WIZ.step2Construct = ''; WIZ.step2Vol = ''; WIZ.step2Conc = ''; WIZ.step2Notes = '';
   document.getElementById('csv-wizard').classList.remove('hidden');
@@ -1380,7 +1380,7 @@ function renderWizStep1() {
     WIZ.csv = null; WIZ.sel.clear();
     WIZ.filters = { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', endDate: '', query: '' };
     WIZ.groups = []; WIZ.step2SubSel = new Set();
-    WIZ.step2Sex = ''; WIZ.step2Query = ''; WIZ.step2ProcType = 'AAV inj.';
+    WIZ.step2Sex = ''; WIZ.step2Query = ''; WIZ.step2ProcType = '';
     WIZ.step2CondLabel = ''; WIZ.step2ProcDate = '';
     WIZ.step2Construct = ''; WIZ.step2Vol = ''; WIZ.step2Conc = ''; WIZ.step2Notes = '';
     renderWizard();
@@ -1459,7 +1459,7 @@ function parseCSV(text) {
 
 // ── Step 2: Assign Conditions ─────────────────────────
 var S2_GROUP_COLORS = ['#0c7c59','#1a73b8','#b5371d','#8c44d6','#c47a00','#1f7a2a','#b53068','#005f8a'];
-var S2_PROC_TYPES = ['AAV inj.','Colonoscopy','Surgery','Euthanasia','Other'];
+var S2_PROC_SUGGESTIONS = ['AAV injection','Colonoscopy','Surgery','Euthanasia','Organoid injection','CRISPR injection','Tissue harvest','Blood collection','Other'];
 
 function renderWizStep2() {
   var body = document.getElementById('wiz-body');
@@ -1469,7 +1469,7 @@ function renderWizStep2() {
 
   if (!WIZ.groups) WIZ.groups = [];
   if (!WIZ.step2SubSel) WIZ.step2SubSel = new Set();
-  if (!WIZ.step2ProcType) WIZ.step2ProcType = 'AAV inj.';
+  if (!WIZ.step2ProcType) WIZ.step2ProcType = '';
 
   function inp(id, opts) {
     opts = opts || {};
@@ -1477,7 +1477,8 @@ function renderWizStep2() {
     var val = esc(opts.val || '');
     var ph = esc(opts.ph || '');
     var style = 'width:100%;box-sizing:border-box;padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;' + (opts.style || '');
-    return '<input type="' + type + '" id="' + id + '" value="' + val + '" placeholder="' + ph + '" style="' + style + '">';
+    var extra = opts.extra || '';
+    return '<input type="' + type + '" id="' + id + '" value="' + val + '" placeholder="' + ph + '" style="' + style + '" ' + extra + '>';
   }
   function lbl(text) {
     return '<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">' + text + '</div>';
@@ -1505,7 +1506,8 @@ function renderWizStep2() {
     var nChecked = selArr.filter(function(i) { return WIZ.step2SubSel.has(i); }).length;
     var allVis = visible.length > 0 && visible.every(function(i) { return WIZ.step2SubSel.has(i); });
     var ungrouped = selArr.filter(function(i) { return !WIZ.groups.some(function(g) { return g.mice.has(i); }); }).length;
-    var curType = WIZ.step2ProcType;
+    var curType = WIZ.step2ProcType || '';
+    var isAAV = /aav/i.test(curType);
 
     var html = '';
 
@@ -1522,13 +1524,12 @@ function renderWizStep2() {
     html += '<div class="map-section" style="margin:0;padding:14px;">';
     html += '<h3 style="margin-bottom:10px;">Assign to checked mice</h3>';
 
-    // Procedure type buttons
+    // Procedure type — free text with suggestions
     html += fld('Procedure type',
-      '<div style="display:flex;flex-wrap:wrap;gap:4px;">' +
-      S2_PROC_TYPES.map(function(t) {
-        var active = t === curType;
-        return '<button class="s2-proc-btn" data-proc="' + esc(t) + '" style="padding:4px 10px;border:1px solid ' + (active ? 'var(--accent)' : 'var(--border)') + ';border-radius:4px;font-size:12px;cursor:pointer;background:' + (active ? 'var(--accent)' : 'var(--bg)') + ';color:' + (active ? '#fff' : 'var(--text)') + ';font-weight:' + (active ? '600' : '400') + ';">' + esc(t) + '</button>';
-      }).join('') + '</div>'
+      '<datalist id="s2-proc-list">' +
+      S2_PROC_SUGGESTIONS.map(function(s) { return '<option value="' + esc(s) + '">'; }).join('') +
+      '</datalist>' +
+      inp('s2-proc-type', { val: WIZ.step2ProcType || '', ph: 'e.g. AAV injection, Colonoscopy, Surgery…', style: '', extra: 'list="s2-proc-list"' })
     );
 
     // Condition label
@@ -1538,7 +1539,7 @@ function renderWizStep2() {
     html += fld('Date', inp('s2-proc-date', { type: 'date', val: WIZ.step2ProcDate || '' }));
 
     // AAV-specific extra fields
-    if (curType === 'AAV inj.') {
+    if (isAAV) {
       html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">';
       html += '<div>' + lbl('Construct') + inp('s2-aav-construct', { val: WIZ.step2Construct || '', ph: 'e.g. AAV8-GFP' }) + '</div>';
       html += '<div>' + lbl('Volume (µl)') + inp('s2-aav-vol', { type: 'number', val: WIZ.step2Vol || '', ph: '50' }) + '</div>';
@@ -1623,7 +1624,7 @@ function renderWizStep2() {
       var dob = parseDOB(r['DOB'] || '');
       var age = dob ? ageWeeks(dob, now) : null;
       var checked = WIZ.step2SubSel.has(idx);
-      var grp = WIZ.groups.find(function(g) { return g.mice.has(idx); });
+      var mouseGroups = WIZ.groups.filter(function(g) { return g.mice.has(idx); });
       html += '<tr' + (checked ? ' style="background:var(--accent-light);"' : '') + '>';
       html += '<td><input type="checkbox" class="s2-row-chk" data-idx="' + idx + '"' + (checked ? ' checked' : '') + '></td>';
       html += '<td>' + esc(r['ID'] || r['WR'] || '') + '</td>';
@@ -1632,9 +1633,11 @@ function renderWizStep2() {
       html += '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(r['Line / Strain'] || '') + '</td>';
       html += '<td>' + esc(r['DOB'] || '') + '</td>';
       html += '<td>' + (age != null ? age : '—') + '</td>';
-      if (grp) {
-        html += '<td><span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;font-size:11px;background:' + grp.color + '22;color:' + grp.color + ';border:1px solid ' + grp.color + '55;">';
-        html += '<span style="width:6px;height:6px;border-radius:50%;background:' + grp.color + ';display:inline-block;"></span>' + esc(grp.label || grp.procType) + '</span></td>';
+      if (mouseGroups.length > 0) {
+        html += '<td style="white-space:nowrap;">' + mouseGroups.map(function(g) {
+          return '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;font-size:11px;background:' + g.color + '22;color:' + g.color + ';border:1px solid ' + g.color + '55;margin-right:3px;">' +
+            '<span style="width:6px;height:6px;border-radius:50%;background:' + g.color + ';display:inline-block;"></span>' + esc(g.label || g.procType) + '</span>';
+        }).join('') + '</td>';
       } else {
         html += '<td style="color:var(--text3);font-size:11px;">—</td>';
       }
@@ -1649,6 +1652,7 @@ function renderWizStep2() {
 
   function saveStep2Fields() {
     WIZ.groupLabel = (document.getElementById('s2-group-label') || {}).value || '';
+    WIZ.step2ProcType = (document.getElementById('s2-proc-type') || {}).value || WIZ.step2ProcType || '';
     WIZ.step2CondLabel = (document.getElementById('s2-cond-label') || {}).value || '';
     WIZ.step2ProcDate = (document.getElementById('s2-proc-date') || {}).value || '';
     WIZ.step2Construct = (document.getElementById('s2-aav-construct') || {}).value || '';
@@ -1664,13 +1668,14 @@ function renderWizStep2() {
     var lblEl = document.getElementById('s2-group-label');
     if (lblEl) lblEl.addEventListener('input', function() { WIZ.groupLabel = this.value; });
 
-    // Proc type buttons
-    body.querySelectorAll('.s2-proc-btn').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        saveStep2Fields();
-        WIZ.step2ProcType = this.dataset.proc;
-        renderBody();
-      });
+    // Procedure type text input — re-render to show/hide AAV fields when it changes
+    var procTypeEl = document.getElementById('s2-proc-type');
+    if (procTypeEl) procTypeEl.addEventListener('input', function() {
+      WIZ.step2ProcType = this.value;
+      // Re-render only if AAV-visibility changes
+      var wasAAV = /aav/i.test(curType);
+      var nowAAV = /aav/i.test(WIZ.step2ProcType);
+      if (wasAAV !== nowAAV) { saveStep2Fields(); renderBody(); }
     });
 
     // Assign button
@@ -1679,14 +1684,12 @@ function renderWizStep2() {
       saveStep2Fields();
       var toAssign = selArr.filter(function(i) { return WIZ.step2SubSel.has(i); });
       if (!toAssign.length) return;
-      // Remove these mice from any existing group
-      toAssign.forEach(function(idx) { WIZ.groups.forEach(function(g) { g.mice.delete(idx); }); });
-      WIZ.groups = WIZ.groups.filter(function(g) { return g.mice.size > 0; });
+      // Allow mice to be in multiple groups — do NOT remove from existing groups
       var color = S2_GROUP_COLORS[WIZ.groups.length % S2_GROUP_COLORS.length];
       WIZ.groups.push({
         id: Date.now(),
-        label: WIZ.step2CondLabel || WIZ.step2ProcType,
-        procType: WIZ.step2ProcType,
+        label: WIZ.step2CondLabel || WIZ.step2ProcType || 'Group',
+        procType: WIZ.step2ProcType || 'Other',
         date: WIZ.step2ProcDate,
         construct: WIZ.step2Construct,
         vol: WIZ.step2Vol,
@@ -1779,6 +1782,7 @@ function renderWizStep2() {
 
   function saveStep2Fields() {
     WIZ.groupLabel = (document.getElementById('s2-group-label') || {}).value || '';
+    WIZ.step2ProcType = (document.getElementById('s2-proc-type') || {}).value || WIZ.step2ProcType || '';
     WIZ.step2CondLabel = (document.getElementById('s2-cond-label') || {}).value || '';
     WIZ.step2ProcDate = (document.getElementById('s2-proc-date') || {}).value || '';
     WIZ.step2Construct = (document.getElementById('s2-aav-construct') || {}).value || '';
@@ -1857,32 +1861,39 @@ function buildImportRows() {
       }
     });
 
-    // Apply group-level fields based on which group this mouse belongs to
-    var grp = (WIZ.groups || []).find(function(g) { return g.mice.has(idx); });
-    if (grp) {
-      if (grp.label) sheetRow['Condition'] = grp.label;
-      if (grp.notes) sheetRow['Comments'] = grp.notes;
-      if (grp.mut1)  sheetRow['Mutation 1'] = grp.mut1;
-      if (grp.grade1) sheetRow['Grade 1'] = grp.grade1;
-
-      if (grp.procType === 'AAV inj.') {
-        if (grp.date)      sheetRow['date of AAV inj.'] = grp.date;
-        if (grp.construct) sheetRow['AAV inj.'] = grp.construct;
-        if (grp.vol)       sheetRow['Vol. inj./ul'] = grp.vol;
-        if (grp.conc)      sheetRow['conc.'] = grp.conc;
-        if (grp.notes)     sheetRow['Comments for AAV injection'] = grp.notes;
-      } else if (grp.procType === 'Colonoscopy') {
-        if (grp.date) sheetRow['Org inj. Date'] = grp.date;
-        if (grp.notes) sheetRow['Comments for surgery'] = grp.notes;
-      } else if (grp.procType === 'Surgery') {
-        if (grp.date) sheetRow['Surgery Date'] = grp.date;
-        if (grp.notes) sheetRow['Comments for surgery'] = grp.notes;
-      } else if (grp.procType === 'Euthanasia') {
-        if (grp.date) sheetRow['Euthanasia Date'] = grp.date;
-      } else {
-        if (grp.date) sheetRow['Procedure Date'] = grp.date;
-        if (grp.notes) sheetRow['Comments'] = grp.notes;
-      }
+    // Apply all groups this mouse belongs to (mice can have multiple procedures)
+    var mouseGroups = (WIZ.groups || []).filter(function(g) { return g.mice.has(idx); });
+    if (mouseGroups.length > 0) {
+      // Condition = comma-joined group labels
+      sheetRow['Condition'] = mouseGroups.map(function(g) { return g.label || g.procType; }).join(', ');
+      // Merge each group's fields (last value wins if multiple groups set the same field)
+      var aavNotes = [], otherNotes = [];
+      mouseGroups.forEach(function(grp) {
+        if (grp.mut1)   sheetRow['Mutation 1'] = grp.mut1;
+        if (grp.grade1) sheetRow['Grade 1'] = grp.grade1;
+        var pt = (grp.procType || '').toLowerCase();
+        if (/aav/.test(pt)) {
+          if (grp.date)      sheetRow['date of AAV inj.'] = grp.date;
+          if (grp.construct) sheetRow['AAV inj.'] = grp.construct;
+          if (grp.vol)       sheetRow['Vol. inj./ul'] = grp.vol;
+          if (grp.conc)      sheetRow['conc.'] = grp.conc;
+          if (grp.notes)     aavNotes.push(grp.notes);
+        } else if (/colonoscopy/.test(pt)) {
+          if (grp.date)  sheetRow['Org inj. Date'] = grp.date;
+          if (grp.notes) otherNotes.push('Colonoscopy: ' + grp.notes);
+        } else if (/surgery/.test(pt)) {
+          if (grp.date)  sheetRow['Surgery Date'] = grp.date;
+          if (grp.notes) otherNotes.push('Surgery: ' + grp.notes);
+        } else if (/euthanasia/.test(pt)) {
+          if (grp.date) sheetRow['Euthanasia Date'] = grp.date;
+          if (grp.notes) otherNotes.push('Euthanasia: ' + grp.notes);
+        } else {
+          if (grp.date)  sheetRow['Procedure Date'] = grp.date;
+          if (grp.notes) otherNotes.push(grp.procType + ': ' + grp.notes);
+        }
+      });
+      if (aavNotes.length)   sheetRow['Comments for AAV injection'] = aavNotes.join(' | ');
+      if (otherNotes.length) sheetRow['Comments for surgery'] = otherNotes.join(' | ');
     }
 
     // Auto-calculate Age at Inj from DOB + AAV injection date
