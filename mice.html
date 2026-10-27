@@ -253,6 +253,19 @@ body { font-family: var(--font); font-size: 14px; color: var(--text); background
 .import-progress { margin-top: 16px; }
 .prog-bar-wrap { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 8px; }
 .prog-bar { height: 100%; background: var(--accent); border-radius: 3px; transition: width .2s; }
+
+/* filter panel (step 1) */
+.wiz-filters { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
+.filter-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+.sex-btns { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.sex-btn { padding: 5px 12px; font-size: 12px; font-weight: 500; border: none; border-right: 1px solid var(--border); background: var(--bg); color: var(--text2); cursor: pointer; transition: background .12s, color .12s; }
+.sex-btn:last-child { border-right: none; }
+.sex-btn:hover { background: var(--surface2); }
+.sex-btn.active { background: var(--accent); color: #fff; }
+.gen-chips { display: flex; flex-wrap: wrap; gap: 4px; max-width: 360px; }
+.gen-chip { padding: 3px 10px; border-radius: 10px; font-size: 11.5px; font-weight: 500; border: 1px solid var(--border); background: var(--bg); color: var(--text2); cursor: pointer; transition: background .12s, color .12s, border-color .12s; }
+.gen-chip:hover { border-color: var(--accent); color: var(--accent); }
+.gen-chip.active { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -588,29 +601,49 @@ function renderTable() {
   if (!tw) return;
 
   var q = S.query.toLowerCase();
-  var filtered = S.rows.filter(function(r) {
-    if (!q) return true;
-    return Object.values(r).some(function(v) { return String(v).toLowerCase().includes(q); });
-  });
 
+  // Always detect groups from the full row set so group membership is stable
+  var allGroups = detectGroups(S.rows);
+  var totalMice = allGroups.reduce(function(n, g) { return n + g.rows.length; }, 0);
+
+  // Filter at the group level:
+  //   • if the group title matches → show ALL its mice (experiment search)
+  //   • if any mouse row matches   → show only those mice (within-group search)
+  //   • no match at all            → hide the group
+  var groups = q
+    ? allGroups.map(function(group) {
+        var titleHit = group.title && group.title.toLowerCase().includes(q);
+        var rows = titleHit
+          ? group.rows   // whole experiment
+          : group.rows.filter(function(r) {
+              return Object.values(r).some(function(v) { return String(v).toLowerCase().includes(q); });
+            });
+        return rows.length > 0 ? { id: group.id, title: group.title, rows: rows } : null;
+      }).filter(Boolean)
+    : allGroups;
+
+  // Sort within each group
   if (S.sortCol !== null) {
     var sc = S.sortCol, sd = S.sortDir;
-    filtered = filtered.slice().sort(function(a, b) {
-      var av = String(a[sc]||'').toLowerCase(), bv = String(b[sc]||'').toLowerCase();
-      return sd === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    groups = groups.map(function(g) {
+      return {
+        id: g.id, title: g.title,
+        rows: g.rows.slice().sort(function(a, b) {
+          var av = String(a[sc]||'').toLowerCase(), bv = String(b[sc]||'').toLowerCase();
+          return sd === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+        })
+      };
     });
   }
 
+  var filteredMice = groups.reduce(function(n, g) { return n + g.rows.length; }, 0);
   var cnt = document.getElementById('cnt');
-  if (cnt) cnt.textContent = filtered.length + ' of ' + S.rows.length + ' mice';
+  if (cnt) cnt.textContent = (q ? filteredMice + ' of ' : '') + totalMice + ' mice';
 
-  if (filtered.length === 0) {
-    tw.innerHTML = '<div class="state-msg"><div class="icon">🔍</div><h3>No results</h3><p>Try a different search.</p></div>';
+  if (groups.length === 0) {
+    tw.innerHTML = '<div class="state-msg"><div class="icon">🔍</div><h3>No results</h3><p>Try searching by experiment name, ID, genotype…</p></div>';
     return;
   }
-
-  // Detect groups
-  var groups = detectGroups(filtered);
   var hasGroups = groups.some(function(g) { return g.title !== null; });
   var totalCols = S.headers.length + 2; // +1 checkbox, +1 actions
 
@@ -1009,14 +1042,186 @@ document.getElementById('bulk-save-btn').onclick = function() {
 var WIZ = {
   step: 1,
   csv: null,         // { headers: [], rows: [] }
-  sel: new Set(),    // selected indices in csv.rows
+  sel: new Set(),    // selected CSV row indices
+  filters: { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', query: '' },
+  conditions: {},    // fields applied to all selected mice
   groupLabel: '',
-  mapping: {},       // csvHeader -> sheetHeader (or '')
-  extraFields: {},   // extra fields to set for all mice
 };
 
+// CSV column → canonical sheet column
+var CSV_TO_SHEET = {
+  'WR': 'Number', 'ID': 'ID', 'Lab ID': 'Lab ID',
+  'Cage': 'Cage', 'Rack': 'Rack', 'Sex': 'Sex', 'Gen': 'Gen',
+  'Line / Strain': 'Line / Strain', 'Background': 'Background',
+  'DOB': 'DOB', 'Age (w)': 'Age (w d)', 'Age(w)': 'Age (w d)',
+  'Father': 'Father', 'Mother 1': 'Mother 1', 'Mother 2': 'Mother 1',
+  'Sacrifice date': 'Euthanasia Date',
+};
+
+function parseDOB(str) {
+  if (!str) return null;
+  str = str.trim();
+  var m;
+  // DD.MM.YYYY
+  m = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (m) return new Date(+m[3], +m[2]-1, +m[1]);
+  // YYYY-MM-DD
+  m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+  // MM/DD/YYYY
+  m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return new Date(+m[3], +m[1]-1, +m[2]);
+  return null;
+}
+
+function ageWeeks(dob, ref) {
+  if (!dob || !ref) return null;
+  var diff = ref - dob;
+  return diff < 0 ? null : Math.floor(diff / 604800000);
+}
+
+function getFilteredItems() {
+  if (!WIZ.csv) return [];
+  var now = new Date();
+  var procDate = WIZ.filters.procDate ? new Date(WIZ.filters.procDate) : null;
+  var minA = WIZ.filters.minAge !== '' ? +WIZ.filters.minAge : null;
+  var maxA = WIZ.filters.maxAge !== '' ? +WIZ.filters.maxAge : null;
+  var q = WIZ.filters.query.toLowerCase();
+
+  return WIZ.csv.rows.map(function(row, idx) {
+    var dob = parseDOB(row['DOB'] || '');
+    var ageNow = dob ? ageWeeks(dob, now) : null;
+    var ageAtProc = (dob && procDate) ? ageWeeks(dob, procDate) : null;
+
+    // Sex filter
+    if (WIZ.filters.sex) {
+      var s = (row['Sex'] || '').toLowerCase();
+      var wantM = WIZ.filters.sex === 'm';
+      if (wantM && s !== 'm') return null;
+      if (!wantM && s !== 'f') return null;
+    }
+    // Genotype filter
+    if (WIZ.filters.genotypes.length > 0) {
+      var gen = (row['Gen'] || row['Genotype'] || '').trim();
+      if (!WIZ.filters.genotypes.includes(gen)) return null;
+    }
+    // Age filter (use ageAtProc if proc date given, else ageNow)
+    var ageRef = (procDate && ageAtProc != null) ? ageAtProc : ageNow;
+    if (minA != null && ageRef != null && ageRef < minA) return null;
+    if (maxA != null && ageRef != null && ageRef > maxA) return null;
+    // Text search
+    if (q) {
+      var haystack = Object.values(row).map(String).join(' ').toLowerCase();
+      if (!haystack.includes(q)) return null;
+    }
+    return { idx: idx, row: row, dob: dob, ageNow: ageNow, ageAtProc: ageAtProc };
+  }).filter(Boolean);
+}
+
+function applyWizFilters() {
+  var items = getFilteredItems();
+  var wrap = document.getElementById('wiz-tbl-wrap');
+  if (!wrap) return;
+
+  // Select-all checkbox state
+  var allSel = items.length > 0 && items.every(function(it) { return WIZ.sel.has(it.idx); });
+  var sa = document.getElementById('wiz-sel-all');
+  if (sa) sa.checked = allSel;
+
+  var procDate = WIZ.filters.procDate ? new Date(WIZ.filters.procDate) : null;
+
+  var html = '<table class="import-table"><thead><tr>';
+  html += '<th><input type="checkbox" id="wiz-sel-all2"' + (allSel?' checked':'') + '></th>';
+  html += '<th>ID</th><th>Lab ID</th><th>Sex</th><th>Gen</th><th>Line/Strain</th>';
+  html += '<th>DOB</th><th>Age now (w)</th>';
+  if (procDate) html += '<th>Age at proc. (w)</th>';
+  html += '<th>Condition</th>';
+  html += '</tr></thead><tbody>';
+
+  if (items.length === 0) {
+    html += '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text2)">No mice match the current filters</td></tr>';
+  } else {
+    items.forEach(function(it) {
+      var r = it.row;
+      var chk = WIZ.sel.has(it.idx) ? ' checked' : '';
+      var sexBadge = r['Sex'] === 'm' || r['Sex'] === 'M'
+        ? '<span class="badge badge-m">m</span>'
+        : r['Sex'] === 'f' || r['Sex'] === 'F'
+        ? '<span class="badge badge-f">f</span>'
+        : esc(r['Sex'] || '');
+      var ageNowCell = it.ageNow != null ? it.ageNow : '—';
+      var ageProcCell = procDate ? (it.ageAtProc != null ? it.ageAtProc : '—') : '';
+      var cond = WIZ.conditions['cond_' + it.idx] || '';
+      html += '<tr data-idx="' + it.idx + '">';
+      html += '<td><input type="checkbox" class="wiz-row-chk" data-idx="' + it.idx + '"' + chk + '></td>';
+      html += '<td><span class="amo-id">' + esc(r['ID'] || r['WR'] || '') + '</span></td>';
+      html += '<td>' + esc(r['Lab ID'] || '') + '</td>';
+      html += '<td>' + sexBadge + '</td>';
+      html += '<td>' + esc(r['Gen'] || r['Genotype'] || '') + '</td>';
+      html += '<td>' + esc(r['Line / Strain'] || r['Strain'] || '') + '</td>';
+      html += '<td>' + esc(r['DOB'] || '') + '</td>';
+      html += '<td>' + ageNowCell + '</td>';
+      if (procDate) html += '<td>' + ageProcCell + '</td>';
+      html += '<td><input class="wiz-cond-input" data-idx="' + it.idx + '" value="' + esc(cond) + '" placeholder="e.g. Control" style="width:90px;padding:2px 5px;font-size:11px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);"></td>';
+      html += '</tr>';
+    });
+  }
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+
+  // Select-all
+  var sa2 = document.getElementById('wiz-sel-all2');
+  if (sa2) sa2.addEventListener('change', function() {
+    var checked = this.checked;
+    items.forEach(function(it) { if (checked) WIZ.sel.add(it.idx); else WIZ.sel.delete(it.idx); });
+    applyWizFilters();
+    updateWizStep1Footer();
+  });
+
+  // Row checkboxes
+  wrap.querySelectorAll('.wiz-row-chk').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      var idx = +this.dataset.idx;
+      if (this.checked) WIZ.sel.add(idx); else WIZ.sel.delete(idx);
+      updateWizStep1Footer();
+    });
+  });
+
+  // Condition inputs
+  wrap.querySelectorAll('.wiz-cond-input').forEach(function(inp) {
+    inp.addEventListener('change', function() {
+      WIZ.conditions['cond_' + this.dataset.idx] = this.value;
+    });
+    inp.addEventListener('input', function() {
+      WIZ.conditions['cond_' + this.dataset.idx] = this.value;
+    });
+  });
+}
+
+function updateWizStep1Footer() {
+  var n = WIZ.sel.size;
+  var nextBtn = document.getElementById('wiz-next-btn');
+  if (nextBtn) nextBtn.textContent = 'Next: Assign Conditions →' + (n ? ' (' + n + ')' : '');
+  if (nextBtn) nextBtn.disabled = n === 0;
+}
+
+function saveConditions() {
+  var fields = ['groupLabel','AAV inj.','Vol. inj./ul','conc.','date of AAV inj.',
+    'Org inj. Date','Euthanasia Date','Line / Strain','Background',
+    'Mutation 1','Grade 1','Mutation 2','Grade 2',
+    'Comments for AAV injection','Comments for surgery'];
+  fields.forEach(function(f) {
+    var el = document.getElementById('cond-' + f.replace(/[^a-zA-Z0-9]/g, '_'));
+    if (!el) return;
+    if (f === 'groupLabel') { WIZ.groupLabel = el.value.trim(); }
+    else { WIZ.conditions[f] = el.value.trim(); }
+  });
+}
+
 function openCSVWizard() {
-  WIZ.step = 1; WIZ.csv = null; WIZ.sel = new Set(); WIZ.groupLabel = ''; WIZ.mapping = {}; WIZ.extraFields = {};
+  WIZ.step = 1; WIZ.csv = null; WIZ.sel = new Set();
+  WIZ.filters = { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', query: '' };
+  WIZ.conditions = {}; WIZ.groupLabel = '';
   document.getElementById('csv-wizard').classList.remove('hidden');
   renderWizard();
 }
@@ -1026,7 +1231,7 @@ function closeCSVWizard() {
 document.getElementById('wiz-close').onclick = closeCSVWizard;
 
 function renderWizardSteps() {
-  var steps = ['1. Upload & Select', '2. Configure', '3. Import'];
+  var steps = ['1. Upload & Filter', '2. Assign Conditions', '3. Review & Import'];
   document.getElementById('wiz-steps').innerHTML = steps.map(function(s, i) {
     var n = i + 1;
     var cls = n < WIZ.step ? 'done' : n === WIZ.step ? 'active' : '';
@@ -1041,7 +1246,7 @@ function renderWizard() {
   else renderWizStep3();
 }
 
-// ── Step 1: Upload & Select ────────────────────────────
+// ── Step 1: Upload, Filter & Select ───────────────────
 function renderWizStep1() {
   var body = document.getElementById('wiz-body');
   var footer = document.getElementById('wiz-footer');
@@ -1051,9 +1256,9 @@ function renderWizStep1() {
       '<div class="drop-zone" id="dz">' +
         '<div class="dz-icon">📄</div>' +
         '<p>Drop a CSV file here, or click to browse</p>' +
-        '<small>Same format as Animals_Data export — columns: WR, ID, Lab ID, Cage, Sex, Gen, Line / Strain, DOB…</small>' +
+        '<small>Animals_Data export — columns: WR, ID, Lab ID, Sex, Gen, Line / Strain, DOB…</small>' +
       '</div>' +
-      '<input type="file" id="csv-file-input" accept=".csv,text/csv">';
+      '<input type="file" id="csv-file-input" accept=".csv,text/csv" style="display:none">';
 
     var dz = document.getElementById('dz');
     var fi = document.getElementById('csv-file-input');
@@ -1067,96 +1272,115 @@ function renderWizStep1() {
     };
     fi.onchange = function() { if (fi.files[0]) loadCSVFile(fi.files[0]); };
 
-    footer.innerHTML = '<div class="spacer"></div><button class="btn btn-secondary" id="wiz-cancel-btn">Cancel</button><button class="btn btn-primary" id="wiz-next-btn" disabled>Next →</button>';
+    footer.innerHTML = '<div class="spacer"></div><button class="btn btn-secondary" id="wiz-cancel-btn">Cancel</button>';
     document.getElementById('wiz-cancel-btn').onclick = closeCSVWizard;
-    document.getElementById('wiz-next-btn').onclick = function() { WIZ.step = 2; renderWizard(); };
     return;
   }
 
-  // CSV loaded — show selection table
-  var previewCols = ['ID', 'Lab ID', 'Sex', 'Gen', 'Line / Strain', 'DOB', 'Cage', 'Condition (with date)', 'Project'];
-  var displayCols = previewCols.filter(function(c) { return WIZ.csv.headers.indexOf(c) >= 0; });
-  if (displayCols.length === 0) displayCols = WIZ.csv.headers.slice(0, 8);
-
-  var html =
-    '<div class="import-sel-bar">' +
-      '<button class="btn btn-secondary" id="wiz-sel-all">Select all</button>' +
-      '<button class="btn btn-ghost" id="wiz-desel-all">Deselect all</button>' +
-      '<span class="icount" id="wiz-icount">' + WIZ.sel.size + ' / ' + WIZ.csv.rows.length + ' selected</span>' +
-    '</div>' +
-    '<div class="import-tbl-wrap">' +
-    '<table class="import-table"><thead><tr>' +
-    '<th class="rc"><input type="checkbox" id="imp-chk-all"></th>' +
-    displayCols.map(function(c) { return '<th>' + esc(c) + '</th>'; }).join('') +
-    '</tr></thead><tbody>';
-
-  WIZ.csv.rows.forEach(function(row, i) {
-    var sel = WIZ.sel.has(i);
-    html += '<tr class="' + (sel ? 'imp-sel' : '') + '" data-idx="' + i + '">';
-    html += '<td class="rc"><input type="checkbox" class="imp-chk"' + (sel ? ' checked' : '') + ' data-idx="' + i + '"></td>';
-    displayCols.forEach(function(c) { html += '<td title="' + esc(row[c]||'') + '">' + esc(row[c]||'') + '</td>'; });
-    html += '</tr>';
+  // Collect unique genotype values
+  var genKey = WIZ.csv.headers.find(function(h) { return h === 'Gen' || h === 'Genotype'; }) || 'Gen';
+  var genValues = [];
+  WIZ.csv.rows.forEach(function(r) {
+    var g = (r[genKey] || '').trim();
+    if (g && !genValues.includes(g)) genValues.push(g);
   });
 
-  html += '</tbody></table></div>';
-  body.innerHTML = html;
+  var html = '<div class="wiz-filters">';
+  html += '<div class="filter-row">';
 
-  // Checkbox handlers
-  function updateImportCount() {
-    var el = document.getElementById('wiz-icount');
-    if (el) el.textContent = WIZ.sel.size + ' / ' + WIZ.csv.rows.length + ' selected';
-    var nb = document.getElementById('wiz-next-btn');
-    if (nb) nb.disabled = WIZ.sel.size === 0;
+  // Sex buttons
+  html += '<div><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Sex</div>';
+  html += '<div class="sex-btns">';
+  ['', 'm', 'f'].forEach(function(v) {
+    var lbl = v === '' ? 'All' : v === 'm' ? '♂ Male' : '♀ Female';
+    html += '<button class="sex-btn' + (WIZ.filters.sex === v ? ' active' : '') + '" data-sex="' + v + '">' + lbl + '</button>';
+  });
+  html += '</div></div>';
+
+  // Genotype chips
+  if (genValues.length > 0) {
+    html += '<div><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Genotype</div>';
+    html += '<div class="gen-chips">';
+    genValues.forEach(function(g) {
+      html += '<button class="gen-chip' + (WIZ.filters.genotypes.includes(g) ? ' active' : '') + '" data-gen="' + esc(g) + '">' + esc(g) + '</button>';
+    });
+    html += '</div></div>';
   }
 
-  document.querySelectorAll('.imp-chk').forEach(function(c) {
-    c.onchange = function() {
-      var idx = parseInt(c.getAttribute('data-idx'));
-      if (c.checked) WIZ.sel.add(idx);
-      else WIZ.sel.delete(idx);
-      var tr = c.closest('tr');
-      if (tr) tr.classList.toggle('imp-sel', c.checked);
-      updateImportCount();
-    };
-  });
-  document.getElementById('imp-chk-all').onchange = function() {
-    var checked = this.checked;
-    document.querySelectorAll('.imp-chk').forEach(function(c) {
-      var idx = parseInt(c.getAttribute('data-idx'));
-      c.checked = checked;
-      if (checked) WIZ.sel.add(idx);
-      else WIZ.sel.delete(idx);
-      var tr = c.closest('tr');
-      if (tr) tr.classList.toggle('imp-sel', checked);
+  // Age range
+  html += '<div><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Age range (weeks)</div>';
+  html += '<div style="display:flex;gap:6px;align-items:center;">';
+  html += '<input type="number" id="f-min-age" min="0" placeholder="Min" value="' + esc(WIZ.filters.minAge) + '" style="width:60px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;">';
+  html += '<span style="color:var(--text3)">—</span>';
+  html += '<input type="number" id="f-max-age" min="0" placeholder="Max" value="' + esc(WIZ.filters.maxAge) + '" style="width:60px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;">';
+  html += '</div></div>';
+
+  // Procedure date
+  html += '<div><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Procedure date</div>';
+  html += '<input type="date" id="f-proc-date" value="' + esc(WIZ.filters.procDate) + '" style="padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;">';
+  html += '<div style="font-size:10.5px;color:var(--text3);margin-top:3px;">Shows age at AAV / surgery / colonoscopy</div>';
+  html += '</div>';
+
+  // Text search
+  html += '<div style="flex:1;min-width:130px;"><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Search</div>';
+  html += '<input type="text" id="f-query" placeholder="ID, cage, line…" value="' + esc(WIZ.filters.query) + '" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;">';
+  html += '</div>';
+
+  html += '</div></div>'; // .filter-row .wiz-filters
+
+  // Re-upload link
+  html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
+  html += '<span style="font-size:12px;color:var(--text2);">📄 ' + esc(WIZ.csv.rows.length) + ' mice loaded</span>';
+  html += '<button class="btn btn-ghost" id="wiz-re-upload" style="padding:2px 10px;font-size:12px;">↩ Re-upload</button>';
+  html += '</div>';
+
+  // Mouse selection table
+  html += '<div id="wiz-tbl-wrap" class="import-tbl-wrap"></div>';
+  body.innerHTML = html;
+
+  // Filter event handlers
+  body.querySelectorAll('.sex-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      WIZ.filters.sex = this.dataset.sex;
+      body.querySelectorAll('.sex-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.sex === WIZ.filters.sex); });
+      applyWizFilters(); updateWizStep1Footer();
     });
-    updateImportCount();
-  };
-  document.getElementById('wiz-sel-all').onclick = function() {
-    WIZ.csv.rows.forEach(function(_, i) { WIZ.sel.add(i); });
-    document.querySelectorAll('.imp-chk').forEach(function(c) { c.checked = true; c.closest('tr').classList.add('imp-sel'); });
-    document.getElementById('imp-chk-all').checked = true;
-    updateImportCount();
-  };
-  document.getElementById('wiz-desel-all').onclick = function() {
-    WIZ.sel.clear();
-    document.querySelectorAll('.imp-chk').forEach(function(c) { c.checked = false; c.closest('tr').classList.remove('imp-sel'); });
-    document.getElementById('imp-chk-all').checked = false;
-    updateImportCount();
-  };
-
-  footer.innerHTML =
-    '<button class="btn btn-ghost" id="wiz-re-upload">↩ Re-upload</button>' +
-    '<div class="spacer"></div>' +
-    '<button class="btn btn-secondary" id="wiz-cancel-btn">Cancel</button>' +
-    '<button class="btn btn-primary" id="wiz-next-btn"' + (WIZ.sel.size === 0 ? ' disabled' : '') + '>Next →</button>';
-
-  document.getElementById('wiz-re-upload').onclick = function() { WIZ.csv = null; WIZ.sel.clear(); renderWizard(); };
-  document.getElementById('wiz-cancel-btn').onclick = closeCSVWizard;
-  document.getElementById('wiz-next-btn').onclick = function() {
-    buildAutoMapping();
-    WIZ.step = 2;
+  });
+  body.querySelectorAll('.gen-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      var g = this.dataset.gen;
+      var idx = WIZ.filters.genotypes.indexOf(g);
+      if (idx >= 0) WIZ.filters.genotypes.splice(idx, 1); else WIZ.filters.genotypes.push(g);
+      chip.classList.toggle('active', WIZ.filters.genotypes.includes(g));
+      applyWizFilters(); updateWizStep1Footer();
+    });
+  });
+  function refilter() {
+    WIZ.filters.minAge = (document.getElementById('f-min-age') || {}).value || '';
+    WIZ.filters.maxAge = (document.getElementById('f-max-age') || {}).value || '';
+    WIZ.filters.procDate = (document.getElementById('f-proc-date') || {}).value || '';
+    WIZ.filters.query = (document.getElementById('f-query') || {}).value || '';
+    applyWizFilters(); updateWizStep1Footer();
+  }
+  ['f-min-age','f-max-age','f-proc-date','f-query'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) { el.addEventListener('input', refilter); el.addEventListener('change', refilter); }
+  });
+  document.getElementById('wiz-re-upload').onclick = function() {
+    WIZ.csv = null; WIZ.sel.clear();
+    WIZ.filters = { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', query: '' };
     renderWizard();
   };
+
+  applyWizFilters();
+
+  footer.innerHTML =
+    '<div class="spacer"></div>' +
+    '<button class="btn btn-secondary" id="wiz-cancel-btn">Cancel</button>' +
+    '<button class="btn btn-primary" id="wiz-next-btn"' + (WIZ.sel.size === 0 ? ' disabled' : '') + '>Next: Assign Conditions (' + WIZ.sel.size + ') →</button>';
+
+  document.getElementById('wiz-cancel-btn').onclick = closeCSVWizard;
+  document.getElementById('wiz-next-btn').onclick = function() { WIZ.step = 2; renderWizard(); };
 }
 
 function loadCSVFile(file) {
@@ -1165,7 +1389,6 @@ function loadCSVFile(file) {
     var parsed = parseCSV(e.target.result);
     if (!parsed || parsed.rows.length === 0) { toast('Could not parse CSV — make sure it has a header row.', true); return; }
     WIZ.csv = parsed;
-    // Default: select all
     WIZ.sel.clear();
     parsed.rows.forEach(function(_, i) { WIZ.sel.add(i); });
     renderWizard();
@@ -1174,7 +1397,6 @@ function loadCSVFile(file) {
 }
 
 function parseCSV(text) {
-  // Normalize line endings
   text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   var lines = [];
   var cur = [];
@@ -1182,7 +1404,7 @@ function parseCSV(text) {
   var cell = '';
 
   for (var i = 0; i <= text.length; i++) {
-    var c = i < text.length ? text[i] : '\n'; // sentinel
+    var c = i < text.length ? text[i] : '\n';
     if (c === '"') {
       if (inQ && text[i+1] === '"') { cell += '"'; i++; }
       else inQ = !inQ;
@@ -1202,157 +1424,109 @@ function parseCSV(text) {
   var rows = [];
   for (var j = 1; j < lines.length; j++) {
     var row = {};
-    headers.forEach(function(h, idx) { row[h] = (lines[j][idx] || '').trim(); });
+    headers.forEach(function(h, k) { row[h] = (lines[j][k] || '').trim(); });
     rows.push(row);
   }
   return { headers: headers, rows: rows };
 }
 
-// ── Step 2: Configure ──────────────────────────────────
-function buildAutoMapping() {
-  if (!WIZ.csv) return;
-  WIZ.mapping = {};
-  WIZ.csv.headers.forEach(function(csvH) {
-    // Exact match
-    var sh = S.headers.find(function(h) { return h === csvH; });
-    if (!sh) sh = S.headers.find(function(h) { return h.toLowerCase() === csvH.toLowerCase(); });
-    // Known aliases
-    if (!sh) {
-      var aliases = {
-        'Sacrifice date': 'Euthanasia Date',
-        'Age (w)': 'Age (w d)',
-        'Line / Strain (Official name)': 'Line / Strain',
-        'Comments (with date)': 'Comments for AAV injection',
-        'Condition (with date)': 'Comments for surgery',
-        'WR': 'Number',
-      };
-      if (aliases[csvH]) sh = S.headers.find(function(h) { return h === aliases[csvH]; });
-    }
-    WIZ.mapping[csvH] = sh || '';
-  });
-}
-
+// ── Step 2: Assign Conditions ─────────────────────────
 function renderWizStep2() {
   var body = document.getElementById('wiz-body');
   var footer = document.getElementById('wiz-footer');
-
   var n = WIZ.sel.size;
+  var c = WIZ.conditions;
+
+  function fid(name) { return 'cond-' + name.replace(/[^a-zA-Z0-9]/g, '_'); }
+  function field(label, name, opts) {
+    opts = opts || {};
+    var id = fid(name);
+    var val = name === 'groupLabel' ? WIZ.groupLabel : (c[name] || '');
+    var cls = 'form-group' + (opts.full ? ' full' : '');
+    var h = '<div class="' + cls + '"><label for="' + id + '">' + esc(label) + '</label>';
+    if (opts.textarea) {
+      h += '<textarea id="' + id + '" rows="2" placeholder="' + esc(opts.ph||'') + '">' + esc(val) + '</textarea>';
+    } else {
+      h += '<input type="' + (opts.type||'text') + '" id="' + id + '" value="' + esc(val) + '" placeholder="' + esc(opts.ph||'') + '">';
+    }
+    h += '</div>';
+    return h;
+  }
+
   var html = '';
 
-  // Group label
-  html += '<div class="map-section">';
-  html += '<h3>Experiment / Group Label</h3>';
-  html += '<div class="form-group" style="max-width:480px;margin-bottom:4px;">';
-  html += '<label>Label (optional)</label>';
-  html += '<input type="text" id="wiz-group-label" value="' + esc(WIZ.groupLabel) + '" placeholder="e.g. APP KO Colonoscopy — leave blank to import without a section header">';
-  html += '<span class="form-hint">A collapsible section header will be added before the imported mice.</span>';
+  html += '<div class="map-section"><h3>Experiment / Group Label</h3><div class="form-grid">';
+  html += field('Section label (optional)', 'groupLabel', { ph: 'e.g. APP KO Colonoscopy — leave blank for no header', full: true });
   html += '</div></div>';
 
-  // Column mapping
-  html += '<div class="map-section"><h3>Column Mapping (' + WIZ.csv.headers.length + ' CSV columns → sheet headers)</h3>';
-  html += '<div class="map-grid">';
-  html += '<span style="font-size:10.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">CSV Column</span>';
-  html += '<span></span>';
-  html += '<span style="font-size:10.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Sheet Column</span>';
-
-  WIZ.csv.headers.forEach(function(csvH) {
-    html += '<div class="map-label">' + esc(csvH) + '</div>';
-    html += '<div class="map-arrow">→</div>';
-    html += '<select class="map-select" data-csv-h="' + esc(csvH) + '">';
-    html += '<option value="">(skip)</option>';
-    S.headers.forEach(function(sh) {
-      if (!sh) return;
-      var sel = WIZ.mapping[csvH] === sh ? ' selected' : '';
-      html += '<option value="' + esc(sh) + '"' + sel + '>' + esc(sh) + '</option>';
-    });
-    html += '</select>';
-  });
+  html += '<div class="map-section"><h3>AAV Injection</h3><div class="form-grid">';
+  html += field('AAV construct', 'AAV inj.', { ph: 'e.g. AAV8-GFP' });
+  html += field('Volume (µl)', 'Vol. inj./ul', { ph: 'e.g. 50', type: 'number' });
+  html += field('Concentration', 'conc.', { ph: 'e.g. 1e12 vg/ml' });
+  html += field('Date of AAV inj.', 'date of AAV inj.', { type: 'date' });
   html += '</div></div>';
 
-  // Extra fields
-  html += '<div class="map-section"><h3>Extra Fields for All Imported Mice</h3>';
-  html += '<p style="font-size:12.5px;color:var(--text2);margin-bottom:12px;">Set any additional fields (e.g. a shared condition or date) across all ' + n + ' imported mice.</p>';
-  html += '<div class="form-grid" style="max-width:680px;">';
-  var extraCols = ['Gen','Sex','Background','Cage','Rack','AAV inj.','date of AAV inj.','Euthanasia Date','Comments for AAV injection','Comments for surgery'];
-  extraCols.forEach(function(h) {
-    if (S.headers.indexOf(h) < 0) return;
-    var val = WIZ.extraFields[h] || '';
-    var long = /comment|notes/i.test(h);
-    html += '<div class="form-group' + (long ? ' full' : '') + '"><label>' + esc(h) + '</label>';
-    if (long) html += '<textarea data-extra="' + esc(h) + '">' + esc(val) + '</textarea>';
-    else       html += '<input type="text" data-extra="' + esc(h) + '" value="' + esc(val) + '">';
-    html += '</div>';
-  });
+  html += '<div class="map-section"><h3>Timeline</h3><div class="form-grid">';
+  html += field('Organoid inj. date', 'Org inj. Date', { type: 'date' });
+  html += field('Euthanasia date', 'Euthanasia Date', { type: 'date' });
+  html += '</div></div>';
+
+  html += '<div class="map-section"><h3>Genetics / Background <span style="font-size:11px;font-weight:400;color:var(--text3)">(overrides CSV if filled)</span></h3><div class="form-grid">';
+  html += field('Line / Strain', 'Line / Strain', { ph: 'e.g. C57BL/6J' });
+  html += field('Background', 'Background', { ph: 'e.g. C57BL/6' });
+  html += field('Mutation 1', 'Mutation 1', { ph: 'e.g. Kras G12D' });
+  html += field('Grade 1', 'Grade 1', { ph: 'e.g. het' });
+  html += field('Mutation 2', 'Mutation 2');
+  html += field('Grade 2', 'Grade 2');
+  html += '</div></div>';
+
+  html += '<div class="map-section"><h3>Notes</h3><div class="form-grid">';
+  html += field('Comments for AAV injection', 'Comments for AAV injection', { textarea: true, ph: 'Shared note for all ' + n + ' mice…', full: true });
+  html += field('Comments for surgery', 'Comments for surgery', { textarea: true, ph: '', full: true });
   html += '</div></div>';
 
   body.innerHTML = html;
-
-  // Mapping select handlers
-  body.querySelectorAll('.map-select').forEach(function(sel) {
-    sel.onchange = function() {
-      WIZ.mapping[sel.getAttribute('data-csv-h')] = sel.value;
-    };
-  });
 
   footer.innerHTML =
     '<button class="btn btn-ghost" id="wiz-back-btn">← Back</button>' +
     '<div class="spacer"></div>' +
     '<button class="btn btn-secondary" id="wiz-cancel-btn">Cancel</button>' +
-    '<button class="btn btn-primary" id="wiz-next-btn">Review →</button>';
+    '<button class="btn btn-primary" id="wiz-next-btn">Review (' + n + ' mice) →</button>';
 
-  document.getElementById('wiz-back-btn').onclick = function() { WIZ.step = 1; renderWizard(); };
+  document.getElementById('wiz-back-btn').onclick = function() { saveConditions(); WIZ.step = 1; renderWizard(); };
   document.getElementById('wiz-cancel-btn').onclick = closeCSVWizard;
-  document.getElementById('wiz-next-btn').onclick = function() {
-    // Save group label
-    WIZ.groupLabel = document.getElementById('wiz-group-label').value.trim();
-    // Save mapping
-    body.querySelectorAll('.map-select').forEach(function(sel) {
-      WIZ.mapping[sel.getAttribute('data-csv-h')] = sel.value;
-    });
-    // Save extra fields
-    WIZ.extraFields = {};
-    body.querySelectorAll('[data-extra]').forEach(function(el) {
-      if (el.value.trim()) WIZ.extraFields[el.getAttribute('data-extra')] = el.value.trim();
-    });
-    WIZ.step = 3;
-    renderWizard();
-  };
+  document.getElementById('wiz-next-btn').onclick = function() { saveConditions(); WIZ.step = 3; renderWizard(); };
 }
 
-// ── Step 3: Confirm & Import ───────────────────────────
+// ── Step 3: Review & Import ────────────────────────────
 function renderWizStep3() {
   var body = document.getElementById('wiz-body');
   var footer = document.getElementById('wiz-footer');
   var n = WIZ.sel.size;
-
-  // Build rows to import
   var importRows = buildImportRows();
 
-  var mappedCount = WIZ.csv.headers.filter(function(h) { return WIZ.mapping[h]; }).length;
-  var extraCount = Object.keys(WIZ.extraFields).length;
-
   var html = '<div class="import-summary">';
-  html += '<strong>' + n + ' mice</strong> will be added to <strong>' + esc(S.active) + '</strong>.<br>';
-  if (WIZ.groupLabel) html += 'Section header: <strong>' + esc(WIZ.groupLabel) + '</strong><br>';
-  html += 'Mapped columns: <strong>' + mappedCount + ' / ' + WIZ.csv.headers.length + '</strong>';
-  if (extraCount) html += ' · Extra fields applied: <strong>' + extraCount + '</strong>';
+  html += '<strong>' + n + ' mice</strong> will be added to <strong>' + esc(S.active) + '</strong>.';
+  if (WIZ.groupLabel) html += '<br>Section header: <strong>' + esc(WIZ.groupLabel) + '</strong>';
+  var condFields = Object.keys(WIZ.conditions).filter(function(k) { return !k.startsWith('cond_') && WIZ.conditions[k]; });
+  if (condFields.length) html += '<br>Shared fields: <strong>' + condFields.map(esc).join(', ') + '</strong>';
   html += '</div>';
 
-  // Preview first few rows
-  var previewRows = importRows.slice(0, 3);
-  var previewCols = S.headers.filter(function(h) { return h && previewRows.some(function(r) { return r[h]; }); }).slice(0, 7);
-  if (previewCols.length > 0) {
-    html += '<p style="font-size:12px;color:var(--text2);margin-bottom:6px;">Preview (first ' + Math.min(3, n) + '):</p>';
-    html += '<div class="import-tbl-wrap" style="max-height:200px;margin-bottom:20px;"><table class="import-table"><thead><tr>';
-    previewCols.forEach(function(h) { html += '<th>' + esc(h) + '</th>'; });
-    html += '</tr></thead><tbody>';
-    previewRows.forEach(function(row) {
-      html += '<tr>';
-      previewCols.forEach(function(h) { html += '<td>' + esc(row[h]||'') + '</td>'; });
-      html += '</tr>';
-    });
-    html += '</tbody></table></div>';
-  }
+  var previewRows = importRows.slice(0, 5);
+  var PREVIEW_COLS = ['Number','ID','Lab ID','Sex','Gen','Line / Strain','DOB','Age (w d)','date of AAV inj.','AAV inj.','Age at Inj'];
+  var previewCols = PREVIEW_COLS.filter(function(h) { return previewRows.some(function(r) { return r[h]; }); });
+  if (!previewCols.length) previewCols = S.headers.filter(function(h) { return h && previewRows.some(function(r) { return r[h]; }); }).slice(0, 7);
+
+  html += '<p style="font-size:12px;color:var(--text2);margin-bottom:6px;">Preview (first ' + Math.min(5, n) + ' of ' + n + '):</p>';
+  html += '<div class="import-tbl-wrap" style="max-height:220px;margin-bottom:16px;"><table class="import-table"><thead><tr>';
+  previewCols.forEach(function(h) { html += '<th>' + esc(h) + '</th>'; });
+  html += '</tr></thead><tbody>';
+  previewRows.forEach(function(row) {
+    html += '<tr>';
+    previewCols.forEach(function(h) { html += '<td>' + esc(row[h]||'') + '</td>'; });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
 
   html += '<div id="import-progress" class="import-progress" style="display:none;">';
   html += '<div style="font-size:13px;color:var(--text2);" id="prog-label">Importing…</div>';
@@ -1373,21 +1547,43 @@ function renderWizStep3() {
 }
 
 function buildImportRows() {
+  var now = new Date();
   var rows = [];
   WIZ.sel.forEach(function(idx) {
     var csvRow = WIZ.csv.rows[idx];
     var sheetRow = {};
-    // Apply mapped columns
+
+    // Map CSV columns via CSV_TO_SHEET lookup, then exact match fallback
     WIZ.csv.headers.forEach(function(csvH) {
-      var shH = WIZ.mapping[csvH];
-      if (shH && csvRow[csvH] !== undefined) {
+      var shH = CSV_TO_SHEET[csvH];
+      if (!shH) shH = S.headers.find(function(h) { return h === csvH; }) || '';
+      if (shH && csvRow[csvH] !== undefined && csvRow[csvH] !== '') {
         sheetRow[shH] = csvRow[csvH];
       }
     });
-    // Apply extra fields (override if set)
-    Object.keys(WIZ.extraFields).forEach(function(h) {
-      sheetRow[h] = WIZ.extraFields[h];
+
+    // Apply shared condition fields (override CSV values where filled)
+    Object.keys(WIZ.conditions).forEach(function(k) {
+      if (k.startsWith('cond_')) return;
+      if (WIZ.conditions[k]) sheetRow[k] = WIZ.conditions[k];
     });
+
+    // Per-mouse condition label → appended to Comments for surgery
+    var perMouseCond = WIZ.conditions['cond_' + idx] || '';
+    if (perMouseCond) {
+      var existing = sheetRow['Comments for surgery'] || '';
+      sheetRow['Comments for surgery'] = existing ? existing + ' | ' + perMouseCond : perMouseCond;
+    }
+
+    // Auto-calculate Age at Inj from DOB + AAV injection date
+    var dob = parseDOB(sheetRow['DOB'] || csvRow['DOB'] || '');
+    var aavDateStr = sheetRow['date of AAV inj.'];
+    var aavDate = aavDateStr ? new Date(aavDateStr) : null;
+    if (dob && aavDate && !sheetRow['Age at Inj']) {
+      var weeks = ageWeeks(dob, aavDate);
+      if (weeks != null) sheetRow['Age at Inj'] = weeks + ' w';
+    }
+
     rows.push(sheetRow);
   });
   return rows;
