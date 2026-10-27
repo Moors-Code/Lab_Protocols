@@ -314,6 +314,27 @@ h1{font-size:15px;font-weight:600;color:var(--fg);letter-spacing:-.01em}
       </div>
     </div>
     <div class="vessel-summary" id="vessel-summary"></div>
+
+    <!-- Production plate layout — only shown for 6-well -->
+    <div id="prod-layout-section" style="display:none;margin-top:20px;border-top:1px solid var(--border);padding-top:18px">
+      <div class="plate-planner-subtitle" style="margin-bottom:12px">② Assign constructs to wells</div>
+      <div class="paint-row-wrap" id="prod-cond-row-wrap">
+        <span class="paint-label" id="prod-paint-label">Paint:</span>
+        <div class="cond-row" id="prod-cond-row"></div>
+      </div>
+      <div class="plate-recipe-row">
+        <div class="plate-outer" id="prod-plate-outer">
+          <div class="plate-col-labels" id="prod-plate-col-labels"></div>
+          <div class="plate-rows" id="prod-plate-rows"></div>
+          <div class="plate-status" id="prod-plate-status"></div>
+          <div class="plate-actions" id="prod-plate-actions">
+            <button class="plate-action-btn" onclick="selectAllProdWells()">Select all</button>
+            <button class="plate-action-btn" onclick="clearAllProdWells()">Clear</button>
+          </div>
+        </div>
+        <div class="plate-recipes" id="prod-plate-recipes"></div>
+      </div>
+    </div>
   </div>
 
   <div class="batch-banner">
@@ -359,26 +380,8 @@ h1{font-size:15px;font-weight:600;color:var(--fg);letter-spacing:-.01em}
       <button class="tfx-btn active" data-tfx="jetoptimus">jetOPTIMUS® / jetPRIME®</button>
       <button class="tfx-btn" data-tfx="pei">PEI (1 mg/mL)</button>
     </div>
-    <div class="section-label">DNA mix — Tube #1</div>
-    <table class="reagent-table" id="dna-table">
-      <thead><tr>
-        <th>Reagent</th>
-        <th class="val">Per <span class="dv" data-k="unitSingular">vessel</span></th>
-        <th class="val" id="total-col-head" style="display:none">Total needed</th>
-        <th class="val" style="text-transform:none">Conc. (ng/µL)</th>
-        <th class="val">Volume to pipette</th>
-      </tr></thead>
-      <tbody id="dna-tbody"></tbody>
-    </table>
-    <div class="section-label">Transfection reagent — Tube #2</div>
-    <table class="reagent-table">
-      <thead><tr>
-        <th>Reagent</th>
-        <th class="val">Per <span class="dv" data-k="unitSingular">vessel</span></th>
-        <th class="val" id="tfx-total-col-head" style="display:none">Total</th>
-      </tr></thead>
-      <tbody id="tfx-tbody"></tbody>
-    </table>
+    <div id="dna-tables-wrap"></div>
+    <div id="tfx-tables-wrap"></div>
     <div class="step" data-step="prod-d2-1" onclick="toggleStep(this)">
       <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="step-content"><div class="step-text">Prepare <strong>Tube #1</strong>: dilute all plasmid DNA in buffer. Vortex 1 sec, quick spin.</div></div>
@@ -678,15 +681,19 @@ function loadPlasmidConcs(){try{const s=localStorage.getItem('lenti-concs');if(s
 function savePlasmidConcs(){try{localStorage.setItem('lenti-concs',JSON.stringify(plasmidConcs))}catch(e){}}
 function updateConc(key,val){
   plasmidConcs[key]=val; savePlasmidConcs();
-  const v=VESSELS[currentVessel];
-  const ngMap={pax2:v.pax2,vsvg:v.vsvg,lenti:v.lenti};
-  const totalNg=ngMap[key]*vesselCount;
   const conc=parseFloat(val);
-  const el=document.getElementById('vol-'+key);
-  if(el){
-    el.textContent=(val&&conc>0)?(totalNg/conc).toFixed(1)+' µL':'—';
-    el.style.color=(val&&conc>0)?'var(--green)':'var(--fg3)';
-  }
+  // Update every volume cell for this key without re-rendering the whole table
+  document.querySelectorAll('[data-vol-key="'+key+'"]').forEach(el=>{
+    const ngPer=parseFloat(el.dataset.ngPer)||0;
+    const nWells=parseInt(el.dataset.nwells)||1;
+    const totalNg=ngPer*nWells;
+    if(val&&conc>0){el.textContent=(totalNg/conc).toFixed(1)+' µL';el.style.color='var(--green)';}
+    else{el.textContent='—';el.style.color='var(--fg3)';}
+  });
+  // Also update any locked (read-only) conc display cells
+  document.querySelectorAll('[data-conc-key="'+key+'"]').forEach(el=>{
+    el.textContent=val?val+' ng/µL':'—';
+  });
 }
 
 // ═══ VESSEL DATA ═══
@@ -750,67 +757,128 @@ function updateVessel(){
   });
   const d5=document.getElementById('d5-group');
   if(d5) d5.style.display=currentVessel==='well'?'none':'';
+  const prodLayoutSec=document.getElementById('prod-layout-section');
+  if(prodLayoutSec){
+    prodLayoutSec.style.display=currentVessel==='well'?'':'none';
+    if(currentVessel==='well')initProdLayout();
+  }
   renderDnaTable(v,n);
   renderTfxTable(v,n);
 }
 
-function renderDnaTable(v,n){
-  const showTotal=n>1;
-  const col=document.getElementById('total-col-head');
-  if(col) col.style.display=showTotal?'':'none';
-  document.querySelectorAll('#dna-table thead .dv[data-k="unitSingular"]').forEach(el=>el.textContent=v.unit);
-  const dnaRows=[
-    {key:'pax2',name:'psPAX2',ng:v.pax2},
-    {key:'vsvg',name:'pCMV-VSV-G',ng:v.vsvg},
-    {key:'lenti',name:'Lentivector (GOI)',ng:v.lenti},
+function buildDnaTubeHtml(v, nWells, tubeLabel, goiName, accentColor){
+  // tubeLabel e.g. "1", "1a", "1b" | goiName = null for single-construct
+  const showTotal = nWells > 1;
+  const dnaRows = [
+    {key:'pax2', name:'psPAX2',             ng:v.pax2},
+    {key:'vsvg', name:'pCMV-VSV-G',         ng:v.vsvg},
+    {key:'lenti', name: goiName ? `Lentivector — <em style="color:${accentColor||'var(--accent)'}">${goiName}</em>` : 'Lentivector (GOI)', ng:v.lenti},
   ];
-  const tbody=document.getElementById('dna-tbody');
-  if(!tbody) return;
-  let html=dnaRows.map(row=>{
-    const totalNg=row.ng*n;
-    const conc=plasmidConcs[row.key]||'';
-    const concNum=parseFloat(conc);
-    const vol=(conc&&concNum>0)?(totalNg/concNum).toFixed(1)+' µL':'—';
-    const volColor=(conc&&concNum>0)?'var(--green)':'var(--fg3)';
+  const concInputRow = (row) => {
+    const conc = plasmidConcs[row.key] || '';
+    const concNum = parseFloat(conc);
+    const totalNg = row.ng * nWells;
+    const vol = (conc && concNum > 0) ? (totalNg / concNum).toFixed(1) + ' µL' : '—';
+    const volColor = (conc && concNum > 0) ? 'var(--green)' : 'var(--fg3)';
+    const concCell = `<td><input type="number" min="0" step="1" placeholder="e.g. 250" value="${conc}"
+         style="width:88px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-family:var(--mono);font-size:12px;color:var(--fg);outline:none;-moz-appearance:textfield"
+         oninput="updateConc('${row.key}',this.value)"
+         onfocus="this.style.borderColor='var(--accent)'"
+         onblur="this.style.borderColor='var(--border)'"></td>`;
     return `<tr>
       <td class="reagent-name">${row.name}</td>
       <td class="val">${fmtMass(row.ng)}</td>
-      ${showTotal?`<td class="val">${fmtMass(totalNg)}</td>`:''}
-      <td><input type="number" min="0" step="1" placeholder="e.g. 250" value="${conc}"
-        style="width:88px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-family:var(--mono);font-size:12px;color:var(--fg);outline:none;-moz-appearance:textfield"
-        oninput="updateConc('${row.key}',this.value)"
-        onfocus="this.style.borderColor='var(--accent)'"
-        onblur="this.style.borderColor='var(--border)'"></td>
-      <td class="val" id="vol-${row.key}" style="font-weight:500;color:${volColor}">${vol}</td>
+      ${showTotal ? `<td class="val">${fmtMass(totalNg)}</td>` : ''}
+      ${concCell}
+      <td class="val" data-vol-key="${row.key}" data-ng-per="${row.ng}" data-nwells="${nWells}" style="font-weight:500;color:${volColor}">${vol}</td>
     </tr>`;
-  }).join('');
-  html+=`<tr style="background:var(--surface2)">
+  };
+  const bufRow = `<tr style="background:var(--surface2)">
     <td class="reagent-name" style="color:var(--fg2)">Buffer (Opti-MEM / jetOPTIMUS)</td>
     <td class="val">${fmtUl(v.buf1)}</td>
-    ${showTotal?`<td class="val">${fmtUl(v.buf1*n)}</td>`:''}
+    ${showTotal ? `<td class="val">${fmtUl(v.buf1 * nWells)}</td>` : ''}
     <td class="note-cell" colspan="2">top up after adding plasmids</td>
   </tr>`;
-  tbody.innerHTML=html;
+  const thead = `<thead><tr>
+    <th>Reagent</th>
+    <th class="val">Per ${v.unit}</th>
+    ${showTotal ? `<th class="val">Total (${nWells} ${nWells===1?v.unit:v.units})</th>` : ''}
+    <th class="val" style="text-transform:none">Conc. (ng/µL)</th>
+    <th class="val">Volume to pipette</th>
+  </tr></thead>`;
+  const rows = dnaRows.map(r => concInputRow(r)).join('') + bufRow;
+  const accent = accentColor ? `border-left:3px solid ${accentColor};` : '';
+  return `<div class="section-label" style="${accentColor?'display:flex;align-items:center;gap:8px':''}">
+    ${accentColor ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${accentColor};flex-shrink:0"></span>` : ''}
+    DNA mix — Tube #${tubeLabel}${goiName ? ` <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--fg3)">(${goiName})</span>` : ''}
+  </div>
+  <table class="reagent-table" style="${accent}">${thead}<tbody>${rows}</tbody></table>`;
 }
 
-function renderTfxTable(v,n){
-  const showTotal=n>1;
-  const colEl=document.getElementById('tfx-total-col-head');
-  if(colEl) colEl.style.display=showTotal?'':'none';
-  let rows=[];
-  if(currentTfx==='jetoptimus'){
-    rows=[['jetOPTIMUS® / jetPRIME® reagent',fmtUl(v.jetopt),showTotal?fmtUl(v.jetopt*n):null],
-          ['jetOPTIMUS buffer',fmtUl(v.buf1),showTotal?fmtUl(v.buf1*n):null]];
+function buildTfxTubeHtml(v, nWells, tubeLabel, goiName, accentColor){
+  const showTotal = nWells > 1;
+  let rows = [];
+  if(currentTfx === 'jetoptimus'){
+    rows=[['jetOPTIMUS® / jetPRIME® reagent', fmtUl(v.jetopt), showTotal ? fmtUl(v.jetopt*nWells) : null],
+          ['jetOPTIMUS buffer',               fmtUl(v.buf1),   showTotal ? fmtUl(v.buf1*nWells)   : null]];
   } else {
-    const pei=v.pei,opt=v.pei_optimem;
-    rows=[['PEI (1 mg/mL stock)',pei?fmtUl(pei):'—',showTotal&&pei?fmtUl(pei*n):(showTotal?'—':null)],
-          ['Opti-MEM',opt?fmtUl(opt):'—',showTotal&&opt?fmtUl(opt*n):(showTotal?'—':null)]];
+    const pei = v.pei, opt = v.pei_optimem;
+    rows=[['PEI (1 mg/mL stock)', pei ? fmtUl(pei) : '—', showTotal && pei ? fmtUl(pei*nWells) : (showTotal ? '—' : null)],
+          ['Opti-MEM',            opt ? fmtUl(opt) : '—', showTotal && opt ? fmtUl(opt*nWells) : (showTotal ? '—' : null)]];
   }
-  document.querySelectorAll('.reagent-table thead .dv[data-k="unitSingular"]').forEach(el=>el.textContent=VESSELS[currentVessel].unit);
-  const tbody=document.getElementById('tfx-tbody');
-  if(tbody) tbody.innerHTML=rows.map(([name,per,total])=>
+  const thead = `<thead><tr>
+    <th>Reagent</th>
+    <th class="val">Per ${v.unit}</th>
+    ${showTotal ? `<th class="val">Total (${nWells} ${nWells===1?v.unit:v.units})</th>` : ''}
+  </tr></thead>`;
+  const tbody = rows.map(([name,per,total]) =>
     `<tr><td class="reagent-name">${name}</td><td class="val">${per}</td>${showTotal?`<td class="val">${total}</td>`:''}</tr>`
   ).join('');
+  const accent = accentColor ? `border-left:3px solid ${accentColor};` : '';
+  return `<div class="section-label" style="${accentColor?'display:flex;align-items:center;gap:8px':''}">
+    ${accentColor ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${accentColor};flex-shrink:0"></span>` : ''}
+    Transfection reagent — Tube #${tubeLabel}${goiName ? ` <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--fg3)">(${goiName})</span>` : ''}
+  </div>
+  <table class="reagent-table" style="${accent}">${thead}<tbody>${tbody}</tbody></table>`;
+}
+
+function getMultiConstructTubes(){
+  // Returns active constructs for multi-tube mode, or null if single mode
+  if(currentVessel !== 'well') return null;
+  const active = prodLayout.constructs.filter(c =>
+    getProdWellIds().some(w => prodLayout.wellState[w] === c.id)
+  );
+  return active.length >= 2 ? active : null;
+}
+
+function renderDnaTable(v, n){
+  const wrap = document.getElementById('dna-tables-wrap');
+  if(!wrap) return;
+  const tubes = getMultiConstructTubes();
+  if(tubes){
+    const alpha = 'abcdefghijklmnop';
+    wrap.innerHTML = tubes.map((c, i) => {
+      const nWells = getProdWellIds().filter(w => prodLayout.wellState[w] === c.id).length;
+      return buildDnaTubeHtml(v, nWells, `1${alpha[i]}`, c.name, c.color);
+    }).join('');
+  } else {
+    wrap.innerHTML = buildDnaTubeHtml(v, n, '1', null, null);
+  }
+}
+
+function renderTfxTable(v, n){
+  const wrap = document.getElementById('tfx-tables-wrap');
+  if(!wrap) return;
+  const tubes = getMultiConstructTubes();
+  if(tubes){
+    const alpha = 'abcdefghijklmnop';
+    wrap.innerHTML = tubes.map((c, i) => {
+      const nWells = getProdWellIds().filter(w => prodLayout.wellState[w] === c.id).length;
+      return buildTfxTubeHtml(v, nWells, `2${alpha[i]}`, c.name, c.color);
+    }).join('');
+  } else {
+    wrap.innerHTML = buildTfxTubeHtml(v, n, '2', null, null);
+  }
 }
 
 // prod vessel cards are built dynamically; no static vessel-btn listeners needed here
@@ -911,6 +979,150 @@ function persistInputs(){
 
 // ═══ TRANSDUCTION PLANNER ═══
 const COND_COLORS=['#3a7bd5','#2daa6e','#9b59b6','#e67e22','#e91e8c','#0097a7','#795548','#00796b'];
+
+// ═══ PRODUCTION LAYOUT (6-well construct map) ═══
+const PROD_WELL_ROWS=['A','B'], PROD_WELL_COLS=[1,2,3];
+const prodLayout={constructs:[],wellState:{},activeCond:null};
+
+function getProdWellIds(){const ids=[];PROD_WELL_ROWS.forEach(r=>PROD_WELL_COLS.forEach(c=>ids.push(r+c)));return ids;}
+
+function initProdLayout(){
+  const sec=document.getElementById('prod-layout-section');
+  if(!sec)return;
+  // Build grid
+  const clabels=document.getElementById('prod-plate-col-labels');
+  if(clabels)clabels.innerHTML=PROD_WELL_COLS.map(c=>`<div class="pcl" style="width:52px">${c}</div>`).join('');
+  const rows=document.getElementById('prod-plate-rows');
+  if(rows)rows.innerHTML=PROD_WELL_ROWS.map(r=>
+    `<div class="plate-row-el"><div class="plate-row-label" style="font-size:11px">${r}</div>${PROD_WELL_COLS.map(c=>{
+      const id=r+c;
+      return `<div class="well" id="prod-well-${id}" onclick="clickProdWell('${id}')" title="${id}" style="width:46px;height:46px;font-size:9px;margin:2px"></div>`;
+    }).join('')}</div>`
+  ).join('');
+  updateProdVisual();
+  renderProdCondRow();
+  renderProdRecipes();
+}
+
+function renderProdCondRow(){
+  const row=document.getElementById('prod-cond-row');if(!row)return;
+  const wrap=document.getElementById('prod-cond-row-wrap');
+  if(prodLayout.constructs.length===0){
+    if(wrap)wrap.style.display='block';
+    row.innerHTML=`<button onclick="addProdConstruct()" style="background:var(--accent);color:white;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-family:var(--sans);font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:8px;margin-top:4px">＋ Add first construct</button>`;
+    const lbl=wrap?wrap.querySelector('#prod-paint-label'):null;
+    if(lbl)lbl.style.display='none';
+    return;
+  }
+  if(wrap){wrap.style.display='flex';const lbl=wrap.querySelector('#prod-paint-label');if(lbl)lbl.style.display='';}
+  let html=prodLayout.constructs.map(c=>{
+    const isA=prodLayout.activeCond===c.id;
+    return `<div class="cond-pill" onclick="setProdActiveCond('${c.id}')"
+      style="border-color:${isA?c.color:'transparent'};box-shadow:${isA?`0 0 0 2px ${c.color}40`:'none'}">
+      <div class="cond-dot" style="background:${c.color}"></div>
+      <span style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</span>
+      <span class="cond-del" onclick="event.stopPropagation();removeProdConstruct('${c.id}')">×</span>
+    </div>`;
+  }).join('');
+  html+=`<div class="erase-pill${prodLayout.activeCond==='erase'?' active':''}" onclick="setProdActiveCond('erase')">✕ Erase</div>`;
+  if(prodLayout.constructs.length<6) html+=`<button class="add-cond-btn" onclick="addProdConstruct()">+ Add construct</button>`;
+  row.innerHTML=html;
+}
+
+function addProdConstruct(){
+  if(prodLayout.constructs.length>=6)return;
+  const id='p'+Date.now();
+  prodLayout.constructs.push({id,name:'Construct '+(prodLayout.constructs.length+1),color:COND_COLORS[prodLayout.constructs.length%COND_COLORS.length]});
+  prodLayout.activeCond=id;
+  renderProdCondRow();updateProdVisual();renderProdRecipes();saveProdLayout();
+}
+
+function removeProdConstruct(id){
+  getProdWellIds().forEach(w=>{if(prodLayout.wellState[w]===id)delete prodLayout.wellState[w]});
+  prodLayout.constructs=prodLayout.constructs.filter(c=>c.id!==id);
+  if(prodLayout.activeCond===id)prodLayout.activeCond=prodLayout.constructs.length?prodLayout.constructs[0].id:null;
+  renderProdCondRow();updateProdVisual();renderProdRecipes();saveProdLayout();
+}
+
+function setProdActiveCond(id){prodLayout.activeCond=id;renderProdCondRow();}
+
+function clickProdWell(wellId){
+  if(prodLayout.activeCond==='erase')delete prodLayout.wellState[wellId];
+  else if(prodLayout.activeCond)prodLayout.wellState[wellId]=prodLayout.activeCond;
+  else return;
+  updateProdVisual();renderProdRecipes();saveProdLayout();
+}
+
+function selectAllProdWells(){
+  if(!prodLayout.activeCond||prodLayout.activeCond==='erase')return;
+  getProdWellIds().forEach(w=>{prodLayout.wellState[w]=prodLayout.activeCond;});
+  updateProdVisual();renderProdRecipes();saveProdLayout();
+}
+
+function clearAllProdWells(){
+  prodLayout.wellState={};
+  updateProdVisual();renderProdRecipes();saveProdLayout();
+}
+
+function updateProdVisual(){
+  const wellIds=getProdWellIds();
+  const assigned=wellIds.filter(w=>prodLayout.wellState[w]).length;
+  const status=document.getElementById('prod-plate-status');
+  if(status){
+    if(assigned===0){status.textContent='No wells assigned yet';}
+    else{
+      const parts=prodLayout.constructs.map(c=>{
+        const n=wellIds.filter(w=>prodLayout.wellState[w]===c.id).length;
+        return n>0?`<span style="color:${c.color};font-weight:600">${c.name}: ${n}</span>`:'';
+      }).filter(Boolean).join(' &nbsp;|&nbsp; ');
+      status.innerHTML=`${assigned} well${assigned!==1?'s':''} assigned &mdash; ${parts}`;
+    }
+  }
+  wellIds.forEach(wid=>{
+    const el=document.getElementById('prod-well-'+wid);if(!el)return;
+    const cond=prodLayout.wellState[wid]?prodLayout.constructs.find(c=>c.id===prodLayout.wellState[wid]):null;
+    if(cond){
+      el.style.background=cond.color;el.style.borderColor='transparent';
+      el.classList.add('filled');el.textContent=cond.name.slice(0,2).toUpperCase();
+    } else {
+      el.style.background='';el.style.borderColor='';el.classList.remove('filled');el.textContent='';
+    }
+  });
+}
+
+function renderProdRecipes(){
+  const container=document.getElementById('prod-plate-recipes');if(!container)return;
+  if(prodLayout.constructs.length===0){
+    container.innerHTML='<div style="font-size:12px;color:var(--fg3);padding:8px 0;font-style:italic">Add a construct to get started.</div>';
+  } else {
+    const wellIds=getProdWellIds();
+    container.innerHTML=prodLayout.constructs.map(c=>{
+      const nWells=wellIds.filter(w=>prodLayout.wellState[w]===c.id).length;
+      return `<div class="recipe-card" style="background:${c.color}15;border-left-color:${c.color}">
+        <div class="recipe-card-title" style="color:${c.color}">
+          <div style="width:9px;height:9px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
+          <input class="recipe-name-input" value="${c.name}" style="color:${c.color}"
+            oninput="(function(n){const cc=prodLayout.constructs.find(x=>x.id==='${c.id}');if(cc){cc.name=n;renderProdCondRow();updateProdVisual();renderDnaTable(VESSELS[currentVessel],vesselCount);renderTfxTable(VESSELS[currentVessel],vesselCount);saveProdLayout()}})(this.value)">
+          <span style="font-weight:400;font-size:11px;color:var(--fg3)">${nWells} well${nWells!==1?'s':''}</span>
+        </div>
+        ${nWells>0?`<table class="recipe-table">
+          <tr><td>Wells assigned</td><td style="color:${c.color};font-weight:600">${wellIds.filter(w=>prodLayout.wellState[w]===c.id).join(', ')}</td></tr>
+        </table>`:'<div style="font-size:11px;color:var(--fg3);font-style:italic;padding:4px 0">No wells assigned.</div>'}
+      </div>`;
+    }).join('');
+  }
+  // Re-render DNA/Tfx tables to reflect current construct layout
+  renderDnaTable(VESSELS[currentVessel], vesselCount);
+  renderTfxTable(VESSELS[currentVessel], vesselCount);
+}
+
+function saveProdLayout(){try{localStorage.setItem('lenti-prod-layout',JSON.stringify(prodLayout))}catch(e){}}
+function loadProdLayout(){
+  try{
+    const s=localStorage.getItem('lenti-prod-layout');
+    if(s){const p=JSON.parse(s);Object.assign(prodLayout,p);}
+  }catch(e){}
+}
 
 const TRANS_VESSELS={
   w6: {label:'6-well', area:'9.6 cm²',type:'plate',rows:['A','B'],cols:[1,2,3],volMl:2,pbUl:1.6,seedCells:100000,sz:46,fs:9,maxC:8},
@@ -1244,7 +1456,7 @@ function renderReagents(){
 // ═══ INIT ═══
 loadVesselPref();
 loadPlasmidConcs();
-loadPlateState();
+loadProdLayout();
 buildProdVesselCards();
 document.getElementById('vessel-count').value=vesselCount;
 loadState();
