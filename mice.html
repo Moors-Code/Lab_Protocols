@@ -143,6 +143,14 @@ body { font-family: var(--font); font-size: 14px; color: var(--text); background
 .group-count { margin-left: 4px; color: var(--text3); font-weight: 400; font-size: 10.5px; }
 .data-row.group-hidden { display: none; }
 
+/* ── Inline cell editing ─────────────────────── */
+.editable-cell { cursor: text; }
+.editable-cell:hover { outline: 1px solid var(--border); }
+.editable-cell.editing { padding: 0 !important; min-width: 120px; }
+.cell-input { display: block; width: 100%; padding: 5px 10px; border: none; outline: 2px solid var(--accent); background: var(--surface); color: var(--text); font-family: var(--font); font-size: 12.5px; box-shadow: 0 0 0 4px rgba(10,124,89,.12); resize: none; }
+.cell-saving { opacity: .5; }
+.cell-saved { animation: flash-save .6s ease; }
+@keyframes flash-save { 0% { background: var(--accent-light); } 100% { background: transparent; } }
 .amo-id { font-family: var(--mono); font-size: 11px; color: var(--accent); }
 .badge { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .badge-m { background: #dbeafe; color: #1d4ed8; }
@@ -376,7 +384,7 @@ var S = {
 };
 
 // ── Persist ────────────────────────────────────────────
-var DEFAULT_MICE_URL = 'https://script.google.com/macros/s/AKfycbwUJe9CZyYZly0JosEFdKXQIZyN3QBsiylZp3JumBe_D5dg_3O-UEaaVSULGE5cfmUT/exec';
+var DEFAULT_MICE_URL = 'https://script.google.com/macros/s/AKfycbyRMA9fa908cM9K7mQ__ghCZLKpjkjnOcC2uwPUZqqH3Pqbdr9GZZencbRo3qJY-mVP/exec';
 function loadUrl() { try { return localStorage.getItem('mice-script-url') || DEFAULT_MICE_URL; } catch(e) { return DEFAULT_MICE_URL; } }
 function saveUrl(u) { try { localStorage.setItem('mice-script-url', u); } catch(e) {} }
 
@@ -648,7 +656,7 @@ function renderTable() {
         } else {
           cell = esc(v);
         }
-        buf.push('<td title="' + esc(v) + '">' + cell + '</td>');
+        buf.push('<td class="editable-cell" data-col="' + esc(h) + '" data-rrow="' + row._row + '" title="' + esc(v) + '">' + cell + '</td>');
       });
 
       // Actions
@@ -680,6 +688,18 @@ function renderTable() {
       var row; try { row = JSON.parse(btn.getAttribute('data-r')); } catch(e) { return; }
       if (btn.getAttribute('data-a') === 'edit') openModal(row);
       else doDelete(row);
+    };
+  });
+
+  // Inline cell editing
+  tw.querySelectorAll('td.editable-cell').forEach(function(td) {
+    td.onclick = function(e) {
+      if (td.classList.contains('editing')) return;
+      var col = td.getAttribute('data-col');
+      var rrow = parseInt(td.getAttribute('data-rrow'));
+      var row = null;
+      for (var i = 0; i < S.rows.length; i++) { if (S.rows[i]._row === rrow) { row = S.rows[i]; break; } }
+      if (row) editCell(td, row, col);
     };
   });
 
@@ -1415,6 +1435,116 @@ function doImport(importRows) {
     toast('✓ Imported ' + resp.count + ' mice' + (resp.groupLabel ? ' into "' + resp.groupLabel + '"' : ''));
     closeCSVWizard();
     openSheet(S.active);
+  });
+}
+
+// ── Inline cell editing ────────────────────────────────
+function renderCellContent(td, col, val) {
+  var v = val == null ? '' : String(val);
+  var html;
+  if (/^(AMO|SAMO)-/i.test(v)) {
+    html = '<span class="amo-id">' + esc(v) + '</span>';
+  } else if (col.toLowerCase() === 'sex') {
+    if (v === 'm' || v === 'M') html = '<span class="badge badge-m">m</span>';
+    else if (v === 'f' || v === 'F') html = '<span class="badge badge-f">f</span>';
+    else html = esc(v);
+  } else {
+    html = esc(v);
+  }
+  td.innerHTML = html;
+  td.title = v;
+}
+
+function editCell(td, row, col) {
+  if (td.classList.contains('editing')) return;
+  var oldVal = row[col] == null ? '' : String(row[col]);
+  var isLong = /comment|notes|foci|coverage|result/i.test(col);
+
+  td.classList.add('editing');
+  var input = document.createElement(isLong ? 'textarea' : 'input');
+  input.className = 'cell-input';
+  input.value = oldVal;
+  if (!isLong) input.type = 'text';
+  if (isLong) {
+    // auto-size rows
+    var lineCount = (oldVal.match(/\n/g) || []).length + 1;
+    input.rows = Math.max(2, Math.min(lineCount, 6));
+  }
+  td.innerHTML = '';
+  td.appendChild(input);
+  input.focus();
+  input.select();
+
+  var saved = false;
+
+  function save() {
+    if (saved) return;
+    saved = true;
+    var newVal = input.value;
+    td.classList.remove('editing');
+    if (newVal === oldVal) {
+      renderCellContent(td, col, oldVal);
+      return;
+    }
+    // Optimistic update in S.rows
+    for (var i = 0; i < S.rows.length; i++) {
+      if (S.rows[i]._row === row._row) { S.rows[i][col] = newVal; row = S.rows[i]; break; }
+    }
+    renderCellContent(td, col, newVal);
+    td.classList.add('cell-saving');
+
+    // Build full merged row
+    var merged = {};
+    S.headers.forEach(function(h) { merged[h] = row[h] || ''; });
+    merged[col] = newVal;
+
+    jsonp({ action: 'updateRow', sheet: S.active, row: row._row, data: JSON.stringify(merged) }, function(resp) {
+      td.classList.remove('cell-saving');
+      if (resp.error) {
+        // Revert
+        for (var i = 0; i < S.rows.length; i++) {
+          if (S.rows[i]._row === row._row) { S.rows[i][col] = oldVal; break; }
+        }
+        renderCellContent(td, col, oldVal);
+        toast('Error saving: ' + resp.error, true);
+      } else {
+        td.classList.add('cell-saved');
+        setTimeout(function() { td.classList.remove('cell-saved'); }, 700);
+      }
+    });
+  }
+
+  function cancel() {
+    if (saved) return;
+    saved = true;
+    td.classList.remove('editing');
+    renderCellContent(td, col, oldVal);
+  }
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      input.removeEventListener('blur', save);
+      cancel();
+    } else if (e.key === 'Enter' && !isLong) {
+      e.preventDefault();
+      input.removeEventListener('blur', save);
+      save();
+      // Move focus to next row same column
+      var allCells = Array.from(document.querySelectorAll('td.editable-cell[data-col="' + col + '"]'));
+      var idx = allCells.indexOf(td);
+      if (idx >= 0 && idx + 1 < allCells.length) allCells[idx + 1].click();
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      input.removeEventListener('blur', save);
+      save();
+      // Move to next/prev sibling cell
+      var siblings = Array.from(td.parentElement.querySelectorAll('td.editable-cell'));
+      var si = siblings.indexOf(td);
+      var next = e.shiftKey ? siblings[si - 1] : siblings[si + 1];
+      if (next) next.click();
+    }
   });
 }
 
