@@ -1214,22 +1214,17 @@ function updateWizStep1Footer() {
 }
 
 function saveConditions() {
-  var fields = ['groupLabel','AAV inj.','Vol. inj./ul','conc.','date of AAV inj.',
-    'Org inj. Date','Euthanasia Date','Line / Strain','Background',
-    'Mutation 1','Grade 1','Mutation 2','Grade 2',
-    'Comments for AAV injection','Comments for surgery'];
-  fields.forEach(function(f) {
-    var el = document.getElementById('cond-' + f.replace(/[^a-zA-Z0-9]/g, '_'));
-    if (!el) return;
-    if (f === 'groupLabel') { WIZ.groupLabel = el.value.trim(); }
-    else { WIZ.conditions[f] = el.value.trim(); }
-  });
+  // Step 2 fields are saved inline via event listeners; no-op here
 }
 
 function openCSVWizard() {
   WIZ.step = 1; WIZ.csv = null; WIZ.sel = new Set();
   WIZ.filters = { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', endDate: '', query: '' };
   WIZ.conditions = {}; WIZ.groupLabel = '';
+  WIZ.groups = []; WIZ.step2SubSel = new Set();
+  WIZ.step2Sex = ''; WIZ.step2Query = ''; WIZ.step2ProcType = 'AAV inj.';
+  WIZ.step2CondLabel = ''; WIZ.step2ProcDate = '';
+  WIZ.step2Construct = ''; WIZ.step2Vol = ''; WIZ.step2Conc = ''; WIZ.step2Notes = '';
   document.getElementById('csv-wizard').classList.remove('hidden');
   renderWizard();
 }
@@ -1384,6 +1379,10 @@ function renderWizStep1() {
   document.getElementById('wiz-re-upload').onclick = function() {
     WIZ.csv = null; WIZ.sel.clear();
     WIZ.filters = { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', endDate: '', query: '' };
+    WIZ.groups = []; WIZ.step2SubSel = new Set();
+    WIZ.step2Sex = ''; WIZ.step2Query = ''; WIZ.step2ProcType = 'AAV inj.';
+    WIZ.step2CondLabel = ''; WIZ.step2ProcDate = '';
+    WIZ.step2Construct = ''; WIZ.step2Vol = ''; WIZ.step2Conc = ''; WIZ.step2Notes = '';
     renderWizard();
   };
 
@@ -1459,61 +1458,314 @@ function parseCSV(text) {
 }
 
 // ── Step 2: Assign Conditions ─────────────────────────
+var S2_GROUP_COLORS = ['#0c7c59','#1a73b8','#b5371d','#8c44d6','#c47a00','#1f7a2a','#b53068','#005f8a'];
+var S2_PROC_TYPES = ['AAV inj.','Colonoscopy','Surgery','Euthanasia','Other'];
+
 function renderWizStep2() {
   var body = document.getElementById('wiz-body');
   var footer = document.getElementById('wiz-footer');
   var n = WIZ.sel.size;
-  var c = WIZ.conditions;
+  var selArr = Array.from(WIZ.sel);
 
-  function fid(name) { return 'cond-' + name.replace(/[^a-zA-Z0-9]/g, '_'); }
-  function field(label, name, opts) {
+  if (!WIZ.groups) WIZ.groups = [];
+  if (!WIZ.step2SubSel) WIZ.step2SubSel = new Set();
+  if (!WIZ.step2ProcType) WIZ.step2ProcType = 'AAV inj.';
+
+  function inp(id, opts) {
     opts = opts || {};
-    var id = fid(name);
-    var val = name === 'groupLabel' ? WIZ.groupLabel : (c[name] || '');
-    var cls = 'form-group' + (opts.full ? ' full' : '');
-    var h = '<div class="' + cls + '"><label for="' + id + '">' + esc(label) + '</label>';
-    if (opts.textarea) {
-      h += '<textarea id="' + id + '" rows="2" placeholder="' + esc(opts.ph||'') + '">' + esc(val) + '</textarea>';
-    } else {
-      h += '<input type="' + (opts.type||'text') + '" id="' + id + '" value="' + esc(val) + '" placeholder="' + esc(opts.ph||'') + '">';
-    }
-    h += '</div>';
-    return h;
+    var type = opts.type || 'text';
+    var val = esc(opts.val || '');
+    var ph = esc(opts.ph || '');
+    var style = 'width:100%;box-sizing:border-box;padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;' + (opts.style || '');
+    return '<input type="' + type + '" id="' + id + '" value="' + val + '" placeholder="' + ph + '" style="' + style + '">';
+  }
+  function lbl(text) {
+    return '<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">' + text + '</div>';
+  }
+  function fld(label, content, full) {
+    return '<div style="' + (full ? '' : '') + 'margin-bottom:8px;">' + lbl(label) + content + '</div>';
   }
 
-  var html = '';
+  function renderBody() {
+    var query = (WIZ.step2Query || '').toLowerCase();
+    var visible = selArr.filter(function(idx) {
+      var row = WIZ.csv.rows[idx];
+      if (!row) return false;
+      if (WIZ.step2Sex) {
+        var sex = (row['Sex'] || '').trim().toLowerCase();
+        if (!sex.startsWith(WIZ.step2Sex.toLowerCase()[0])) return false;
+      }
+      if (query) {
+        var hay = Object.values(row).join(' ').toLowerCase();
+        if (!hay.includes(query)) return false;
+      }
+      return true;
+    });
 
-  html += '<div class="map-section"><h3>Experiment / Group Label</h3><div class="form-grid">';
-  html += field('Section label (optional)', 'groupLabel', { ph: 'e.g. APP KO Colonoscopy — leave blank for no header', full: true });
-  html += '</div></div>';
+    var nChecked = selArr.filter(function(i) { return WIZ.step2SubSel.has(i); }).length;
+    var allVis = visible.length > 0 && visible.every(function(i) { return WIZ.step2SubSel.has(i); });
+    var ungrouped = selArr.filter(function(i) { return !WIZ.groups.some(function(g) { return g.mice.has(i); }); }).length;
+    var curType = WIZ.step2ProcType;
 
-  html += '<div class="map-section"><h3>AAV Injection</h3><div class="form-grid">';
-  html += field('AAV construct', 'AAV inj.', { ph: 'e.g. AAV8-GFP' });
-  html += field('Volume (µl)', 'Vol. inj./ul', { ph: 'e.g. 50', type: 'number' });
-  html += field('Concentration', 'conc.', { ph: 'e.g. 1e12 vg/ml' });
-  html += field('Date of AAV inj.', 'date of AAV inj.', { type: 'date' });
-  html += '</div></div>';
+    var html = '';
 
-  html += '<div class="map-section"><h3>Timeline</h3><div class="form-grid">';
-  html += field('Organoid inj. date', 'Org inj. Date', { type: 'date' });
-  html += field('Euthanasia date', 'Euthanasia Date', { type: 'date' });
-  html += '</div></div>';
+    // Section label row
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">';
+    html += '<label style="font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap;flex-shrink:0;">Section label:</label>';
+    html += '<input id="s2-group-label" type="text" value="' + esc(WIZ.groupLabel) + '" placeholder="e.g. APP KO Colonoscopy — leave blank to skip" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;">';
+    html += '</div>';
 
-  html += '<div class="map-section"><h3>Genetics / Background <span style="font-size:11px;font-weight:400;color:var(--text3)">(overrides CSV if filled)</span></h3><div class="form-grid">';
-  html += field('Line / Strain', 'Line / Strain', { ph: 'e.g. C57BL/6J' });
-  html += field('Background', 'Background', { ph: 'e.g. C57BL/6' });
-  html += field('Mutation 1', 'Mutation 1', { ph: 'e.g. Kras G12D' });
-  html += field('Grade 1', 'Grade 1', { ph: 'e.g. het' });
-  html += field('Mutation 2', 'Mutation 2');
-  html += field('Grade 2', 'Grade 2');
-  html += '</div></div>';
+    // Two-column grid: assign panel | groups list
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">';
 
-  html += '<div class="map-section"><h3>Notes</h3><div class="form-grid">';
-  html += field('Comments for AAV injection', 'Comments for AAV injection', { textarea: true, ph: 'Shared note for all ' + n + ' mice…', full: true });
-  html += field('Comments for surgery', 'Comments for surgery', { textarea: true, ph: '', full: true });
-  html += '</div></div>';
+    // ── Left: assign panel ──
+    html += '<div class="map-section" style="margin:0;padding:14px;">';
+    html += '<h3 style="margin-bottom:10px;">Assign to checked mice</h3>';
 
-  body.innerHTML = html;
+    // Procedure type buttons
+    html += fld('Procedure type',
+      '<div style="display:flex;flex-wrap:wrap;gap:4px;">' +
+      S2_PROC_TYPES.map(function(t) {
+        var active = t === curType;
+        return '<button class="s2-proc-btn" data-proc="' + esc(t) + '" style="padding:4px 10px;border:1px solid ' + (active ? 'var(--accent)' : 'var(--border)') + ';border-radius:4px;font-size:12px;cursor:pointer;background:' + (active ? 'var(--accent)' : 'var(--bg)') + ';color:' + (active ? '#fff' : 'var(--text)') + ';font-weight:' + (active ? '600' : '400') + ';">' + esc(t) + '</button>';
+      }).join('') + '</div>'
+    );
+
+    // Condition label
+    html += fld('Condition label', inp('s2-cond-label', { val: WIZ.step2CondLabel || '', ph: 'e.g. Control, AAV-GFP, …' }));
+
+    // Date
+    html += fld('Date', inp('s2-proc-date', { type: 'date', val: WIZ.step2ProcDate || '' }));
+
+    // AAV-specific extra fields
+    if (curType === 'AAV inj.') {
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">';
+      html += '<div>' + lbl('Construct') + inp('s2-aav-construct', { val: WIZ.step2Construct || '', ph: 'e.g. AAV8-GFP' }) + '</div>';
+      html += '<div>' + lbl('Volume (µl)') + inp('s2-aav-vol', { type: 'number', val: WIZ.step2Vol || '', ph: '50' }) + '</div>';
+      html += '</div>';
+      html += fld('Concentration', inp('s2-aav-conc', { val: WIZ.step2Conc || '', ph: 'e.g. 1e12 vg/ml' }));
+    }
+
+    // Mutation fields (for any type)
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">';
+    html += '<div>' + lbl('Mutation 1') + inp('s2-mut1', { val: WIZ.step2Mut1 || '', ph: 'e.g. Kras G12D' }) + '</div>';
+    html += '<div>' + lbl('Grade 1') + inp('s2-grade1', { val: WIZ.step2Grade1 || '', ph: 'het / hom' }) + '</div>';
+    html += '</div>';
+
+    // Notes
+    html += '<div style="margin-bottom:10px;">' + lbl('Notes');
+    html += '<textarea id="s2-notes" rows="2" placeholder="Notes for this group…" style="width:100%;box-sizing:border-box;padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;resize:vertical;">' + esc(WIZ.step2Notes || '') + '</textarea></div>';
+
+    // Assign button
+    var btnLabel = nChecked > 0 ? 'Assign to ' + nChecked + ' mice' : 'Check mice below to assign';
+    html += '<button id="s2-assign-btn" class="btn btn-primary" style="width:100%;' + (nChecked === 0 ? 'opacity:.45;' : '') + '"' + (nChecked === 0 ? ' disabled' : '') + '>' + btnLabel + '</button>';
+    html += '</div>'; // end left
+
+    // ── Right: groups list ──
+    html += '<div class="map-section" style="margin:0;padding:14px;">';
+    html += '<h3 style="margin-bottom:10px;">Groups <span style="font-weight:400;color:var(--text3);font-size:13px;">(' + WIZ.groups.length + ')</span></h3>';
+
+    if (WIZ.groups.length === 0) {
+      html += '<div style="font-size:12px;color:var(--text3);font-style:italic;padding:10px 0 6px;">No groups yet.<br>Check mice in the table, fill in the assignment panel, then click Assign.</div>';
+    } else {
+      html += '<div style="display:flex;flex-direction:column;gap:7px;">';
+      WIZ.groups.forEach(function(g) {
+        html += '<div style="border:1px solid ' + g.color + '55;border-radius:7px;padding:8px 10px;background:' + g.color + '0d;">';
+        html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">';
+        html += '<span style="width:10px;height:10px;border-radius:50%;background:' + g.color + ';flex-shrink:0;display:inline-block;"></span>';
+        html += '<strong style="font-size:13px;color:var(--text);">' + esc(g.label || g.procType) + '</strong>';
+        html += '<span style="font-size:11px;color:var(--text3);margin-left:auto;">' + g.mice.size + ' mice</span>';
+        html += '<button class="s2-del-group" data-gid="' + g.id + '" style="border:none;background:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;" title="Remove group">×</button>';
+        html += '</div>';
+        var details = ['<em>' + esc(g.procType) + '</em>'];
+        if (g.date) details.push(g.date);
+        if (g.construct) details.push(g.construct);
+        if (g.notes) details.push(g.notes);
+        html += '<div style="font-size:11px;color:var(--text2);">' + details.join(' · ') + '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    // Ungrouped count
+    html += '<div style="margin-top:10px;font-size:11.5px;padding-top:8px;border-top:1px solid var(--border);color:' + (ungrouped === 0 ? 'var(--accent)' : 'var(--text3)') + ';">';
+    html += ungrouped === 0 ? '✓ All ' + n + ' mice assigned to a group.' : ungrouped + ' of ' + n + ' mice not yet assigned.';
+    html += '</div>';
+    html += '</div>'; // end right
+    html += '</div>'; // end grid
+
+    // ── Mouse table ──
+    html += '<div class="map-section" style="margin:0;padding:14px;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">';
+    html += '<h3 style="margin:0;">Mice <span style="font-weight:400;color:var(--text3);font-size:13px;">(' + n + ' selected from step 1)</span></h3>';
+    // Sex buttons
+    html += '<div class="sex-btns" style="flex-shrink:0;">';
+    ['All','M','F'].forEach(function(s) {
+      var isActive = s === 'All' ? !WIZ.step2Sex : WIZ.step2Sex === s;
+      html += '<button class="sex-btn s2-sex-btn' + (isActive ? ' active' : '') + '" data-sex="' + (s === 'All' ? '' : s) + '">' + s + '</button>';
+    });
+    html += '</div>';
+    // Search
+    html += '<input id="s2-query" type="text" placeholder="Search…" value="' + esc(WIZ.step2Query || '') + '" style="flex:1;min-width:80px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;">';
+    // Toggle all visible
+    html += '<button id="s2-tog-vis" style="padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer;white-space:nowrap;">' + (allVis ? '☐ Deselect visible' : '☑ Select visible') + '</button>';
+    html += '</div>';
+
+    html += '<div class="import-tbl-wrap" style="max-height:260px;">';
+    html += '<table class="import-table"><thead><tr>';
+    html += '<th style="width:28px;"><input type="checkbox" id="s2-chk-hdr"' + (allVis ? ' checked' : '') + '></th>';
+    html += '<th>ID</th><th>Lab ID</th><th>Sex</th><th>Line / Strain</th><th>DOB</th><th>Age (w)</th><th>Group</th>';
+    html += '</tr></thead><tbody>';
+
+    var now = new Date();
+    visible.forEach(function(idx) {
+      var r = WIZ.csv.rows[idx];
+      var dob = parseDOB(r['DOB'] || '');
+      var age = dob ? ageWeeks(dob, now) : null;
+      var checked = WIZ.step2SubSel.has(idx);
+      var grp = WIZ.groups.find(function(g) { return g.mice.has(idx); });
+      html += '<tr' + (checked ? ' style="background:var(--accent-light);"' : '') + '>';
+      html += '<td><input type="checkbox" class="s2-row-chk" data-idx="' + idx + '"' + (checked ? ' checked' : '') + '></td>';
+      html += '<td>' + esc(r['ID'] || r['WR'] || '') + '</td>';
+      html += '<td>' + esc(r['Lab ID'] || '') + '</td>';
+      html += '<td>' + esc(r['Sex'] || '') + '</td>';
+      html += '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(r['Line / Strain'] || '') + '</td>';
+      html += '<td>' + esc(r['DOB'] || '') + '</td>';
+      html += '<td>' + (age != null ? age : '—') + '</td>';
+      if (grp) {
+        html += '<td><span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;font-size:11px;background:' + grp.color + '22;color:' + grp.color + ';border:1px solid ' + grp.color + '55;">';
+        html += '<span style="width:6px;height:6px;border-radius:50%;background:' + grp.color + ';display:inline-block;"></span>' + esc(grp.label || grp.procType) + '</span></td>';
+      } else {
+        html += '<td style="color:var(--text3);font-size:11px;">—</td>';
+      }
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    html += '</div>'; // map-section
+
+    body.innerHTML = html;
+    wireStep2();
+  }
+
+  function saveStep2Fields() {
+    WIZ.groupLabel = (document.getElementById('s2-group-label') || {}).value || '';
+    WIZ.step2CondLabel = (document.getElementById('s2-cond-label') || {}).value || '';
+    WIZ.step2ProcDate = (document.getElementById('s2-proc-date') || {}).value || '';
+    WIZ.step2Construct = (document.getElementById('s2-aav-construct') || {}).value || '';
+    WIZ.step2Vol = (document.getElementById('s2-aav-vol') || {}).value || '';
+    WIZ.step2Conc = (document.getElementById('s2-aav-conc') || {}).value || '';
+    WIZ.step2Mut1 = (document.getElementById('s2-mut1') || {}).value || '';
+    WIZ.step2Grade1 = (document.getElementById('s2-grade1') || {}).value || '';
+    WIZ.step2Notes = (document.getElementById('s2-notes') || {}).value || '';
+  }
+
+  function wireStep2() {
+    // Section label
+    var lblEl = document.getElementById('s2-group-label');
+    if (lblEl) lblEl.addEventListener('input', function() { WIZ.groupLabel = this.value; });
+
+    // Proc type buttons
+    body.querySelectorAll('.s2-proc-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        saveStep2Fields();
+        WIZ.step2ProcType = this.dataset.proc;
+        renderBody();
+      });
+    });
+
+    // Assign button
+    var assignBtn = document.getElementById('s2-assign-btn');
+    if (assignBtn) assignBtn.addEventListener('click', function() {
+      saveStep2Fields();
+      var toAssign = selArr.filter(function(i) { return WIZ.step2SubSel.has(i); });
+      if (!toAssign.length) return;
+      // Remove these mice from any existing group
+      toAssign.forEach(function(idx) { WIZ.groups.forEach(function(g) { g.mice.delete(idx); }); });
+      WIZ.groups = WIZ.groups.filter(function(g) { return g.mice.size > 0; });
+      var color = S2_GROUP_COLORS[WIZ.groups.length % S2_GROUP_COLORS.length];
+      WIZ.groups.push({
+        id: Date.now(),
+        label: WIZ.step2CondLabel || WIZ.step2ProcType,
+        procType: WIZ.step2ProcType,
+        date: WIZ.step2ProcDate,
+        construct: WIZ.step2Construct,
+        vol: WIZ.step2Vol,
+        conc: WIZ.step2Conc,
+        mut1: WIZ.step2Mut1,
+        grade1: WIZ.step2Grade1,
+        notes: WIZ.step2Notes,
+        color: color,
+        mice: new Set(toAssign),
+      });
+      WIZ.step2SubSel = new Set();
+      renderBody();
+    });
+
+    // Delete group
+    body.querySelectorAll('.s2-del-group').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var gid = +this.dataset.gid;
+        WIZ.groups = WIZ.groups.filter(function(g) { return g.id !== gid; });
+        renderBody();
+      });
+    });
+
+    // Sex filter
+    body.querySelectorAll('.s2-sex-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { WIZ.step2Sex = this.dataset.sex; renderBody(); });
+    });
+
+    // Query
+    var qEl = document.getElementById('s2-query');
+    if (qEl) qEl.addEventListener('input', function() { WIZ.step2Query = this.value; renderBody(); });
+
+    // Toggle visible
+    document.getElementById('s2-tog-vis') && document.getElementById('s2-tog-vis').addEventListener('click', function() {
+      var query = (WIZ.step2Query || '').toLowerCase();
+      var vis = selArr.filter(function(idx) {
+        var row = WIZ.csv.rows[idx];
+        if (!row) return false;
+        if (WIZ.step2Sex) { if (!(row['Sex']||'').trim().toLowerCase().startsWith(WIZ.step2Sex.toLowerCase()[0])) return false; }
+        if (query) { if (!Object.values(row).join(' ').toLowerCase().includes(query)) return false; }
+        return true;
+      });
+      var allVis = vis.every(function(i) { return WIZ.step2SubSel.has(i); });
+      vis.forEach(function(i) { if (allVis) WIZ.step2SubSel.delete(i); else WIZ.step2SubSel.add(i); });
+      renderBody();
+    });
+
+    // Header checkbox
+    var hdrChk = document.getElementById('s2-chk-hdr');
+    if (hdrChk) hdrChk.addEventListener('change', function() {
+      body.querySelectorAll('.s2-row-chk').forEach(function(c) {
+        c.checked = hdrChk.checked;
+        var idx = +c.dataset.idx;
+        if (hdrChk.checked) WIZ.step2SubSel.add(idx); else WIZ.step2SubSel.delete(idx);
+      });
+      refreshAssignBtn();
+    });
+
+    // Row checkboxes
+    body.querySelectorAll('.s2-row-chk').forEach(function(chk) {
+      chk.addEventListener('change', function() {
+        var idx = +this.dataset.idx;
+        if (this.checked) WIZ.step2SubSel.add(idx); else WIZ.step2SubSel.delete(idx);
+        refreshAssignBtn();
+      });
+    });
+
+    function refreshAssignBtn() {
+      var nC = selArr.filter(function(i) { return WIZ.step2SubSel.has(i); }).length;
+      var btn = document.getElementById('s2-assign-btn');
+      if (btn) {
+        btn.textContent = nC > 0 ? 'Assign to ' + nC + ' mice' : 'Check mice below to assign';
+        btn.disabled = nC === 0;
+        btn.style.opacity = nC === 0 ? '0.45' : '1';
+      }
+    }
+  }
+
+  renderBody();
 
   footer.innerHTML =
     '<button class="btn btn-ghost" id="wiz-back-btn">← Back</button>' +
@@ -1521,9 +1773,21 @@ function renderWizStep2() {
     '<button class="btn btn-secondary" id="wiz-cancel-btn">Cancel</button>' +
     '<button class="btn btn-primary" id="wiz-next-btn">Review (' + n + ' mice) →</button>';
 
-  document.getElementById('wiz-back-btn').onclick = function() { saveConditions(); WIZ.step = 1; renderWizard(); };
+  document.getElementById('wiz-back-btn').onclick = function() { saveStep2Fields(); WIZ.step = 1; renderWizard(); };
   document.getElementById('wiz-cancel-btn').onclick = closeCSVWizard;
-  document.getElementById('wiz-next-btn').onclick = function() { saveConditions(); WIZ.step = 3; renderWizard(); };
+  document.getElementById('wiz-next-btn').onclick = function() { saveStep2Fields(); WIZ.step = 3; renderWizard(); };
+
+  function saveStep2Fields() {
+    WIZ.groupLabel = (document.getElementById('s2-group-label') || {}).value || '';
+    WIZ.step2CondLabel = (document.getElementById('s2-cond-label') || {}).value || '';
+    WIZ.step2ProcDate = (document.getElementById('s2-proc-date') || {}).value || '';
+    WIZ.step2Construct = (document.getElementById('s2-aav-construct') || {}).value || '';
+    WIZ.step2Vol = (document.getElementById('s2-aav-vol') || {}).value || '';
+    WIZ.step2Conc = (document.getElementById('s2-aav-conc') || {}).value || '';
+    WIZ.step2Mut1 = (document.getElementById('s2-mut1') || {}).value || '';
+    WIZ.step2Grade1 = (document.getElementById('s2-grade1') || {}).value || '';
+    WIZ.step2Notes = (document.getElementById('s2-notes') || {}).value || '';
+  }
 }
 
 // ── Step 3: Review & Import ────────────────────────────
@@ -1536,8 +1800,11 @@ function renderWizStep3() {
   var html = '<div class="import-summary">';
   html += '<strong>' + n + ' mice</strong> will be added to <strong>' + esc(S.active) + '</strong>.';
   if (WIZ.groupLabel) html += '<br>Section header: <strong>' + esc(WIZ.groupLabel) + '</strong>';
-  var condFields = Object.keys(WIZ.conditions).filter(function(k) { return !k.startsWith('cond_') && WIZ.conditions[k]; });
-  if (condFields.length) html += '<br>Shared fields: <strong>' + condFields.map(esc).join(', ') + '</strong>';
+  if (WIZ.groups && WIZ.groups.length) {
+    html += '<br>Groups: ' + WIZ.groups.map(function(g) {
+      return '<strong>' + esc(g.label || g.procType) + '</strong> (' + g.mice.size + ' mice)';
+    }).join(', ');
+  }
   html += '</div>';
 
   var previewRows = importRows.slice(0, 5);
@@ -1590,17 +1857,32 @@ function buildImportRows() {
       }
     });
 
-    // Apply shared condition fields (override CSV values where filled)
-    Object.keys(WIZ.conditions).forEach(function(k) {
-      if (k.startsWith('cond_')) return;
-      if (WIZ.conditions[k]) sheetRow[k] = WIZ.conditions[k];
-    });
+    // Apply group-level fields based on which group this mouse belongs to
+    var grp = (WIZ.groups || []).find(function(g) { return g.mice.has(idx); });
+    if (grp) {
+      if (grp.label) sheetRow['Condition'] = grp.label;
+      if (grp.notes) sheetRow['Comments'] = grp.notes;
+      if (grp.mut1)  sheetRow['Mutation 1'] = grp.mut1;
+      if (grp.grade1) sheetRow['Grade 1'] = grp.grade1;
 
-    // Per-mouse condition label → appended to Comments for surgery
-    var perMouseCond = WIZ.conditions['cond_' + idx] || '';
-    if (perMouseCond) {
-      var existing = sheetRow['Comments for surgery'] || '';
-      sheetRow['Comments for surgery'] = existing ? existing + ' | ' + perMouseCond : perMouseCond;
+      if (grp.procType === 'AAV inj.') {
+        if (grp.date)      sheetRow['date of AAV inj.'] = grp.date;
+        if (grp.construct) sheetRow['AAV inj.'] = grp.construct;
+        if (grp.vol)       sheetRow['Vol. inj./ul'] = grp.vol;
+        if (grp.conc)      sheetRow['conc.'] = grp.conc;
+        if (grp.notes)     sheetRow['Comments for AAV injection'] = grp.notes;
+      } else if (grp.procType === 'Colonoscopy') {
+        if (grp.date) sheetRow['Org inj. Date'] = grp.date;
+        if (grp.notes) sheetRow['Comments for surgery'] = grp.notes;
+      } else if (grp.procType === 'Surgery') {
+        if (grp.date) sheetRow['Surgery Date'] = grp.date;
+        if (grp.notes) sheetRow['Comments for surgery'] = grp.notes;
+      } else if (grp.procType === 'Euthanasia') {
+        if (grp.date) sheetRow['Euthanasia Date'] = grp.date;
+      } else {
+        if (grp.date) sheetRow['Procedure Date'] = grp.date;
+        if (grp.notes) sheetRow['Comments'] = grp.notes;
+      }
     }
 
     // Auto-calculate Age at Inj from DOB + AAV injection date
