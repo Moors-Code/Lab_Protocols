@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mice — SyPhy-lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ── Design tokens ─────────────────────────────────── */
+:root {
+  --accent:      #0c7c59;
+  --accent-light:#e6f4f0;
+  --bg:          #f8f9fa;
+  --surface:     #ffffff;
+  --surface2:    #f1f3f5;
+  --border:      #dee2e6;
+  --border2:     #e9ecef;
+  --text:        #212529;
+  --text2:       #6c757d;
+  --text3:       #adb5bd;
+  --header-bg:   #111318;
+  --header-text: #e8eaed;
+  --danger:      #dc3545;
+  --radius:      6px;
+  --font:        'IBM Plex Sans', sans-serif;
+  --mono:        'IBM Plex Mono', monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent:      #2ab88a;
+    --accent-light:#0d3326;
+    --bg:          #0f1117;
+    --surface:     #1a1d27;
+    --surface2:    #242736;
+    --border:      #2e3245;
+    --border2:     #262a3a;
+    --text:        #e8eaed;
+    --text2:       #9aa0b4;
+    --text3:       #5a6180;
+    --header-bg:   #060810;
+    --header-text: #d0d4e0;
+    --danger:      #ff6b6b;
+  }
+}
+:root[data-theme="dark"] {
+  --accent:      #2ab88a;
+  --accent-light:#0d3326;
+  --bg:          #0f1117;
+  --surface:     #1a1d27;
+  --surface2:    #242736;
+  --border:      #2e3245;
+  --border2:     #262a3a;
+  --text:        #e8eaed;
+  --text2:       #9aa0b4;
+  --text3:       #5a6180;
+  --header-bg:   #060810;
+  --header-text: #d0d4e0;
+  --danger:      #ff6b6b;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: var(--font); font-size: 14px; color: var(--text); background: var(--bg); display: flex; flex-direction: column; }
+
+/* ── Header ──────────────────────────────────── */
+.site-header { background: var(--header-bg); color: var(--header-text); padding: 0 20px; display: flex; align-items: center; gap: 14px; height: 50px; flex-shrink: 0; }
+.site-header a { color: var(--text3); text-decoration: none; font-size: 13px; }
+.site-header a:hover { color: var(--header-text); }
+.site-header .sep { color: var(--text3); }
+.site-title { font-size: 15px; font-weight: 600; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.theme-btn { background: none; border: none; cursor: pointer; color: var(--text2); font-size: 16px; padding: 4px; }
+.theme-btn:hover { color: var(--header-text); }
+
+/* ── Setup banner ────────────────────────────── */
+#setup-banner { background: var(--accent-light); border-bottom: 2px solid var(--accent); padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; flex-wrap: wrap; }
+#setup-banner.hidden { display: none; }
+#setup-banner p { font-size: 13px; line-height: 1.5; flex: 1; min-width: 200px; }
+#setup-banner strong { color: var(--accent); }
+.setup-row { display: flex; gap: 8px; align-items: center; }
+#script-url-input { width: 400px; max-width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--mono); font-size: 12px; background: var(--surface); color: var(--text); }
+#script-url-input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+
+/* ── Sheet tab bar ───────────────────────────── */
+.sheet-tabbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 12px; display: flex; overflow-x: auto; flex-shrink: 0; scrollbar-width: thin; }
+.sheet-tab { flex-shrink: 0; padding: 11px 15px; font-size: 13px; font-weight: 500; color: var(--text2); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.sheet-tab:hover { color: var(--text); }
+.sheet-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Toolbar ─────────────────────────────────── */
+.toolbar { padding: 10px 16px; display: flex; gap: 10px; align-items: center; background: var(--surface); border-bottom: 1px solid var(--border2); flex-shrink: 0; }
+.search-wrap { position: relative; flex: 1; max-width: 320px; }
+.search-wrap input { width: 100%; padding: 6px 10px 6px 28px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; }
+.search-wrap input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+.search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 12px; pointer-events: none; }
+.row-count { font-size: 12px; color: var(--text2); margin-right: auto; }
+.btn { padding: 7px 14px; border-radius: var(--radius); font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 6px; }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { opacity: .85; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover:not(:disabled) { background: var(--border); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-ghost { background: none; color: var(--text2); padding: 4px 8px; border: none; }
+.btn-ghost:hover { background: var(--surface2); }
+
+/* ── Main ────────────────────────────────────── */
+.main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+/* ── Table ───────────────────────────────────── */
+.table-wrap { flex: 1; overflow: auto; min-height: 0; }
+.data-table { border-collapse: collapse; width: max-content; min-width: 100%; font-size: 12.5px; }
+.data-table th { position: sticky; top: 0; z-index: 1; background: var(--surface2); color: var(--text2); font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; padding: 8px 10px; white-space: nowrap; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border2); cursor: pointer; user-select: none; }
+.data-table th:hover { color: var(--text); }
+.data-table th.sorted-asc::after  { content: ' ↑'; }
+.data-table th.sorted-desc::after { content: ' ↓'; }
+.data-table td { padding: 6px 10px; border-bottom: 1px solid var(--border2); border-right: 1px solid var(--border2); white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+.data-table tr:hover td { background: var(--accent-light); }
+/* Sticky row-number col */
+.data-table th:first-child, .data-table td:first-child { position: sticky; left: 0; z-index: 2; background: var(--surface); border-right: 2px solid var(--border); }
+.data-table th:first-child { z-index: 3; background: var(--surface2); }
+.data-table tr:hover td:first-child { background: var(--accent-light); }
+/* Sticky actions col */
+.col-actions { position: sticky; right: 0; background: var(--surface); border-left: 1px solid var(--border); padding: 3px 6px; display: flex; gap: 2px; }
+.data-table tr:hover .col-actions { background: var(--accent-light); }
+.th-actions { position: sticky; right: 0; z-index: 2; background: var(--surface2); border-left: 1px solid var(--border); cursor: default; }
+.th-actions:hover { color: var(--text2) !important; background: var(--surface2) !important; }
+
+.amo-id { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.badge-m { background: #dbeafe; color: #1d4ed8; }
+.badge-f { background: #fce7f3; color: #9d174d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .badge-m { background: #1e3a5f; color: #93c5fd; } :root:not([data-theme="light"]) .badge-f { background: #4a1942; color: #f9a8d4; } }
+:root[data-theme="dark"] .badge-m { background: #1e3a5f; color: #93c5fd; }
+:root[data-theme="dark"] .badge-f { background: #4a1942; color: #f9a8d4; }
+
+/* ── State messages ──────────────────────────── */
+.state-msg { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 24px; color: var(--text2); gap: 10px; text-align: center; }
+.state-msg .icon { font-size: 36px; }
+.state-msg h3 { font-size: 15px; color: var(--text); }
+.state-msg p { font-size: 13px; max-width: 340px; }
+.spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Modal ───────────────────────────────────── */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+.modal-backdrop.hidden { display: none; }
+.modal { background: var(--surface); border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,.3); width: 700px; max-width: 100%; max-height: 90vh; display: flex; flex-direction: column; }
+.modal-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.modal-header h2 { font-size: 15px; font-weight: 600; flex: 1; }
+.modal-close { background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text2); padding: 2px 6px; border-radius: 4px; }
+.modal-close:hover { background: var(--surface2); }
+.modal-body { overflow-y: auto; padding: 14px 20px; flex: 1; }
+.modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.modal-footer .spacer { flex: 1; }
+.form-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border2); }
+.form-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+.form-section-title { font-size: 10.5px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-group { display: flex; flex-direction: column; gap: 3px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-group label { font-size: 10.5px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .04em; }
+.form-group input, .form-group textarea { padding: 6px 9px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; }
+.form-group input:focus, .form-group textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
+.form-group textarea { resize: vertical; min-height: 56px; }
+
+/* ── Toast ───────────────────────────────────── */
+#toast { position: fixed; bottom: 20px; right: 20px; background: var(--text); color: var(--surface); padding: 9px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500; z-index: 200; transform: translateY(16px); opacity: 0; transition: transform .2s, opacity .2s; pointer-events: none; }
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.error { background: var(--danger); }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a href="index.html">← Lab Portal</a>
+  <span class="sep">›</span>
+  <span class="site-title">🐭 Mice</span>
+  <div class="header-right">
+    <button class="theme-btn" id="theme-toggle" title="Toggle theme">☀</button>
+    <button class="btn btn-secondary" id="config-btn" style="font-size:12px;padding:5px 10px;">⚙ Config</button>
+  </div>
+</header>
+
+<div id="setup-banner">
+  <p><strong>Connect your Google Sheet</strong> — Deploy <code>mice-script.gs</code> as a Web App
+     (Execute as: Me · Anyone can access), then paste the URL here.</p>
+  <div class="setup-row">
+    <input type="url" id="script-url-input" placeholder="https://script.google.com/macros/s/…/exec">
+    <button class="btn btn-primary" id="save-url-btn">Connect</button>
+  </div>
+</div>
+
+<div class="sheet-tabbar" id="sheet-tabbar"></div>
+
+<main class="main" id="main">
+  <div class="state-msg">
+    <div class="icon">🐭</div>
+    <h3>Connect your sheet</h3>
+    <p>Paste your Apps Script URL above to get started.</p>
+  </div>
+</main>
+
+<!-- Row modal -->
+<div class="modal-backdrop hidden" id="row-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Add Mouse</h2>
+      <button class="modal-close" id="modal-close">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger hidden" id="modal-delete">Delete Row</button>
+      <div class="spacer"></div>
+      <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
+      <button class="btn btn-primary" id="modal-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+// ── State ──────────────────────────────────────────────
+var S = {
+  url: '',
+  sheets: [],
+  active: null,  // current sheet name
+  headers: [],
+  rows: [],
+  sortCol: null,
+  sortDir: 'asc',
+  query: '',
+  editRow: null,
+};
+
+// ── Persist ────────────────────────────────────────────
+var DEFAULT_MICE_URL = 'https://script.google.com/macros/s/AKfycbyRMA9fa908cM9K7mQ__ghCZLKpjkjnOcC2uwPUZqqH3Pqbdr9GZZencbRo3qJY-mVP/exec';
+function loadUrl() { try { return localStorage.getItem('mice-script-url') || DEFAULT_MICE_URL; } catch(e) { return DEFAULT_MICE_URL; } }
+function saveUrl(u) { try { localStorage.setItem('mice-script-url', u); } catch(e) {} }
+
+// ── JSONP ──────────────────────────────────────────────
+var seq = 0;
+function jsonp(params, cb) {
+  var n = 'mice_cb_' + (++seq);
+  var url = S.url + '?' + Object.keys(params).map(function(k) {
+    return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+  }).join('&') + '&callback=' + n;
+
+  var t = setTimeout(function() {
+    delete window[n];
+    var el = document.getElementById('_js_' + n);
+    if (el) el.remove();
+    cb({ error: 'Timed out' });
+  }, 20000);
+
+  window[n] = function(d) {
+    clearTimeout(t);
+    delete window[n];
+    var el = document.getElementById('_js_' + n);
+    if (el) el.remove();
+    cb(d);
+  };
+
+  var s = document.createElement('script');
+  s.id = '_js_' + n;
+  s.src = url;
+  s.onerror = function() {
+    clearTimeout(t);
+    delete window[n];
+    s.remove();
+    cb({ error: 'Network error' });
+  };
+  document.head.appendChild(s);
+}
+
+// ── Toast ──────────────────────────────────────────────
+var toastT;
+function toast(msg, err) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (err ? ' error' : '');
+  clearTimeout(toastT);
+  toastT = setTimeout(function() { el.className = ''; }, 3000);
+}
+
+// ── Escape ─────────────────────────────────────────────
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escA(s) { return String(s == null ? '' : s).replace(/'/g,'&#39;').replace(/"/g,'&#34;'); }
+
+// ── Theme ──────────────────────────────────────────────
+(function() {
+  var t; try { t = localStorage.getItem('mice-theme'); } catch(e) {}
+  if (t) document.documentElement.setAttribute('data-theme', t);
+})();
+document.getElementById('theme-toggle').onclick = function() {
+  var c = document.documentElement.getAttribute('data-theme');
+  var n = c === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', n);
+  try { localStorage.setItem('mice-theme', n); } catch(e) {}
+};
+
+// ── URL setup ──────────────────────────────────────────
+function init() {
+  var u = loadUrl();
+  S.url = u;
+  document.getElementById('script-url-input').value = u;
+  document.getElementById('setup-banner').classList.toggle('hidden', !!u);
+  if (u) loadSheets();
+}
+
+document.getElementById('save-url-btn').onclick = function() {
+  var u = document.getElementById('script-url-input').value.trim();
+  if (!u) return;
+  S.url = u; saveUrl(u);
+  document.getElementById('setup-banner').classList.add('hidden');
+  loadSheets();
+};
+document.getElementById('config-btn').onclick = function() {
+  document.getElementById('setup-banner').classList.remove('hidden');
+  document.getElementById('script-url-input').focus();
+};
+
+// ── Load sheets ────────────────────────────────────────
+function loadSheets() {
+  showMsg('loading', 'Loading sheets…');
+  jsonp({ action: 'getSheets' }, function(d) {
+    if (d.error) { showMsg('error', d.error); return; }
+    S.sheets = d.sheets || [];
+    renderTabBar();
+    showMsg('idle');
+  });
+}
+
+// ── Tab bar ────────────────────────────────────────────
+function renderTabBar() {
+  var bar = document.getElementById('sheet-tabbar');
+  bar.innerHTML = S.sheets.map(function(s) {
+    return '<button class="sheet-tab' + (s.name === S.active ? ' active' : '') +
+           '" data-name="' + esc(s.name) + '">' + esc(s.name) + '</button>';
+  }).join('');
+  bar.querySelectorAll('.sheet-tab').forEach(function(btn) {
+    btn.onclick = function() { openSheet(btn.getAttribute('data-name')); };
+  });
+}
+
+function openSheet(name) {
+  S.active = name; S.sortCol = null; S.query = '';
+  renderTabBar();
+  showMsg('loading', 'Loading ' + name + '…');
+  jsonp({ action: 'getData', sheet: name }, function(d) {
+    if (d.error) { showMsg('error', d.error); return; }
+    S.headers = d.headers || [];
+    S.rows    = d.rows    || [];
+    renderSheet();
+  });
+}
+
+// ── State display ──────────────────────────────────────
+function showMsg(type, msg) {
+  var m = document.getElementById('main');
+  if (type === 'idle') {
+    m.innerHTML = '<div class="state-msg"><div class="icon">🐭</div><h3>Select a tab</h3><p>Click an experiment group above to view its mice.</p></div>';
+  } else if (type === 'loading') {
+    m.innerHTML = '<div class="state-msg"><div class="spinner"></div><p>' + esc(msg||'') + '</p></div>';
+  } else {
+    m.innerHTML = '<div class="state-msg"><div class="icon">⚠️</div><h3>Error</h3><p>' + esc(msg||'') + '</p></div>';
+  }
+}
+
+// ── Render sheet ───────────────────────────────────────
+function renderSheet() {
+  var m = document.getElementById('main');
+  m.innerHTML =
+    '<div class="toolbar">' +
+      '<div class="search-wrap"><span class="search-icon">🔍</span>' +
+        '<input id="q" type="text" placeholder="Search…" value="' + esc(S.query) + '"></div>' +
+      '<span class="row-count" id="cnt"></span>' +
+      '<button class="btn btn-primary" id="add-btn">+ Add Mouse</button>' +
+    '</div>' +
+    '<div class="table-wrap" id="tw"><div class="state-msg"><div class="spinner"></div></div></div>';
+
+  document.getElementById('q').oninput = function(e) { S.query = e.target.value; renderTable(); };
+  document.getElementById('add-btn').onclick = function() { openModal(null); };
+  renderTable();
+}
+
+// ── Render table ───────────────────────────────────────
+function renderTable() {
+  var tw = document.getElementById('tw');
+  if (!tw) return;
+
+  var q = S.query.toLowerCase();
+  var rows = S.rows.filter(function(r) {
+    if (!q) return true;
+    return Object.values(r).some(function(v) { return String(v).toLowerCase().includes(q); });
+  });
+
+  if (S.sortCol !== null) {
+    var sc = S.sortCol, sd = S.sortDir;
+    rows = rows.slice().sort(function(a, b) {
+      var av = String(a[sc]||'').toLowerCase(), bv = String(b[sc]||'').toLowerCase();
+      return sd === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+  }
+
+  var cnt = document.getElementById('cnt');
+  if (cnt) cnt.textContent = rows.length + ' of ' + S.rows.length + ' mice';
+
+  if (rows.length === 0) {
+    tw.innerHTML = '<div class="state-msg"><div class="icon">🔍</div><h3>No results</h3><p>Try a different search.</p></div>';
+    return;
+  }
+
+  var hs = S.headers;
+  var buf = ['<table class="data-table"><thead><tr>'];
+  hs.forEach(function(h) {
+    var cls = S.sortCol === h ? ' sorted-' + S.sortDir : '';
+    buf.push('<th class="' + cls + '" data-col="' + esc(h) + '">' + esc(h || '—') + '</th>');
+  });
+  buf.push('<th class="th-actions">Actions</th></tr></thead><tbody>');
+
+  rows.forEach(function(row) {
+    buf.push('<tr>');
+    hs.forEach(function(h) {
+      var v = row[h] == null ? '' : String(row[h]);
+      var cell;
+      if (/^(AMO|SAMO)-/i.test(v)) {
+        cell = '<span class="amo-id">' + esc(v) + '</span>';
+      } else if (h.toLowerCase() === 'sex') {
+        if (v === 'm' || v === 'M') cell = '<span class="badge badge-m">m</span>';
+        else if (v === 'f' || v === 'F') cell = '<span class="badge badge-f">f</span>';
+        else cell = esc(v);
+      } else {
+        cell = esc(v);
+      }
+      buf.push('<td title="' + esc(v) + '">' + cell + '</td>');
+    });
+    var rj = escA(JSON.stringify(row));
+    buf.push('<td class="col-actions">' +
+      '<button class="btn btn-ghost" data-r=\'' + rj + '\' data-a="edit" title="Edit">✏</button>' +
+      '<button class="btn btn-ghost" data-r=\'' + rj + '\' data-a="del" title="Delete" style="color:var(--danger)">🗑</button>' +
+    '</td></tr>');
+  });
+  buf.push('</tbody></table>');
+  tw.innerHTML = buf.join('');
+
+  tw.querySelectorAll('th[data-col]').forEach(function(th) {
+    th.onclick = function() {
+      var c = th.getAttribute('data-col');
+      S.sortDir = S.sortCol === c && S.sortDir === 'asc' ? 'desc' : 'asc';
+      S.sortCol = c;
+      renderTable();
+    };
+  });
+  tw.querySelectorAll('[data-a]').forEach(function(btn) {
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      var row; try { row = JSON.parse(btn.getAttribute('data-r')); } catch(e) { return; }
+      if (btn.getAttribute('data-a') === 'edit') openModal(row);
+      else doDelete(row);
+    };
+  });
+}
+
+// ── Modal ──────────────────────────────────────────────
+var SECTIONS = {
+  'Mouse Identity': ['Number','AKPS bottleneck Number','AMO NtF Screen Number','ID','Mosaic Liver ID','Lab ID','26.11.2024 Lab ID'],
+  'Treatment': ['AAV inj.','HTV','Vol. inj./ul','conc.','Conc.','date of AAV inj.','date of HTV inj.','date of inj.'],
+  'Genetics': ['Line / Strain','Mutation 1','Grade 1','Mutation 2','Grade 2','Background','Gen'],
+  'Animal Info': ['Sex','DOB','Age (w d)','Father','NTF1 Father','Mother 1','Mother 2','Cage','Rack'],
+  'Timeline': ['Age at Inj','Age at HTV','Org inj. Date','AKPS inj. Date (Intrasplenic)','Euthanasia Date','Time between AAV and Organoids inj.','Time since inj.','Age at Org inj.','Age at euthanasia'],
+  'Results': ['AAV coverage (GFP+)','Lib coverage (GFP+)','Metastatic foci on ventral liver surface','Mets?','Perfusion?','Section area/um^2','Tumor area^2','No. of mets','Av. met. area','average No of mets'],
+  'Comments': ['Comments for AAV injection','Comments for HTV injection','Comments for surgery']
+};
+
+function openModal(row) {
+  S.editRow = row;
+  var isEdit = !!row;
+  document.getElementById('modal-title').textContent = isEdit ? 'Edit Mouse' : 'Add Mouse';
+  document.getElementById('modal-delete').classList.toggle('hidden', !isEdit);
+
+  // Map each header to its section
+  var secBuckets = {};
+  var placed = {};
+  S.headers.forEach(function(h) {
+    if (!h) return;
+    var found = false;
+    Object.keys(SECTIONS).forEach(function(sec) {
+      if (!found && SECTIONS[sec].indexOf(h) >= 0) {
+        if (!secBuckets[sec]) secBuckets[sec] = [];
+        secBuckets[sec].push(h);
+        placed[h] = true;
+        found = true;
+      }
+    });
+    if (!found) {
+      if (!secBuckets['Other']) secBuckets['Other'] = [];
+      secBuckets['Other'].push(h);
+    }
+  });
+
+  var allSecs = Object.keys(SECTIONS).concat(['Other']);
+  var html = '';
+  allSecs.forEach(function(sec) {
+    var cols = secBuckets[sec];
+    if (!cols || cols.length === 0) return;
+    html += '<div class="form-section"><div class="form-section-title">' + esc(sec) + '</div><div class="form-grid">';
+    cols.forEach(function(h) {
+      var val = row ? (row[h] || '') : '';
+      var long = /comment|notes|foci|coverage/i.test(h);
+      var cls = 'form-group' + (long ? ' full' : '');
+      html += '<div class="' + cls + '"><label>' + esc(h) + '</label>';
+      if (long) html += '<textarea name="' + esc(h) + '">' + esc(val) + '</textarea>';
+      else       html += '<input type="text" name="' + esc(h) + '" value="' + esc(val) + '">';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('row-modal').classList.remove('hidden');
+  var first = document.querySelector('#modal-body input, #modal-body textarea');
+  if (first) setTimeout(function() { first.focus(); }, 40);
+}
+
+function closeModal() {
+  document.getElementById('row-modal').classList.add('hidden');
+  S.editRow = null;
+}
+
+function collectForm() {
+  var d = {};
+  document.querySelectorAll('#modal-body input, #modal-body textarea').forEach(function(el) { d[el.name] = el.value; });
+  return d;
+}
+
+document.getElementById('modal-close').onclick = closeModal;
+document.getElementById('modal-cancel').onclick = closeModal;
+document.getElementById('row-modal').onclick = function(e) { if (e.target === this) closeModal(); };
+
+document.getElementById('modal-save').onclick = function() {
+  var data = collectForm();
+  var isEdit = !!S.editRow;
+  var btn = this;
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  var params = { action: isEdit ? 'updateRow' : 'addRow', sheet: S.active, data: JSON.stringify(data) };
+  if (isEdit) params.row = S.editRow._row;
+
+  jsonp(params, function(resp) {
+    btn.disabled = false; btn.textContent = 'Save';
+    if (resp.error) { toast('Error: ' + resp.error, true); return; }
+    toast(isEdit ? '✓ Updated' : '✓ Added');
+    closeModal();
+    openSheet(S.active);
+  });
+};
+
+document.getElementById('modal-delete').onclick = function() {
+  var row = S.editRow;
+  if (!row) return;
+  closeModal();
+  doDelete(row);
+};
+
+function doDelete(row) {
+  var label = row['ID'] || row['Number'] || 'this row';
+  if (!confirm('Delete ' + label + '? This cannot be undone.')) return;
+  jsonp({ action: 'deleteRow', sheet: S.active, row: row._row }, function(resp) {
+    if (resp.error) { toast('Error: ' + resp.error, true); return; }
+    toast('✓ Deleted');
+    openSheet(S.active);
+  });
+}
+
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
+
+init();
+</script>
+</body>
+</html>

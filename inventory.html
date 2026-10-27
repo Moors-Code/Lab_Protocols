@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Freezer Inventory · SyPhy-lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Tokens ──────────────────────────────────────────────────────────── */
+:root {
+  --accent:      #0c7c59;
+  --accent-lite: #d6f0e8;
+  --accent-text: #0a6348;
+  --bg:          #ffffff;
+  --bg2:         #f4f5f7;
+  --bg3:         #eceef2;
+  --surface:     #ffffff;
+  --border:      #d8dce6;
+  --text:        #111318;
+  --text2:       #5a6072;
+  --text3:       #8a93a8;
+  --danger:      #c0392b;
+  --danger-bg:   #fdecea;
+  --mono:        'IBM Plex Mono', monospace;
+  --radius:      8px;
+  --shadow:      0 1px 4px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent:      #2ab88a;
+    --accent-lite: #0d3328;
+    --accent-text: #2ab88a;
+    --bg:          #111318;
+    --bg2:         #1a1d24;
+    --bg3:         #22262f;
+    --surface:     #1a1d24;
+    --border:      #2e3340;
+    --text:        #e8eaf0;
+    --text2:       #8a93a8;
+    --text3:       #5a6072;
+    --danger:      #e05c4b;
+    --danger-bg:   #2c1510;
+    --shadow:      0 1px 4px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --accent:      #2ab88a;
+  --accent-lite: #0d3328;
+  --accent-text: #2ab88a;
+  --bg:          #111318;
+  --bg2:         #1a1d24;
+  --bg3:         #22262f;
+  --surface:     #1a1d24;
+  --border:      #2e3340;
+  --text:        #e8eaf0;
+  --text2:       #8a93a8;
+  --text3:       #5a6072;
+  --danger:      #e05c4b;
+  --danger-bg:   #2c1510;
+  --shadow:      0 1px 4px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; display: flex; flex-direction: column;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+.app-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 24px; background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+}
+.app-title { font-weight: 600; font-size: 1rem; }
+.app-title span { color: var(--accent); }
+.header-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: var(--radius);
+  font-family: inherit; font-size: .85rem; font-weight: 500;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text); cursor: pointer; transition: background .15s;
+}
+.btn:hover { background: var(--bg3); }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { opacity: .88; }
+.btn-icon { padding: 6px 9px; }
+.btn-sm { padding: 4px 10px; font-size: .8rem; }
+.btn-danger { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+
+/* ── Status ──────────────────────────────────────────────────────────── */
+#status-bar {
+  padding: 8px 24px; font-size: .83rem;
+  display: none; align-items: center; gap: 8px;
+  background: var(--accent-lite); color: var(--accent-text);
+}
+#status-bar.show { display: flex; }
+#status-bar.err  { background: var(--danger-bg); color: var(--danger); }
+
+/* ── Setup banner ────────────────────────────────────────────────────── */
+#setup-banner {
+  display: none; align-items: center; flex-wrap: wrap; gap: 10px;
+  padding: 14px 24px; background: var(--bg2);
+  border-bottom: 1px solid var(--border); font-size: .87rem;
+}
+#setup-banner.show { display: flex; }
+#setup-banner label { color: var(--text2); white-space: nowrap; }
+#url-input {
+  flex: 1; min-width: 260px; max-width: 520px;
+  padding: 7px 10px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface);
+  color: var(--text); font-family: var(--mono); font-size: .82rem;
+}
+
+/* ── Freezer tab bar ─────────────────────────────────────────────────── */
+.freezer-tabs {
+  display: flex; flex-wrap: wrap; gap: 0;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+}
+.freezer-tab {
+  padding: 10px 18px; cursor: pointer;
+  font-size: .87rem; font-weight: 500; color: var(--text2);
+  border-bottom: 3px solid transparent;
+  transition: color .15s, border-color .15s; white-space: nowrap;
+}
+.freezer-tab:hover { color: var(--text); }
+.freezer-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Main ────────────────────────────────────────────────────────────── */
+.main { flex: 1; padding: 24px; max-width: 1400px; width: 100%; margin: 0 auto; }
+.section-title {
+  font-size: .78rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text3); margin-bottom: 10px;
+}
+.loading-panel {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; padding: 60px; color: var(--text2);
+}
+.spinner {
+  width: 20px; height: 20px; border: 2px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── 9×9 grid ────────────────────────────────────────────────────────── */
+.grid-section { margin-bottom: 30px; }
+.freezer-grid {
+  display: grid;
+  grid-template-columns: 26px repeat(9, 1fr);
+  gap: 3px; max-width: 580px;
+}
+.grid-corner { }
+.grid-col-hdr, .grid-row-hdr {
+  display: flex; align-items: center; justify-content: center;
+  font-size: .7rem; font-weight: 600; color: var(--text3);
+  font-family: var(--mono); height: 26px;
+}
+.grid-row-hdr { width: 26px; }
+.grid-cell {
+  height: 52px; border-radius: 5px;
+  border: 1px solid var(--border); background: var(--bg2);
+  cursor: pointer; display: flex; align-items: center;
+  justify-content: center; font-size: .62rem;
+  font-family: var(--mono); color: var(--text);
+  text-align: center; padding: 3px; overflow: hidden;
+  line-height: 1.2; word-break: break-word;
+  transition: background .12s, border-color .12s;
+}
+.grid-cell:hover { background: var(--bg3); border-color: var(--accent); }
+.grid-cell.filled { background: var(--accent-lite); border-color: var(--accent); color: var(--accent-text); }
+.grid-cell.dot { color: var(--border); }
+
+/* ── Box panels ──────────────────────────────────────────────────────── */
+.boxes-section { }
+.boxes-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.box-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.box-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+}
+.box-name { font-weight: 600; font-size: .93rem; flex: 1; }
+.box-count {
+  font-size: .74rem; color: var(--text3); font-family: var(--mono);
+  background: var(--bg3); padding: 2px 7px; border-radius: 4px;
+}
+.box-search-row { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.box-search {
+  width: 100%; padding: 5px 8px; border: 1px solid var(--border);
+  border-radius: 5px; background: var(--bg); color: var(--text);
+  font-family: inherit; font-size: .82rem;
+}
+.box-search::placeholder { color: var(--text3); }
+.box-body { flex: 1; overflow-y: auto; max-height: 300px; }
+.box-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+.box-table th {
+  padding: 6px 10px; background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  color: var(--text2); font-weight: 600; text-align: left;
+  white-space: nowrap; position: sticky; top: 0; z-index: 2;
+}
+.box-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.box-table tr:last-child td { border-bottom: none; }
+.box-table tr:hover td { background: var(--bg2); }
+.item-name { font-family: var(--mono); font-size: .76rem; word-break: break-word; }
+.item-meta { font-size: .76rem; color: var(--text2); }
+.item-lab  { font-family: var(--mono); font-size: .74rem; color: var(--accent-text); }
+.item-actions { white-space: nowrap; }
+.btn-edit, .btn-del {
+  border: none; background: none; cursor: pointer;
+  font-size: .8rem; padding: 2px 5px; border-radius: 4px;
+  opacity: .5; transition: opacity .12s, background .12s;
+}
+.btn-edit:hover { opacity: 1; background: var(--bg3); }
+.btn-del:hover  { opacity: 1; background: var(--danger-bg); }
+.box-empty {
+  padding: 24px; text-align: center; color: var(--text3); font-size: .85rem;
+}
+.box-footer {
+  padding: 10px 12px; border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end;
+}
+
+/* ── Modal ───────────────────────────────────────────────────────────── */
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.overlay.open { opacity: 1; pointer-events: auto; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: var(--shadow);
+  width: 100%; max-width: 420px; max-height: 90vh;
+  overflow-y: auto; margin: 16px;
+  transform: translateY(12px); transition: transform .2s;
+}
+.overlay.open .modal { transform: none; }
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+}
+.modal-title { font-weight: 600; font-size: 1rem; }
+.modal-close {
+  border: none; background: none; cursor: pointer;
+  color: var(--text3); font-size: 1.2rem; line-height: 1;
+  padding: 4px 6px; border-radius: 4px;
+}
+.modal-close:hover { background: var(--bg3); color: var(--text); }
+.modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.form-field { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: .82rem; font-weight: 500; color: var(--text2); }
+.form-input {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--bg);
+  color: var(--text); font-family: inherit; font-size: .87rem;
+}
+.form-input:focus { outline: none; border-color: var(--accent); }
+.modal-foot {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 14px 20px; border-top: 1px solid var(--border);
+}
+
+/* ── Grid popup ──────────────────────────────────────────────────────── */
+#grid-popup {
+  position: fixed; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 12px; z-index: 150;
+  display: none; flex-direction: column; gap: 8px;
+  min-width: 190px;
+}
+#grid-popup.show { display: flex; }
+.grid-popup-label { font-size: .75rem; color: var(--text2); font-weight: 500; }
+.grid-popup-input {
+  padding: 6px 8px; border: 1px solid var(--border);
+  border-radius: 5px; background: var(--bg); color: var(--text);
+  font-family: var(--mono); font-size: .8rem; width: 100%;
+}
+.grid-popup-input:focus { outline: none; border-color: var(--accent); }
+.grid-popup-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .main { padding: 12px; }
+  .freezer-tabs { padding: 0 8px; }
+  .freezer-tab { padding: 8px 12px; font-size: .82rem; }
+  .boxes-row { grid-template-columns: 1fr; }
+  .freezer-grid { max-width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-title">🧊 <span>Freezer</span> Inventory</div>
+  <div class="header-actions">
+    <button class="btn btn-icon" id="theme-btn" title="Toggle theme">🌓</button>
+    <button class="btn btn-icon" id="settings-btn" title="Settings">⚙️</button>
+    <button class="btn btn-sm" id="refresh-btn">↺ Reload</button>
+  </div>
+</header>
+
+<div id="status-bar"></div>
+
+<div id="setup-banner" class="show">
+  <label for="url-input">Apps Script URL:</label>
+  <input id="url-input" type="url" placeholder="https://script.google.com/macros/s/…/exec">
+  <button class="btn btn-primary" id="save-url-btn">Save &amp; Load</button>
+  <button class="btn" id="dismiss-setup">✕</button>
+</div>
+
+<div class="freezer-tabs" id="freezer-tabs"></div>
+
+<main class="main" id="main-content">
+  <div class="loading-panel" id="init-msg">
+    <span style="color:var(--text3)">Paste your Apps Script URL above to get started.</span>
+  </div>
+</main>
+
+<!-- Item modal -->
+<div class="overlay" id="item-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" id="modal-title">Add item</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field">
+        <label class="form-label" for="f-name">Name *</label>
+        <input class="form-input" id="f-name" placeholder="e.g. pT4-U6-sgApp…">
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="f-date">Date (DD.MM.YYYY)</label>
+        <input class="form-input" id="f-date" placeholder="17.02.2026">
+      </div>
+      <div class="form-field" id="f-lab-row">
+        <label class="form-label" for="f-lab">LabCollector no.</label>
+        <input class="form-input" id="f-lab" placeholder="e.g. 1175">
+      </div>
+      <div class="form-field" id="f-glyc-row">
+        <label class="form-label" for="f-glyc">Glycerol stock position</label>
+        <input class="form-input" id="f-glyc" placeholder="e.g. 15-B4">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modal-save" onclick="saveItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Grid cell popup -->
+<div id="grid-popup">
+  <span class="grid-popup-label" id="popup-label">Cell</span>
+  <input class="grid-popup-input" id="popup-input" placeholder="Item label…">
+  <div class="grid-popup-actions">
+    <button class="btn btn-sm" onclick="closeGridPopup()">Cancel</button>
+    <button class="btn btn-sm btn-primary" onclick="saveGridCell()">Update</button>
+  </div>
+</div>
+
+<script>
+/* ── State ───────────────────────────────────────────────────────────── */
+var S = {
+  url: '',
+  sheets: [],
+  active: '',
+  cache: {},    // sheetName → {grid, boxes}
+  modal: null,  // {mode, sheet, box, item}
+  gridCtx: null // {sheet, r, c, el}
+};
+
+/* ── Storage ─────────────────────────────────────────────────────────── */
+function ls(k, v) {
+  try {
+    if (v === undefined) return localStorage.getItem(k) || '';
+    localStorage.setItem(k, v);
+  } catch(e){}
+}
+
+/* ── Theme ───────────────────────────────────────────────────────────── */
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('theme-btn').textContent = t === 'dark' ? '☀️' : '🌓';
+  ls('inv-theme', t);
+}
+document.getElementById('theme-btn').onclick = function() {
+  var cur = document.documentElement.getAttribute('data-theme');
+  setTheme(cur === 'dark' ? 'light' : 'dark');
+};
+
+/* ── Status ──────────────────────────────────────────────────────────── */
+function status(msg, isErr) {
+  var b = document.getElementById('status-bar');
+  b.textContent = msg || '';
+  b.className = msg ? ('status-bar show' + (isErr ? ' err' : '')) : 'status-bar';
+  if (msg && !isErr) setTimeout(function(){ b.className = 'status-bar'; }, 3000);
+}
+
+/* ── JSONP ───────────────────────────────────────────────────────────── */
+var _ci = 0;
+function api(params, ms) {
+  return new Promise(function(res, rej) {
+    if (!S.url) { rej(new Error('No URL set')); return; }
+    var cb = '__icb' + (++_ci);
+    var tid = setTimeout(function(){
+      window[cb] = null;
+      if (sc.parentNode) sc.parentNode.removeChild(sc);
+      rej(new Error('Timeout'));
+    }, ms || 20000);
+    window[cb] = function(d) {
+      clearTimeout(tid); window[cb] = null;
+      if (sc.parentNode) sc.parentNode.removeChild(sc);
+      res(d);
+    };
+    var qs = Object.keys(params).map(function(k){
+      return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
+    }).join('&');
+    var sc = document.createElement('script');
+    sc.src = S.url + '?callback=' + cb + '&' + qs;
+    document.head.appendChild(sc);
+  });
+}
+
+/* ── Boot ────────────────────────────────────────────────────────────── */
+(function init() {
+  var t = ls('inv-theme');
+  if (t) setTheme(t);
+
+  var DEFAULT_INV_URL = 'https://script.google.com/macros/s/AKfycbzFuscUa8xiBZEGeajFze0ahDQMgyLfR6h0zf9lU0YMqL5GAgepO5H-3ifZuyRUByJBjQ/exec';
+  var u = ls('inv-url') || DEFAULT_INV_URL;
+  if (u) {
+    S.url = u;
+    document.getElementById('url-input').value = u;
+    document.getElementById('setup-banner').classList.remove('show');
+    loadSheets();
+  }
+
+  document.getElementById('save-url-btn').onclick = function() {
+    var u = document.getElementById('url-input').value.trim();
+    if (!u) return;
+    S.url = u; ls('inv-url', u);
+    document.getElementById('setup-banner').classList.remove('show');
+    loadSheets();
+  };
+  document.getElementById('dismiss-setup').onclick = function(){
+    document.getElementById('setup-banner').classList.remove('show');
+  };
+  document.getElementById('settings-btn').onclick = function(){
+    document.getElementById('setup-banner').classList.toggle('show');
+  };
+  document.getElementById('refresh-btn').onclick = function(){
+    S.cache = {};
+    if (S.active) loadSheet(S.active);
+  };
+  document.getElementById('item-overlay').onclick = function(e){
+    if (e.target === this) closeModal();
+  };
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') { closeModal(); closeGridPopup(); }
+  });
+})();
+
+/* ── Load sheet list ─────────────────────────────────────────────────── */
+function loadSheets() {
+  status('Connecting…');
+  api({ action: 'getSheets' }).then(function(d) {
+    if (!d.success) { status('Error: ' + (d.error || ''), true); return; }
+    S.sheets = d.sheets || [];
+    buildTabs();
+    if (S.sheets.length) loadSheet(S.sheets[0].name);
+    else status('No sheets found', true);
+  }).catch(function(e){ status('Connection failed: ' + e.message, true); });
+}
+
+function buildTabs() {
+  var bar = document.getElementById('freezer-tabs');
+  bar.innerHTML = '';
+  S.sheets.forEach(function(sh) {
+    var t = el('div', 'freezer-tab');
+    t.textContent = sh.name;
+    t.onclick = function(){ loadSheet(sh.name); };
+    bar.appendChild(t);
+  });
+}
+
+function setActive(name) {
+  S.active = name;
+  qsa('.freezer-tab').forEach(function(t){
+    t.classList.toggle('active', t.textContent === name);
+  });
+}
+
+/* ── Load & render sheet ─────────────────────────────────────────────── */
+function loadSheet(name) {
+  if (!name) return;
+  setActive(name);
+  if (S.cache[name]) { render(name, S.cache[name]); return; }
+  var m = document.getElementById('main-content');
+  m.innerHTML = '<div class="loading-panel"><div class="spinner"></div><span>Loading '+esc(name)+'…</span></div>';
+  status('Loading ' + name + '…');
+  api({ action: 'getData', sheet: name }).then(function(d){
+    if (!d.success) { status('Error: ' + (d.error || ''), true); return; }
+    S.cache[name] = d;
+    status('');
+    render(name, d);
+  }).catch(function(e){
+    m.innerHTML = '<div class="loading-panel" style="color:var(--danger)">Failed: '+esc(e.message)+'</div>';
+    status('Error: ' + e.message, true);
+  });
+}
+
+function render(name, data) {
+  var m = document.getElementById('main-content');
+  m.innerHTML = '';
+
+  // Grid
+  var gs = el('div', 'grid-section');
+  gs.appendChild(sectionTitle('Box positions — click to label'));
+  gs.appendChild(buildGrid(name, data.grid || []));
+  m.appendChild(gs);
+
+  // Boxes
+  if ((data.boxes || []).length) {
+    var bs = el('div', 'boxes-section');
+    bs.appendChild(sectionTitle('Box contents'));
+    var row = el('div', 'boxes-row');
+    (data.boxes || []).forEach(function(box){
+      row.appendChild(buildBoxPanel(name, box));
+    });
+    bs.appendChild(row);
+    m.appendChild(bs);
+  } else {
+    var note = el('div', 'loading-panel');
+    note.style.color = 'var(--text3)';
+    note.textContent = 'No box sections detected in this tab.';
+    m.appendChild(note);
+  }
+}
+
+/* ── 9×9 Grid ────────────────────────────────────────────────────────── */
+function buildGrid(sheet, grid) {
+  var wrap = el('div');
+  var g = el('div', 'freezer-grid');
+
+  g.appendChild(el('div', 'grid-corner'));
+  for (var c = 1; c <= 9; c++) {
+    var ch = el('div', 'grid-col-hdr');
+    ch.textContent = c;
+    g.appendChild(ch);
+  }
+  for (var r = 0; r < 9; r++) {
+    var rh = el('div', 'grid-row-hdr');
+    rh.textContent = r + 1;
+    g.appendChild(rh);
+    for (var cc = 0; cc < 9; cc++) {
+      var v = (grid[r] && grid[r][cc]) || '';
+      var cell = el('div', 'grid-cell ' + (v ? 'filled' : 'dot'));
+      cell.textContent = v || '·';
+      cell.title = v || ('Row '+(r+1)+', Col '+(cc+1));
+      cell.dataset.r = r + 1;
+      cell.dataset.c = cc + 1;
+      cell.dataset.sheet = sheet;
+      cell.onclick = function(){ openGridPopup(this); };
+      g.appendChild(cell);
+    }
+  }
+  wrap.appendChild(g);
+  return wrap;
+}
+
+function openGridPopup(cellEl) {
+  S.gridCtx = {
+    sheet: cellEl.dataset.sheet,
+    r: parseInt(cellEl.dataset.r),
+    c: parseInt(cellEl.dataset.c),
+    el: cellEl
+  };
+  var p = document.getElementById('grid-popup');
+  document.getElementById('popup-label').textContent =
+    'Row ' + cellEl.dataset.r + ', Col ' + cellEl.dataset.c;
+  var cur = cellEl.classList.contains('dot') ? '' : cellEl.textContent;
+  document.getElementById('popup-input').value = cur;
+  var rect = cellEl.getBoundingClientRect();
+  p.style.top  = Math.min(rect.bottom + window.scrollY + 4, window.innerHeight + window.scrollY - 120) + 'px';
+  p.style.left = Math.min(rect.left, window.innerWidth - 210) + 'px';
+  p.classList.add('show');
+  document.getElementById('popup-input').focus();
+}
+
+function closeGridPopup() {
+  document.getElementById('grid-popup').classList.remove('show');
+  S.gridCtx = null;
+}
+
+function saveGridCell() {
+  var ctx = S.gridCtx;
+  if (!ctx) return;
+  var v = document.getElementById('popup-input').value.trim();
+  closeGridPopup();
+  api({ action: 'updateGrid', sheet: ctx.sheet, gridRow: ctx.r, gridCol: ctx.c, value: v })
+    .then(function(d){
+      if (d.success) {
+        var cached = S.cache[ctx.sheet];
+        if (cached && cached.grid && cached.grid[ctx.r-1]) {
+          cached.grid[ctx.r-1][ctx.c-1] = v;
+        }
+        ctx.el.textContent = v || '·';
+        ctx.el.className = 'grid-cell ' + (v ? 'filled' : 'dot');
+        ctx.el.title = v || ('Row '+ctx.r+', Col '+ctx.c);
+        status('Grid updated');
+      } else status('Error: ' + (d.error || ''), true);
+    }).catch(function(e){ status('Error: ' + e.message, true); });
+}
+
+/* ── Box panel ───────────────────────────────────────────────────────── */
+function buildBoxPanel(sheet, box) {
+  var panel = el('div', 'box-panel');
+  var pid = 'bp-' + sheet.replace(/\s/g,'_') + '-' + box.name.replace(/\s/g,'_');
+  panel.id = pid;
+
+  var hdr = el('div', 'box-header');
+  var nm = el('span', 'box-name'); nm.textContent = box.name;
+  var cnt = el('span', 'box-count'); cnt.textContent = (box.items||[]).length + ' items';
+  hdr.appendChild(nm); hdr.appendChild(cnt);
+  panel.appendChild(hdr);
+
+  var sr = el('div', 'box-search-row');
+  var si = el('input', 'box-search');
+  si.type = 'text'; si.placeholder = 'Search…';
+  si.oninput = function(){ rebuildTable(panel, sheet, box, this.value); };
+  sr.appendChild(si); panel.appendChild(sr);
+
+  var body = el('div', 'box-body');
+  body.appendChild(boxTable(sheet, box, ''));
+  panel.appendChild(body);
+
+  var foot = el('div', 'box-footer');
+  var ab = el('button', 'btn btn-primary btn-sm');
+  ab.textContent = '+ Add item';
+  ab.onclick = function(){ openAdd(sheet, box); };
+  foot.appendChild(ab); panel.appendChild(foot);
+
+  return panel;
+}
+
+function boxTable(sheet, box, q) {
+  var items = (box.items || []).filter(function(it){
+    if (!q) return true;
+    var lq = q.toLowerCase();
+    return [it.name, it.date, it.labcollector, it.glycerol]
+      .some(function(v){ return (v||'').toLowerCase().indexOf(lq) !== -1; });
+  });
+
+  if (!items.length) {
+    var d = el('div', 'box-empty');
+    d.textContent = q ? 'No matches.' : 'No items yet.';
+    return d;
+  }
+
+  var tbl = el('table', 'box-table');
+  var thead = document.createElement('thead');
+  var hr = document.createElement('tr');
+  ['#','Name','Date'].forEach(function(h){
+    var th = document.createElement('th'); th.textContent = h; hr.appendChild(th);
+  });
+  if (box.hasLabCollector) { var th2 = document.createElement('th'); th2.textContent = 'LabCol'; hr.appendChild(th2); }
+  if (box.hasGlycerol)     { var th3 = document.createElement('th'); th3.textContent = 'Glycerol'; hr.appendChild(th3); }
+  var thA = document.createElement('th'); hr.appendChild(thA);
+  thead.appendChild(hr); tbl.appendChild(thead);
+
+  var tbody = document.createElement('tbody');
+  items.forEach(function(item, idx){
+    var tr = document.createElement('tr');
+    var td0 = el('td','item-meta'); td0.textContent = idx+1; tr.appendChild(td0);
+    var td1 = el('td',''); var ns = el('span','item-name'); ns.textContent = item.name; td1.appendChild(ns); tr.appendChild(td1);
+    var td2 = el('td','item-meta'); td2.textContent = item.date || ''; tr.appendChild(td2);
+    if (box.hasLabCollector) { var td3 = el('td','item-lab'); td3.textContent = item.labcollector || ''; tr.appendChild(td3); }
+    if (box.hasGlycerol)     { var td4 = el('td','item-meta'); td4.textContent = item.glycerol || ''; tr.appendChild(td4); }
+    var tdA = el('td','item-actions');
+    var eb = el('button','btn-edit'); eb.textContent = '✏️'; eb.title = 'Edit';
+    eb.onclick = (function(it){ return function(){ openEdit(sheet, box, it); }; })(item);
+    var db = el('button','btn-del'); db.textContent = '🗑'; db.title = 'Delete';
+    db.onclick = (function(it){ return function(){ doDelete(sheet, box, it); }; })(item);
+    tdA.appendChild(eb); tdA.appendChild(db); tr.appendChild(tdA);
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+  return tbl;
+}
+
+function rebuildTable(panel, sheet, box, q) {
+  var body = panel.querySelector('.box-body');
+  body.innerHTML = ''; body.appendChild(boxTable(sheet, box, q));
+}
+
+function refreshBox(sheet, boxName) {
+  delete S.cache[sheet];
+  api({ action: 'getData', sheet: sheet }).then(function(d){
+    if (!d.success) { status('Refresh error', true); return; }
+    S.cache[sheet] = d;
+    var box = null;
+    (d.boxes||[]).forEach(function(b){ if (b.name === boxName) box = b; });
+    if (!box) return;
+    var pid = 'bp-' + sheet.replace(/\s/g,'_') + '-' + boxName.replace(/\s/g,'_');
+    var panel = document.getElementById(pid);
+    if (!panel) return;
+    panel.querySelector('.box-count').textContent = (box.items||[]).length + ' items';
+    var body = panel.querySelector('.box-body');
+    var si = panel.querySelector('.box-search');
+    body.innerHTML = '';
+    body.appendChild(boxTable(sheet, box, si ? si.value : ''));
+  }).catch(function(e){ status('Error: ' + e.message, true); });
+}
+
+/* ── Modal ───────────────────────────────────────────────────────────── */
+function openAdd(sheet, box) {
+  S.modal = { mode: 'add', sheet: sheet, box: box, item: null };
+  document.getElementById('modal-title').textContent = 'Add to ' + box.name;
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-date').value = '';
+  document.getElementById('f-lab').value  = '';
+  document.getElementById('f-glyc').value = '';
+  document.getElementById('f-lab-row').style.display  = box.hasLabCollector ? '' : 'none';
+  document.getElementById('f-glyc-row').style.display = box.hasGlycerol     ? '' : 'none';
+  document.getElementById('item-overlay').classList.add('open');
+  setTimeout(function(){ document.getElementById('f-name').focus(); }, 50);
+}
+
+function openEdit(sheet, box, item) {
+  S.modal = { mode: 'edit', sheet: sheet, box: box, item: item };
+  document.getElementById('modal-title').textContent = 'Edit — ' + item.name;
+  document.getElementById('f-name').value = item.name || '';
+  document.getElementById('f-date').value = item.date || '';
+  document.getElementById('f-lab').value  = item.labcollector || '';
+  document.getElementById('f-glyc').value = item.glycerol || '';
+  document.getElementById('f-lab-row').style.display  = box.hasLabCollector ? '' : 'none';
+  document.getElementById('f-glyc-row').style.display = box.hasGlycerol     ? '' : 'none';
+  document.getElementById('item-overlay').classList.add('open');
+  setTimeout(function(){ document.getElementById('f-name').focus(); }, 50);
+}
+
+function closeModal() {
+  document.getElementById('item-overlay').classList.remove('open');
+  S.modal = null;
+}
+
+function saveItem() {
+  var ctx = S.modal;
+  if (!ctx) return;
+  var name = document.getElementById('f-name').value.trim();
+  if (!name) { document.getElementById('f-name').focus(); return; }
+  var btn = document.getElementById('modal-save');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  var itemData = {
+    name: name,
+    date: document.getElementById('f-date').value.trim(),
+    labcollector: document.getElementById('f-lab').value.trim(),
+    glycerol: document.getElementById('f-glyc').value.trim()
+  };
+  var params = {
+    action: ctx.mode === 'add' ? 'addItem' : 'updateItem',
+    sheet: ctx.sheet, box: ctx.box.name,
+    data: JSON.stringify(itemData)
+  };
+  if (ctx.mode === 'edit') params.row = ctx.item._row;
+  api(params).then(function(d){
+    btn.textContent = 'Save'; btn.disabled = false;
+    if (d.success) { closeModal(); status('Saved ✓'); refreshBox(ctx.sheet, ctx.box.name); }
+    else status('Error: ' + (d.error||''), true);
+  }).catch(function(e){ btn.textContent = 'Save'; btn.disabled = false; status('Error: '+e.message, true); });
+}
+
+function doDelete(sheet, box, item) {
+  if (!confirm('Delete "' + item.name + '"?')) return;
+  api({ action: 'deleteItem', sheet: sheet, box: box.name, row: item._row })
+    .then(function(d){
+      if (d.success) { status('Deleted'); refreshBox(sheet, box.name); }
+      else status('Error: ' + (d.error||''), true);
+    }).catch(function(e){ status('Error: '+e.message, true); });
+}
+
+/* ── Util ────────────────────────────────────────────────────────────── */
+function el(tag, cls) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  return e;
+}
+function qsa(sel) { return Array.from(document.querySelectorAll(sel)); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+function sectionTitle(t) {
+  var d = el('div', 'section-title'); d.textContent = t;
+  d.style.marginBottom = '12px';
+  return d;
+}
+</script>
+</body>
+</html>
