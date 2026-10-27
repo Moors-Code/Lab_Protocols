@@ -1046,6 +1046,7 @@ var WIZ = {
   filters: { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', endDate: '', query: '' },
   conditions: {},    // fields applied to all selected mice
   groupLabel: '',
+  step2MaxAge: '',   // user-defined max age at procedure (weeks) for flagging in Step 2
 };
 
 // CSV column → canonical sheet column
@@ -1631,17 +1632,30 @@ function renderWizStep2() {
     html += '<button id="s2-tog-vis" style="padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer;white-space:nowrap;">' + (allVis ? '☐ Deselect visible' : '☑ Select visible') + '</button>';
     html += '</div>';
 
+    // Max-age-at-procedure flag row
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;color:var(--text2);">';
+    html += '<label for="s2-max-age" style="white-space:nowrap;">⚠️ Flag if age at procedure &gt;</label>';
+    html += '<input type="number" id="s2-max-age" min="0" placeholder="weeks" value="' + esc(WIZ.step2MaxAge || '') + '" style="width:64px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;">';
+    html += '<span style="color:var(--text3);">weeks — shown in the age column if a procedure date is set</span>';
+    html += '</div>';
+
     html += '<div class="import-tbl-wrap" style="max-height:260px;">';
     html += '<table class="import-table"><thead><tr>';
     html += '<th style="width:28px;"><input type="checkbox" id="s2-chk-hdr"' + (allVis ? ' checked' : '') + '></th>';
-    html += '<th>ID</th><th>Lab ID</th><th>Sex</th><th>Line / Strain</th><th>DOB</th><th>Age (w)</th><th>Group</th>';
+    var hasProcDate = !!WIZ.step2ProcDate;
+    html += '<th>ID</th><th>Lab ID</th><th>Sex</th><th>Line / Strain</th><th>DOB</th>';
+    html += hasProcDate ? '<th>Age at proc. (w)</th>' : '<th>Age now (w)</th>';
+    html += '<th>Group</th>';
     html += '</tr></thead><tbody>';
 
     var now = new Date();
+    var procDateForAge = hasProcDate ? new Date(WIZ.step2ProcDate) : null;
+    var maxAgeNum = WIZ.step2MaxAge ? parseFloat(WIZ.step2MaxAge) : null;
     visible.forEach(function(idx) {
       var r = WIZ.csv.rows[idx];
       var dob = parseDOB(r['DOB'] || '');
-      var age = dob ? ageWeeks(dob, now) : null;
+      var age = dob ? ageWeeks(dob, procDateForAge || now) : null;
+      var overAge = (maxAgeNum != null && age != null && age > maxAgeNum);
       var checked = WIZ.step2SubSel.has(idx);
       var mouseGroups = WIZ.groups.filter(function(g) { return g.mice.has(idx); });
       html += '<tr' + (checked ? ' style="background:var(--accent-light);"' : '') + '>';
@@ -1651,7 +1665,11 @@ function renderWizStep2() {
       html += '<td>' + esc(r['Sex'] || '') + '</td>';
       html += '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(r['Line / Strain'] || '') + '</td>';
       html += '<td>' + esc(r['DOB'] || '') + '</td>';
-      html += '<td>' + (age != null ? age : '—') + '</td>';
+      var ageCell = age != null ? age : '—';
+      if (overAge) {
+        ageCell = '<span style="color:#e53935;font-weight:600;" title="Exceeds max age of ' + maxAgeNum + ' w">⚠ ' + age + '</span>';
+      }
+      html += '<td>' + ageCell + '</td>';
       if (mouseGroups.length > 0) {
         html += '<td style="white-space:nowrap;">' + mouseGroups.map(function(g) {
           return '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;font-size:11px;background:' + g.color + '22;color:' + g.color + ';border:1px solid ' + g.color + '55;margin-right:3px;">' +
@@ -1680,6 +1698,7 @@ function renderWizStep2() {
     WIZ.step2Mut1 = (document.getElementById('s2-mut1') || {}).value || '';
     WIZ.step2Grade1 = (document.getElementById('s2-grade1') || {}).value || '';
     WIZ.step2Notes = (document.getElementById('s2-notes') || {}).value || '';
+    WIZ.step2MaxAge = (document.getElementById('s2-max-age') || {}).value || '';
   }
 
   function wireStep2() {
@@ -1740,6 +1759,14 @@ function renderWizStep2() {
     // Query
     var qEl = document.getElementById('s2-query');
     if (qEl) qEl.addEventListener('input', function() { WIZ.step2Query = this.value; renderBody(); });
+
+    // Max-age flag input — re-render table when threshold changes
+    var maxAgeEl = document.getElementById('s2-max-age');
+    if (maxAgeEl) maxAgeEl.addEventListener('input', function() { WIZ.step2MaxAge = this.value; renderBody(); });
+
+    // Proc date — re-render table when date changes (updates age-at-proc column)
+    var procDateEl = document.getElementById('s2-proc-date');
+    if (procDateEl) procDateEl.addEventListener('change', function() { WIZ.step2ProcDate = this.value; renderBody(); });
 
     // Toggle visible
     document.getElementById('s2-tog-vis') && document.getElementById('s2-tog-vis').addEventListener('click', function() {
@@ -1810,6 +1837,7 @@ function renderWizStep2() {
     WIZ.step2Mut1 = (document.getElementById('s2-mut1') || {}).value || '';
     WIZ.step2Grade1 = (document.getElementById('s2-grade1') || {}).value || '';
     WIZ.step2Notes = (document.getElementById('s2-notes') || {}).value || '';
+    WIZ.step2MaxAge = (document.getElementById('s2-max-age') || {}).value || '';
   }
 }
 
@@ -1915,14 +1943,18 @@ function buildImportRows() {
       if (otherNotes.length) sheetRow['Comments for surgery'] = otherNotes.join(' | ');
     }
 
-    // Auto-calculate Age at Inj from DOB + AAV injection date
+    // Auto-calculate age fields from DOB + procedure dates
     var dob = parseDOB(sheetRow['DOB'] || csvRow['DOB'] || '');
-    var aavDateStr = sheetRow['date of AAV inj.'];
-    var aavDate = aavDateStr ? new Date(aavDateStr) : null;
-    if (dob && aavDate && !sheetRow['Age at Inj']) {
-      var weeks = ageWeeks(dob, aavDate);
-      if (weeks != null) sheetRow['Age at Inj'] = weeks + ' w';
+    function calcAge(dateStr, field) {
+      var d = dateStr ? new Date(dateStr) : null;
+      if (dob && d && !sheetRow[field]) {
+        var w = ageWeeks(dob, d);
+        if (w != null) sheetRow[field] = w + ' w';
+      }
     }
+    calcAge(sheetRow['date of AAV inj.'],  'Age at Inj');
+    calcAge(sheetRow['Org inj. Date'],     'Age at Org inj.');
+    calcAge(sheetRow['Euthanasia Date'],   'Age at euthanasia');
 
     rows.push(sheetRow);
   });
@@ -1980,20 +2012,34 @@ function doImport(importRows) {
 }
 
 // ── Inline cell editing ────────────────────────────────
+function fmtDateStr(v) {
+  // Reformat GAS date strings like "Sat Nov 12 2026 00:00:00 GMT+0100..." → "12.11.2026"
+  // Also handles ISO strings "2026-11-12T00:00:00.000Z"
+  if (!v) return v;
+  if (/^\w{3} \w{3} \d{2} \d{4} \d{2}:\d{2}:\d{2} GMT/.test(v) || /^\d{4}-\d{2}-\d{2}T/.test(v)) {
+    var d = new Date(v);
+    if (!isNaN(d.getTime())) {
+      return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear();
+    }
+  }
+  return v;
+}
+
 function renderCellContent(td, col, val) {
   var v = val == null ? '' : String(val);
+  var display = fmtDateStr(v);
   var html;
   if (/^(AMO|SAMO)-/i.test(v)) {
     html = '<span class="amo-id">' + esc(v) + '</span>';
   } else if (col.toLowerCase() === 'sex') {
     if (v === 'm' || v === 'M') html = '<span class="badge badge-m">m</span>';
     else if (v === 'f' || v === 'F') html = '<span class="badge badge-f">f</span>';
-    else html = esc(v);
+    else html = esc(display);
   } else {
-    html = esc(v);
+    html = esc(display);
   }
   td.innerHTML = html;
-  td.title = v;
+  td.title = display;
 }
 
 function editCell(td, row, col) {
