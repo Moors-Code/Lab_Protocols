@@ -1127,6 +1127,13 @@ function applyWizFilters() {
   var wrap = document.getElementById('wiz-tbl-wrap');
   if (!wrap) return;
 
+  // Update "Select visible" button label
+  var allVis = items.length > 0 && items.every(function(it) { return WIZ.sel.has(it.idx); });
+  var togBtn = document.getElementById('wiz-tog-vis');
+  if (togBtn) togBtn.textContent = allVis ? '☐ Deselect visible' : '☑ Select visible';
+  var selCount = document.getElementById('wiz-sel-count');
+  if (selCount) selCount.textContent = WIZ.sel.size + ' selected';
+
   // Select-all checkbox state
   var allSel = items.length > 0 && items.every(function(it) { return WIZ.sel.has(it.idx); });
   var sa = document.getElementById('wiz-sel-all');
@@ -1344,8 +1351,20 @@ function renderWizStep1() {
   html += '</div>';
 
   // Mouse selection table
+  html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+  html += '<button id="wiz-tog-vis" style="padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer;white-space:nowrap;">☑ Select visible</button>';
+  html += '<span id="wiz-sel-count" style="font-size:12px;color:var(--text2);">' + WIZ.sel.size + ' selected</span>';
+  html += '</div>';
   html += '<div id="wiz-tbl-wrap" class="import-tbl-wrap"></div>';
   body.innerHTML = html;
+
+  // "Select visible" toggle for Step 1
+  document.getElementById('wiz-tog-vis').addEventListener('click', function() {
+    var items = getFilteredItems();
+    var allVis = items.length > 0 && items.every(function(it) { return WIZ.sel.has(it.idx); });
+    items.forEach(function(it) { if (allVis) WIZ.sel.delete(it.idx); else WIZ.sel.add(it.idx); });
+    applyWizFilters(); updateWizStep1Footer();
+  });
 
   // Filter event handlers
   body.querySelectorAll('.sex-btn').forEach(function(btn) {
@@ -1404,7 +1423,7 @@ function loadCSVFile(file) {
     if (!parsed || parsed.rows.length === 0) { toast('Could not parse CSV — make sure it has a header row.', true); return; }
     WIZ.csv = parsed;
     WIZ.sel.clear();
-    parsed.rows.forEach(function(_, i) { WIZ.sel.add(i); });
+    // Do NOT auto-select — user picks manually
     renderWizard();
   };
   reader.readAsText(file);
@@ -1919,40 +1938,45 @@ function doImport(importRows) {
   var progDiv = document.getElementById('import-progress');
   progDiv.style.display = 'block';
 
-  // Use the Apps Script importRows action for batch efficiency
-  var params = {
-    action: 'importRows',
-    sheet: S.active,
-    rows: JSON.stringify(importRows),
-    groupLabel: WIZ.groupLabel || '',
-  };
-
   var progBar = document.getElementById('prog-bar');
   var progLabel = document.getElementById('prog-label');
+  var total = importRows.length;
+  var done = 0;
+  var failed = 0;
 
-  // Animate progress while waiting
-  var fakeP = 0;
-  var fakeT = setInterval(function() {
-    fakeP = Math.min(fakeP + 5, 85);
-    if (progBar) progBar.style.width = fakeP + '%';
-  }, 300);
+  function updateProg() {
+    var pct = total > 0 ? Math.round((done + failed) / total * 100) : 100;
+    if (progBar) progBar.style.width = pct + '%';
+    if (progLabel) progLabel.textContent = (done + failed) + ' / ' + total + ' mice' + (failed ? ' (' + failed + ' errors)' : '');
+  }
 
-  jsonp(params, function(resp) {
-    clearInterval(fakeT);
-    btn.disabled = false; backBtn.disabled = false; cancelBtn.disabled = false;
-    if (progBar) progBar.style.width = '100%';
-
-    if (resp.error) {
-      if (progLabel) progLabel.textContent = 'Error: ' + resp.error;
-      progLabel.style.color = 'var(--danger)';
-      toast('Import failed: ' + resp.error, true);
+  function sendNext(i) {
+    if (i >= total) {
+      // All done
+      if (progBar) progBar.style.width = '100%';
+      btn.disabled = false; backBtn.disabled = false; cancelBtn.disabled = false;
+      if (failed === 0) {
+        toast('✓ Imported ' + done + ' mice into "' + S.active + '"');
+        closeCSVWizard();
+        openSheet(S.active);
+      } else {
+        if (progLabel) { progLabel.textContent = 'Done: ' + done + ' imported, ' + failed + ' failed.'; progLabel.style.color = 'var(--danger)'; }
+        toast('Imported ' + done + ' mice; ' + failed + ' failed', true);
+      }
       return;
     }
 
-    toast('✓ Imported ' + resp.count + ' mice' + (resp.groupLabel ? ' into "' + resp.groupLabel + '"' : ''));
-    closeCSVWizard();
-    openSheet(S.active);
-  });
+    var row = importRows[i];
+    var params = { action: 'addRow', sheet: S.active, data: JSON.stringify(row) };
+    jsonp(params, function(resp) {
+      if (resp && resp.error) { failed++; } else { done++; }
+      updateProg();
+      sendNext(i + 1);
+    });
+  }
+
+  updateProg();
+  sendNext(0);
 }
 
 // ── Inline cell editing ────────────────────────────────
