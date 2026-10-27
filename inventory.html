@@ -1,1163 +1,1078 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Freezer Inventory · SyPhy-lab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-/* ── Tokens ─────────────────────────────────────────────────────────────── */
+/* ── Design tokens ─────────────────────────────────────────────── */
 :root {
-  --accent:      #0c7c59;
-  --accent-lite: #d6f0e8;
-  --accent-text: #0a6348;
-  --bg:          #ffffff;
-  --bg2:         #f4f5f7;
-  --bg3:         #eceef2;
-  --surface:     #ffffff;
-  --border:      #d8dce6;
-  --text:        #111318;
-  --text2:       #5a6072;
-  --text3:       #8a93a8;
-  --danger:      #c0392b;
-  --danger-bg:   #fdecea;
-  --warn:        #b45309;
-  --warn-bg:     #fef3c7;
-  --mono:        'IBM Plex Mono', monospace;
-  --radius:      8px;
-  --shadow:      0 1px 4px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface2: #f0f2f5;
+  --surface3: #e8eaed;
+  --border: #dde1e7;
+  --text: #1c1e26;
+  --text2: #6b7280;
+  --text3: #9ca3af;
+  --accent: #2563eb;
+  --accent-lt: #dbeafe;
+  --accent-dark: #1d4ed8;
+  --box-bg: #fffbeb;
+  --box-border: #d97706;
+  --box-text: #92400e;
+  --danger: #dc2626;
+  --danger-lt: #fee2e2;
+  --success: #16a34a;
+  --warn: #d97706;
+  --warn-lt: #fef3c7;
+  --rad: 8px;
+  --rad-sm: 5px;
+  --shadow: 0 1px 3px rgba(0,0,0,.1);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,.15);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --accent:      #2ab88a;  --accent-lite: #0d3328;  --accent-text: #2ab88a;
-    --bg:          #111318;  --bg2:         #1a1d24;   --bg3:         #22262f;
-    --surface:     #1a1d24;  --border:      #2e3340;
-    --text:        #e8eaf0;  --text2:       #8a93a8;   --text3:       #5a6072;
-    --danger:      #e05c4b;  --danger-bg:   #2c1510;
-    --warn:        #f59e0b;  --warn-bg:     #1c1708;
-    --shadow:      0 1px 4px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
-  }
-}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg:#0d0f14;--surface:#161920;--surface2:#1e2129;--surface3:#272b35;
+  --border:#2a2f3d;--text:#e4e6eb;--text2:#8b949e;--text3:#6e7681;
+  --accent:#5b9bd5;--accent-lt:#162035;--accent-dark:#4a8fc7;
+  --box-bg:#1f1a0a;--box-border:#b45309;--box-text:#fbbf24;
+  --danger:#f87171;--danger-lt:#2d1515;--success:#4ade80;--warn:#fbbf24;--warn-lt:#292008;
+}}
 :root[data-theme="dark"] {
-  --accent:      #2ab88a;  --accent-lite: #0d3328;  --accent-text: #2ab88a;
-  --bg:          #111318;  --bg2:         #1a1d24;   --bg3:         #22262f;
-  --surface:     #1a1d24;  --border:      #2e3340;
-  --text:        #e8eaf0;  --text2:       #8a93a8;   --text3:       #5a6072;
-  --danger:      #e05c4b;  --danger-bg:   #2c1510;
-  --warn:        #f59e0b;  --warn-bg:     #1c1708;
-  --shadow:      0 1px 4px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  --bg:#0d0f14;--surface:#161920;--surface2:#1e2129;--surface3:#272b35;
+  --border:#2a2f3d;--text:#e4e6eb;--text2:#8b949e;--text3:#6e7681;
+  --accent:#5b9bd5;--accent-lt:#162035;--accent-dark:#4a8fc7;
+  --box-bg:#1f1a0a;--box-border:#b45309;--box-text:#fbbf24;
+  --danger:#f87171;--danger-lt:#2d1515;--success:#4ade80;--warn:#fbbf24;--warn-lt:#292008;
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 15px; }
-body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
-
-/* ── Header ─────────────────────────────────────────────────────────────── */
-.app-header {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 10px 20px; background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; z-index: 100;
-}
-.app-title { font-weight: 600; font-size: .95rem; white-space: nowrap; }
-.app-title span { color: var(--accent); }
-.global-search-wrap { flex: 1; min-width: 180px; max-width: 380px; position: relative; }
-.global-search {
-  width: 100%; padding: 6px 10px 6px 30px;
-  border: 1px solid var(--border); border-radius: var(--radius);
-  background: var(--surface); color: var(--text);
-  font-family: inherit; font-size: .85rem;
-}
-.global-search:focus { outline: none; border-color: var(--accent); }
-.search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: .85rem; pointer-events: none; }
-.search-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: none; color: var(--text3); cursor: pointer; font-size: .9rem; display: none; }
-.search-clear.show { display: block; }
-.header-actions { margin-left: auto; display: flex; gap: 6px; align-items: center; }
-.btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 13px; border-radius: var(--radius);
-  font-family: inherit; font-size: .82rem; font-weight: 500;
-  border: 1px solid var(--border); background: var(--surface);
-  color: var(--text); cursor: pointer; transition: background .15s; white-space: nowrap;
-}
-.btn:hover { background: var(--bg3); }
-.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-.btn-primary:hover { opacity: .88; background: var(--accent); }
-.btn-icon { padding: 6px 9px; }
-.btn-sm { padding: 4px 9px; font-size: .78rem; }
-.btn-danger { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
-
-/* ── Status / Cross-tab bar ─────────────────────────────────────────────── */
-#status-bar {
-  padding: 7px 20px; font-size: .82rem; display: none; align-items: center; gap: 8px;
-  background: var(--accent-lite); color: var(--accent-text);
-}
-#status-bar.show { display: flex; }
-#status-bar.err  { background: var(--danger-bg); color: var(--danger); }
-#cross-tab-bar {
-  display: none; flex-wrap: wrap; gap: 6px; align-items: center;
-  padding: 7px 20px; font-size: .82rem; color: var(--text2);
-  background: var(--warn-bg); border-bottom: 1px solid var(--border);
-}
-#cross-tab-bar.show { display: flex; }
-#cross-tab-bar strong { color: var(--warn); margin-right: 4px; }
-.cross-tab-chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 9px; background: var(--warn); color: #fff;
-  border-radius: 99px; cursor: pointer; font-size: .78rem; font-weight: 500;
-}
-.cross-tab-chip:hover { opacity: .85; }
-
-/* ── Setup banner ───────────────────────────────────────────────────────── */
-#setup-banner {
-  display: none; align-items: center; flex-wrap: wrap; gap: 10px;
-  padding: 12px 20px; background: var(--bg2);
-  border-bottom: 1px solid var(--border); font-size: .85rem;
-}
-#setup-banner.show { display: flex; }
-#setup-banner label { color: var(--text2); white-space: nowrap; }
-#url-input {
-  flex: 1; min-width: 260px; max-width: 520px;
-  padding: 7px 10px; border: 1px solid var(--border);
-  border-radius: var(--radius); background: var(--surface);
-  color: var(--text); font-family: var(--mono); font-size: .8rem;
+:root[data-theme="light"] {
+  --bg:#f4f5f7;--surface:#ffffff;--surface2:#f0f2f5;--surface3:#e8eaed;
+  --border:#dde1e7;--text:#1c1e26;--text2:#6b7280;--text3:#9ca3af;
+  --accent:#2563eb;--accent-lt:#dbeafe;--accent-dark:#1d4ed8;
+  --box-bg:#fffbeb;--box-border:#d97706;--box-text:#92400e;
+  --danger:#dc2626;--danger-lt:#fee2e2;--success:#16a34a;--warn:#d97706;--warn-lt:#fef3c7;
 }
 
-/* ── Freezer tab bar ────────────────────────────────────────────────────── */
-.freezer-tabs { display: flex; flex-wrap: wrap; gap: 0; background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 16px; }
-.freezer-tab {
-  padding: 9px 16px; cursor: pointer; font-size: .85rem; font-weight: 500; color: var(--text2);
-  border-bottom: 3px solid transparent; transition: color .15s, border-color .15s; white-space: nowrap;
-  display: flex; align-items: center; gap: 6px;
+/* ── Reset & base ──────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+button,input,select,textarea{font-family:inherit;font-size:inherit}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+
+/* ── Layout ────────────────────────────────────────────────────── */
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* ── Top bar ───────────────────────────────────────────────────── */
+#topbar{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 16px;display:flex;align-items:center;gap:10px;
+  min-height:52px;flex-shrink:0;box-shadow:var(--shadow);position:relative;z-index:10;
 }
-.freezer-tab:hover { color: var(--text); }
-.freezer-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.tab-match-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); display: none; }
-.tab-match-dot.show { display: inline-block; }
-
-/* ── Main ───────────────────────────────────────────────────────────────── */
-.main { flex: 1; padding: 20px; max-width: 1500px; width: 100%; margin: 0 auto; }
-.section-title {
-  font-size: .75rem; font-weight: 600; text-transform: uppercase;
-  letter-spacing: .06em; color: var(--text3); margin-bottom: 10px;
+#wordmark{font-weight:600;font-size:15px;white-space:nowrap;color:var(--text);display:flex;align-items:center;gap:6px;flex-shrink:0}
+#wordmark .accent{color:var(--accent)}
+#tabs-scroll{display:flex;gap:2px;overflow-x:auto;flex:1;scrollbar-width:none}
+#tabs-scroll::-webkit-scrollbar{display:none}
+.tab-btn{
+  padding:5px 14px;border:none;background:transparent;
+  color:var(--text2);cursor:pointer;border-radius:var(--rad-sm);
+  font-size:13px;font-weight:500;white-space:nowrap;
+  transition:background .15s,color .15s;flex-shrink:0;
 }
-.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.loading-panel { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 60px; color: var(--text2); }
-.spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── 9×9 Grid ───────────────────────────────────────────────────────────── */
-.grid-section { margin-bottom: 28px; }
-.freezer-grid { display: grid; grid-template-columns: 26px repeat(9, 1fr); gap: 3px; max-width: 580px; }
-.grid-col-hdr, .grid-row-hdr { display: flex; align-items: center; justify-content: center; font-size: .68rem; font-weight: 600; color: var(--text3); font-family: var(--mono); height: 26px; }
-.grid-row-hdr { width: 26px; }
-.grid-cell {
-  height: 52px; border-radius: 5px; border: 1px solid var(--border); background: var(--bg2);
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  font-size: .6rem; font-family: var(--mono); color: var(--text);
-  text-align: center; padding: 3px; overflow: hidden; line-height: 1.2; word-break: break-word;
-  transition: background .12s, border-color .12s; position: relative;
+.tab-btn:hover{background:var(--surface2);color:var(--text)}
+.tab-btn.active{background:var(--accent-lt);color:var(--accent);font-weight:600}
+.topbar-right{display:flex;gap:6px;align-items:center;flex-shrink:0}
+#search-wrap{position:relative}
+#search-input{
+  width:210px;padding:6px 10px 6px 30px;
+  border:1px solid var(--border);border-radius:var(--rad);
+  background:var(--surface2);color:var(--text);font-size:13px;
+  transition:border-color .15s;
 }
-.grid-cell:hover { background: var(--bg3); border-color: var(--accent); }
-.grid-cell.filled { background: var(--accent-lite); border-color: var(--accent); color: var(--accent-text); }
-.grid-cell.dot { color: var(--border); }
-.grid-cell.nav-cell { cursor: pointer; }
-.grid-cell.nav-cell:hover { box-shadow: 0 0 0 2px var(--accent); }
-.grid-cell .cell-edit-btn {
-  position: absolute; top: 2px; right: 2px; font-size: .55rem;
-  opacity: 0; background: var(--bg2); border: none; border-radius: 3px;
-  cursor: pointer; padding: 1px 3px; color: var(--text2); transition: opacity .12s;
+#search-input:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none}
+.icon-btn{
+  width:34px;height:34px;border:1px solid var(--border);border-radius:var(--rad);
+  background:var(--surface);color:var(--text2);cursor:pointer;
+  font-size:15px;display:flex;align-items:center;justify-content:center;
+  transition:background .15s,color .15s;
 }
-.grid-cell:hover .cell-edit-btn { opacity: 1; }
+.icon-btn:hover{background:var(--surface2);color:var(--text)}
 
-/* ── Box panels ─────────────────────────────────────────────────────────── */
-.boxes-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
-.box-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden; transition: opacity .2s; }
-.box-panel.dimmed { opacity: .35; }
-.box-header { display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 1px solid var(--border); background: var(--bg2); }
-.box-name { font-weight: 600; font-size: .91rem; flex: 1; }
-.box-count { font-size: .72rem; color: var(--text3); font-family: var(--mono); background: var(--bg3); padding: 2px 7px; border-radius: 4px; }
-.box-match-badge { font-size: .7rem; background: var(--accent); color: #fff; padding: 1px 7px; border-radius: 99px; }
-.box-warn-badge { font-size: .7rem; background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); padding: 1px 7px; border-radius: 99px; }
-.box-search-row { padding: 6px 10px; border-bottom: 1px solid var(--border); }
-.box-search { width: 100%; padding: 5px 8px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg); color: var(--text); font-family: inherit; font-size: .8rem; }
-.box-search::placeholder { color: var(--text3); }
-.box-body { flex: 1; overflow-x: auto; overflow-y: auto; max-height: 340px; }
-.box-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
-.box-table th { padding: 5px 9px; background: var(--bg2); border-bottom: 1px solid var(--border); color: var(--text2); font-weight: 600; text-align: left; white-space: nowrap; position: sticky; top: 0; z-index: 2; }
-.box-table td { padding: 6px 9px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-.box-table tr:last-child td { border-bottom: none; }
-.box-table tr:hover td { background: var(--bg2); }
-.box-table tr.dim td { opacity: .35; }
-.box-table tr.low-warn td:first-child { border-left: 3px solid var(--warn); }
-.box-table tr.crit-warn td:first-child { border-left: 3px solid var(--danger); }
-.item-name { font-family: var(--mono); font-size: .74rem; word-break: break-word; }
-.item-meta { font-size: .74rem; color: var(--text2); }
-.item-lab a { font-family: var(--mono); font-size: .74rem; color: var(--accent-text); text-decoration: none; }
-.item-lab a:hover { text-decoration: underline; }
-.item-actions { white-space: nowrap; }
-.btn-edit, .btn-del {
-  border: none; background: none; cursor: pointer;
-  font-size: .78rem; padding: 2px 5px; border-radius: 4px;
-  opacity: .55; transition: opacity .12s, background .12s;
+/* ── Breadcrumb bar ─────────────────────────────────────────────── */
+#crumbbar{
+  background:var(--surface2);border-bottom:1px solid var(--border);
+  padding:6px 16px;display:flex;align-items:center;gap:8px;
+  flex-shrink:0;min-height:38px;
 }
-.btn-edit:hover { opacity: 1; background: var(--bg3); }
-.btn-del:hover  { opacity: 1; background: var(--danger-bg); }
-.vol-cell { white-space: nowrap; }
-.vol-val { font-family: var(--mono); font-size: .74rem; }
-.btn-use-vol { border: 1px solid var(--border); background: var(--bg2); color: var(--text2); cursor: pointer; font-size: .7rem; padding: 1px 5px; border-radius: 4px; margin-left: 4px; transition: background .12s; }
-.btn-use-vol:hover { background: var(--bg3); color: var(--text); }
-.vol-inline-form { display: none; margin-top: 4px; display: none; align-items: center; gap: 4px; }
-.vol-inline-form.show { display: flex; }
-.vol-inline-input { width: 60px; padding: 3px 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: var(--mono); font-size: .75rem; }
-.vol-inline-input:focus { outline: none; border-color: var(--accent); }
-.box-empty { padding: 22px; text-align: center; color: var(--text3); font-size: .83rem; }
-.box-footer { padding: 9px 12px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; }
+.crumb{font-size:13px;color:var(--text2)}
+.crumb.link{cursor:pointer;color:var(--accent)}
+.crumb.link:hover{text-decoration:underline}
+.crumb.current{color:var(--text);font-weight:500}
+.crumb-sep{color:var(--text3);font-size:12px}
+.crumbbar-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.back-btn{
+  padding:3px 10px;border:1px solid var(--border);border-radius:var(--rad-sm);
+  background:var(--surface);color:var(--text);cursor:pointer;font-size:12px;
+}
+.back-btn:hover{background:var(--surface3)}
 
-/* ── Modal ──────────────────────────────────────────────────────────────── */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; pointer-events: none; transition: opacity .2s; }
-.overlay.open { opacity: 1; pointer-events: auto; }
-.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; margin: 16px; transform: translateY(12px); transition: transform .2s; }
-.overlay.open .modal { transform: none; }
-.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
-.modal-title { font-weight: 600; font-size: .97rem; }
-.modal-close { border: none; background: none; cursor: pointer; color: var(--text3); font-size: 1.2rem; line-height: 1; padding: 3px 6px; border-radius: 4px; }
-.modal-close:hover { background: var(--bg3); color: var(--text); }
-.modal-body { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
-.form-field { display: flex; flex-direction: column; gap: 4px; }
-.form-label { font-size: .8rem; font-weight: 500; color: var(--text2); }
-.form-label .req { color: var(--danger); margin-left: 2px; }
-.form-input { width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-family: inherit; font-size: .85rem; }
-.form-input:focus { outline: none; border-color: var(--accent); }
-.form-input.error { border-color: var(--danger); }
-.form-hint { font-size: .74rem; color: var(--text3); }
-.lc-preview { font-size: .74rem; margin-top: 2px; }
-.lc-preview a { color: var(--accent-text); text-decoration: none; }
-.lc-preview a:hover { text-decoration: underline; }
-.modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border); }
+/* ── Main scroll area ──────────────────────────────────────────── */
+#main{flex:1;overflow-y:auto;padding:20px 16px 40px}
 
-/* ── Grid popup ─────────────────────────────────────────────────────────── */
-#grid-popup { position: fixed; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 11px; z-index: 150; display: none; flex-direction: column; gap: 7px; min-width: 190px; }
-#grid-popup.show { display: flex; }
-.grid-popup-label { font-size: .74rem; color: var(--text2); font-weight: 500; }
-.grid-popup-input { padding: 5px 8px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg); color: var(--text); font-family: var(--mono); font-size: .78rem; width: 100%; }
-.grid-popup-input:focus { outline: none; border-color: var(--accent); }
-.grid-popup-actions { display: flex; gap: 5px; justify-content: flex-end; }
+/* ── Grid view ──────────────────────────────────────────────────── */
+.grid-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.grid-header h2{font-size:17px;font-weight:600}
+.btn-add-box{
+  padding:6px 14px;background:var(--accent);color:#fff;
+  border:none;border-radius:var(--rad);cursor:pointer;
+  font-size:13px;font-weight:500;
+}
+.btn-add-box:hover{background:var(--accent-dark)}
 
-/* ── Settings modal ─────────────────────────────────────────────────────── */
-.settings-section { font-size: .8rem; font-weight: 600; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .05em; }
-.settings-row { display: flex; align-items: center; gap: 8px; font-size: .85rem; }
-.settings-row label { flex: 1; color: var(--text2); }
-.settings-row input[type=number] { width: 80px; padding: 5px 7px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg); color: var(--text); font-family: var(--mono); font-size: .82rem; }
-.settings-row input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); }
+/* Cross-results banner */
+.cross-banner{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);
+  padding:8px 14px;margin-bottom:14px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+}
+.cross-banner-label{font-size:12px;color:var(--text2);font-weight:500}
+.cross-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 10px;border-radius:20px;
+  border:1px solid var(--danger);background:transparent;
+  color:var(--danger);cursor:pointer;font-size:12px;
+  transition:background .15s,color .15s;
+}
+.cross-chip:hover{background:var(--danger);color:#fff}
+.rdot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
 
-/* ── Add Box modal ──────────────────────────────────────────────────────── */
-.col-checkboxes { display: flex; flex-direction: column; gap: 6px; }
-.col-check-row { display: flex; align-items: center; gap: 7px; font-size: .84rem; }
-.col-check-row input[type=checkbox] { accent-color: var(--accent); }
+/* Grid table */
+.grid-wrap{max-width:860px}
+.grid-table{display:grid;grid-template-columns:22px repeat(9,1fr);gap:3px}
+.gc-corner,.gc-col-label{
+  font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace;
+  text-align:center;padding:2px;display:flex;align-items:center;justify-content:center;
+}
+.gc-row-label{
+  font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace;
+  display:flex;align-items:center;justify-content:center;
+}
+.gc{
+  aspect-ratio:1;border-radius:var(--rad-sm);border:1px solid var(--border);
+  background:var(--surface);cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;font-size:8.5px;line-height:1.2;
+  padding:4px 3px;text-align:center;
+  display:flex;align-items:center;justify-content:center;
+  word-break:break-word;hyphens:auto;overflow:hidden;
+  transition:opacity .2s,border-color .15s,background .15s;
+  position:relative;
+}
+.gc:hover{border-color:var(--accent);background:var(--accent-lt)}
+.gc.empty{color:var(--text3)}
+.gc.empty:hover::after{content:'+';font-size:18px;color:var(--accent);font-family:'IBM Plex Sans',sans-serif;position:absolute}
+.gc.empty:hover span{opacity:0}
+.gc.box-cell{background:var(--box-bg);border-color:var(--box-border);color:var(--box-text);font-weight:700;font-size:9.5px}
+.gc.box-cell:hover{background:var(--box-border);color:#fff}
+.gc.item-cell{background:var(--surface2);color:var(--text)}
+.gc.item-cell:hover{background:var(--accent-lt);border-color:var(--accent)}
+.gc.dimmed{opacity:.28;pointer-events:none}
+.gc .badge-dot{position:absolute;top:2px;left:2px;width:7px;height:7px;border-radius:50%;background:var(--danger)}
 
-/* ── Responsive ─────────────────────────────────────────────────────────── */
-@media (max-width: 600px) {
-  .main { padding: 10px; }
-  .freezer-tabs { padding: 0 6px; }
-  .freezer-tab { padding: 8px 10px; font-size: .8rem; }
-  .boxes-row { grid-template-columns: 1fr; }
-  .freezer-grid { max-width: 100%; }
-  .app-header { gap: 6px; padding: 8px 12px; }
+/* ── Box panel ──────────────────────────────────────────────────── */
+.box-panel-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.box-panel-header h2{font-size:17px;font-weight:600}
+.btn-add-item{
+  padding:6px 14px;background:var(--accent);color:#fff;
+  border:none;border-radius:var(--rad);cursor:pointer;
+  font-size:13px;font-weight:500;margin-left:auto;
+}
+.btn-add-item:hover{background:var(--accent-dark)}
+
+.items-table{width:100%;border-collapse:collapse}
+.items-table th{
+  text-align:left;padding:8px 10px;font-size:11px;font-weight:600;color:var(--text2);
+  border-bottom:2px solid var(--border);white-space:nowrap;text-transform:uppercase;letter-spacing:.04em;
+}
+.items-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:13px}
+.items-table tr:last-child td{border-bottom:none}
+.items-table tr.dimmed td{opacity:.35}
+.name-cell{font-weight:500}
+.lc-link{color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:11.5px}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:12px}
+
+/* Volume */
+.vol-wrap{display:flex;align-items:center;gap:6px}
+.vol-num{font-family:'IBM Plex Mono',monospace;font-size:12px;min-width:44px}
+.low-badge{
+  font-size:10px;background:var(--warn-lt);color:var(--warn);
+  padding:1px 5px;border-radius:3px;border:1px solid var(--warn);white-space:nowrap;
+}
+.use-vol-btn{
+  padding:2px 8px;border:1px solid var(--border);border-radius:4px;
+  background:transparent;color:var(--text2);cursor:pointer;font-size:11px;
+}
+.use-vol-btn:hover{border-color:var(--accent);color:var(--accent)}
+.vol-form{display:inline-flex;align-items:center;gap:4px}
+.vol-form input{
+  width:70px;padding:2px 6px;border:1px solid var(--accent);border-radius:4px;
+  background:var(--surface);color:var(--text);
+  font-family:'IBM Plex Mono',monospace;font-size:12px;
+}
+.vol-form .apply{padding:2px 8px;border:none;background:var(--accent);color:#fff;border-radius:4px;cursor:pointer;font-size:11px}
+.vol-form .apply:hover{background:var(--accent-dark)}
+.vol-form .cancel{padding:2px 6px;border:1px solid var(--border);background:transparent;color:var(--text2);border-radius:4px;cursor:pointer;font-size:11px}
+
+/* Row actions */
+.row-actions{display:flex;gap:5px}
+.btn-edit,.btn-del{padding:3px 9px;border-radius:4px;cursor:pointer;font-size:12px;border:1px solid;transition:background .12s,color .12s}
+.btn-edit{border-color:var(--border);background:transparent;color:var(--text2)}
+.btn-edit:hover{border-color:var(--accent);color:var(--accent)}
+.btn-del{border-color:var(--danger);background:transparent;color:var(--danger)}
+.btn-del:hover{background:var(--danger);color:#fff}
+
+/* Empty state */
+.empty-state{text-align:center;padding:52px 16px;color:var(--text2)}
+.empty-state h3{font-size:16px;margin-bottom:6px;color:var(--text)}
+
+/* ── Modals ─────────────────────────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.55);
+  display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px;
+}
+.modal{
+  background:var(--surface);border-radius:12px;box-shadow:var(--shadow-lg);
+  width:100%;max-width:460px;max-height:92vh;overflow-y:auto;
+}
+.modal.wide{max-width:540px}
+.modal-hd{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;background:var(--surface);z-index:1;
+}
+.modal-hd h3{font-size:16px;font-weight:600}
+.modal-x{
+  width:28px;height:28px;border:none;border-radius:50%;
+  background:var(--surface2);color:var(--text2);cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;
+}
+.modal-x:hover{background:var(--surface3);color:var(--text)}
+.modal-bd{padding:20px}
+.modal-ft{
+  padding:14px 20px;border-top:1px solid var(--border);
+  display:flex;justify-content:flex-end;gap:8px;
+  position:sticky;bottom:0;background:var(--surface);
+}
+.modal-err-wrap{margin-bottom:12px}
+.modal-err{background:var(--danger-lt);color:var(--danger);padding:9px 13px;border-radius:var(--rad-sm);font-size:13px}
+
+/* Forms */
+.frow{margin-bottom:13px}
+.frow.req label::after{content:' *';color:var(--danger)}
+.frow label{display:block;font-size:11.5px;font-weight:600;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.finput{
+  width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--rad);
+  background:var(--surface2);color:var(--text);font-size:14px;
+}
+.finput:focus{outline:2px solid var(--accent);border-color:transparent}
+.fhint{font-size:11px;color:var(--text3);margin-top:3px}
+.fgrid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* Buttons */
+.btn-primary{padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:var(--rad);cursor:pointer;font-size:14px;font-weight:500}
+.btn-primary:hover{background:var(--accent-dark)}
+.btn-secondary{padding:8px 16px;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:var(--rad);cursor:pointer;font-size:14px}
+.btn-secondary:hover{background:var(--surface2)}
+.btn-danger2{padding:8px 16px;background:transparent;color:var(--danger);border:1px solid var(--danger);border-radius:var(--rad);cursor:pointer;font-size:14px}
+.btn-danger2:hover{background:var(--danger);color:#fff}
+
+/* Settings */
+.settings-section{margin-bottom:22px}
+.settings-section:last-child{margin-bottom:0}
+.settings-section h4{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.toggle-lbl{font-size:14px}
+.toggle{position:relative;width:40px;height:22px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:11px;cursor:pointer;transition:background .2s}
+.toggle-slider::before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle input:checked~.toggle-slider{background:var(--accent)}
+.toggle input:checked~.toggle-slider::before{transform:translateX(18px)}
+
+/* Loading / error */
+.loading-wrap{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text2);gap:10px}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err-banner{background:var(--danger-lt);color:var(--danger);padding:12px 16px;border-radius:var(--rad);margin-bottom:14px;font-size:13px}
+
+/* Toast */
+#toast{
+  position:fixed;bottom:24px;left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:var(--text);color:var(--bg);padding:9px 18px;border-radius:20px;
+  font-size:13px;z-index:2000;transition:transform .3s;
+  pointer-events:none;white-space:nowrap;box-shadow:var(--shadow-lg);
+}
+#toast.show{transform:translateX(-50%) translateY(0)}
+
+@media(max-width:600px){
+  #search-input{width:140px}
+  .gc{font-size:7px}
 }
 </style>
 </head>
 <body>
-
-<header class="app-header">
-  <div class="app-title">🧊 <span>Freezer</span> Inventory</div>
-  <div class="global-search-wrap">
-    <span class="search-icon">🔍</span>
-    <input class="global-search" id="global-search" type="text" placeholder="Search all items…" autocomplete="off">
-    <button class="search-clear" id="search-clear" title="Clear">✕</button>
+<div id="app">
+  <div id="topbar">
+    <div id="wordmark">❄ <span class="accent">SyPhy</span>-lab</div>
+    <div id="tabs-scroll"></div>
+    <div class="topbar-right">
+      <div id="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input id="search-input" type="search" placeholder="Search…" autocomplete="off">
+      </div>
+      <button class="icon-btn" id="btn-settings" title="Settings">⚙</button>
+      <button class="icon-btn" id="btn-theme" title="Toggle theme">◑</button>
+    </div>
   </div>
-  <div class="header-actions">
-    <button class="btn btn-icon" id="theme-btn" title="Toggle theme">🌓</button>
-    <button class="btn btn-icon" id="settings-btn" title="Settings">⚙️</button>
-    <button class="btn btn-sm" id="refresh-btn">↺ Reload</button>
-  </div>
-</header>
-
-<div id="status-bar"></div>
-<div id="cross-tab-bar"></div>
-
-<div id="setup-banner" class="show">
-  <label for="url-input">Apps Script URL:</label>
-  <input id="url-input" type="url" placeholder="https://script.google.com/macros/s/…/exec">
-  <button class="btn btn-primary" id="save-url-btn">Save &amp; Load</button>
-  <button class="btn" id="dismiss-setup">✕</button>
+  <div id="crumbbar"></div>
+  <div id="main"></div>
 </div>
-
-<div class="freezer-tabs" id="freezer-tabs"></div>
-
-<main class="main" id="main-content">
-  <div class="loading-panel" id="init-msg">
-    <span style="color:var(--text3)">Paste your Apps Script URL above to get started.</span>
-  </div>
-</main>
-
-<!-- ── Item modal ───────────────────────────────────────────────────────── -->
-<div class="overlay" id="item-overlay">
-  <div class="modal">
-    <div class="modal-head">
-      <span class="modal-title" id="modal-title">Add item</span>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-field">
-        <label class="form-label" for="f-name">Name <span class="req">*</span></label>
-        <input class="form-input" id="f-name" placeholder="e.g. pT4-U6-sgApp…">
-      </div>
-      <div class="form-field" id="f-lab-row">
-        <label class="form-label" for="f-lab">LabCollector ID <span class="req">*</span></label>
-        <input class="form-input" id="f-lab" placeholder="e.g. 1175" type="text" oninput="updateLcPreview()">
-        <div class="lc-preview" id="lc-preview"></div>
-      </div>
-      <div class="form-field" id="f-date-row">
-        <label class="form-label" for="f-date">Date prepared (DD.MM.YYYY)</label>
-        <input class="form-input" id="f-date" placeholder="27.10.2026">
-      </div>
-      <div class="form-field" id="f-prep-row">
-        <label class="form-label" for="f-prep">Prepared by</label>
-        <input class="form-input" id="f-prep" placeholder="e.g. Morgan">
-      </div>
-      <div class="form-field" id="f-conc-row">
-        <label class="form-label" for="f-conc">Concentration (ng/µL)</label>
-        <input class="form-input" id="f-conc" placeholder="e.g. 500" type="number" min="0" step="any">
-      </div>
-      <div class="form-field" id="f-vol-row">
-        <label class="form-label" for="f-vol">Volume (µL)</label>
-        <input class="form-input" id="f-vol" placeholder="e.g. 50" type="number" min="0" step="any">
-      </div>
-      <div class="form-field" id="f-glyc-row">
-        <label class="form-label" for="f-glyc">Glycerol stock position</label>
-        <input class="form-input" id="f-glyc" placeholder="e.g. 15-B4">
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" id="modal-save" onclick="saveItem()">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Grid cell popup ──────────────────────────────────────────────────── -->
-<div id="grid-popup">
-  <span class="grid-popup-label" id="popup-label">Cell</span>
-  <input class="grid-popup-input" id="popup-input" placeholder="Box label…">
-  <div class="grid-popup-actions">
-    <button class="btn btn-sm" onclick="closeGridPopup()">Cancel</button>
-    <button class="btn btn-sm btn-primary" onclick="saveGridCell()">Update</button>
-  </div>
-</div>
-
-<!-- ── Settings overlay ─────────────────────────────────────────────────── -->
-<div class="overlay" id="settings-overlay">
-  <div class="modal" style="max-width:380px">
-    <div class="modal-head">
-      <span class="modal-title">⚙️ Settings</span>
-      <button class="modal-close" onclick="closeSettings()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="settings-section">Connection</div>
-      <div class="form-field">
-        <label class="form-label" for="url-input-s">Apps Script URL</label>
-        <input class="form-input" id="url-input-s" type="url" placeholder="https://script.google.com/macros/s/…/exec">
-      </div>
-      <hr style="border:none;border-top:1px solid var(--border);margin:4px 0">
-      <div class="settings-section">Low-volume warnings</div>
-      <div class="settings-row">
-        <input type="checkbox" id="s-lv-enabled">
-        <label for="s-lv-enabled">Enable low-volume warnings</label>
-      </div>
-      <div class="settings-row">
-        <label for="s-conc-thresh">Concentration threshold (ng/µL)</label>
-        <input type="number" id="s-conc-thresh" min="0" step="1" value="50">
-      </div>
-      <div class="settings-row">
-        <label for="s-vol-thresh">Volume threshold (µL)</label>
-        <input type="number" id="s-vol-thresh" min="0" step="1" value="10">
-      </div>
-      <div class="form-hint">Items below EITHER threshold are highlighted in orange. Items below BOTH are highlighted in red.</div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn" onclick="closeSettings()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveSettings()">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Add Box overlay ──────────────────────────────────────────────────── -->
-<div class="overlay" id="addbox-overlay">
-  <div class="modal" style="max-width:380px">
-    <div class="modal-head">
-      <span class="modal-title">➕ Add New Box</span>
-      <button class="modal-close" onclick="closeAddBox()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-field">
-        <label class="form-label" for="ab-name">Box name <span class="req">*</span></label>
-        <input class="form-input" id="ab-name" placeholder="e.g. Plasmids">
-      </div>
-      <div class="form-field">
-        <label class="form-label">Columns to include</label>
-        <div class="col-checkboxes">
-          <label class="col-check-row"><input type="checkbox" id="ab-col-date" checked> Date</label>
-          <label class="col-check-row"><input type="checkbox" id="ab-col-lab" checked> LabCollector no.</label>
-          <label class="col-check-row"><input type="checkbox" id="ab-col-conc" checked> Concentration (ng/µL)</label>
-          <label class="col-check-row"><input type="checkbox" id="ab-col-vol" checked> Volume (µL)</label>
-          <label class="col-check-row"><input type="checkbox" id="ab-col-prep" checked> Preparer</label>
-          <label class="col-check-row"><input type="checkbox" id="ab-col-glyc"> Glycerol stock</label>
-        </div>
-      </div>
-      <div class="form-hint">The new box columns will be appended to the right of existing boxes in the sheet.</div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn" onclick="closeAddBox()">Cancel</button>
-      <button class="btn btn-primary" id="ab-save" onclick="doAddBox()">Add Box</button>
-    </div>
-  </div>
-</div>
+<div id="toast"></div>
 
 <script>
 'use strict';
-var LC_BASE = 'https://bs-labcollect01.ethz.ch/moor/plasmids.php?search=1&strict=on&by_id=';
 
-/* ── State ─────────────────────────────────────────────────────────────── */
-var S = {
-  url:     '',
-  sheets:  [],
-  active:  '',
-  cache:   {},     // sheetName → {grid, boxes}
-  modal:   null,   // {mode, sheet, box, item}
-  gridCtx: null,
-  search:  '',
-  lowVol:  { enabled: false, concThresh: 50, volThresh: 10 }
+/* ══════════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════════ */
+const S = {
+  url:         localStorage.getItem('inv_url') || 'https://script.google.com/macros/s/AKfycbz4pI-rYe2NXWFkwMmJRMF0FABUt0V-QXh7E0sQyolN5WGjd4fRbk-L7ZvA-xtVBJL9vg/exec',
+  sheets:      [],
+  activeSheet: localStorage.getItem('inv_sheet') || '',
+  data:        null,
+  cache:       {},
+  activeBox:   null,   // null = grid view, string = box name
+  search:      '',
+  volFormRow:  null,   // sheet row number of open inline vol form
+  lowVol: (() => {
+    try { return JSON.parse(localStorage.getItem('inv_lowvol')) || {enabled:false,minConc:10,minVol:5}; }
+    catch { return {enabled:false,minConc:10,minVol:5}; }
+  })()
 };
 
-/* ── Storage ────────────────────────────────────────────────────────────── */
-function ls(k, v) {
-  try {
-    if (v === undefined) return localStorage.getItem(k) || '';
-    localStorage.setItem(k, v);
-  } catch(e) {}
-}
-
-/* ── Theme ──────────────────────────────────────────────────────────────── */
-function setTheme(t) {
-  document.documentElement.setAttribute('data-theme', t);
-  document.getElementById('theme-btn').textContent = t === 'dark' ? '☀️' : '🌓';
-  ls('inv-theme', t);
-}
-document.getElementById('theme-btn').onclick = function() {
-  var cur = document.documentElement.getAttribute('data-theme');
-  setTheme(cur === 'dark' ? 'light' : 'dark');
-};
-
-/* ── Status ─────────────────────────────────────────────────────────────── */
-var _stid;
-function status(msg, isErr) {
-  clearTimeout(_stid);
-  var b = document.getElementById('status-bar');
-  b.textContent = msg || '';
-  b.className = msg ? ('status-bar show' + (isErr ? ' err' : '')) : 'status-bar';
-  if (msg && !isErr) _stid = setTimeout(function(){ b.className = 'status-bar'; }, 3000);
-}
-
-/* ── JSONP ──────────────────────────────────────────────────────────────── */
-var _ci = 0;
-function api(params, ms) {
-  return new Promise(function(res, rej) {
-    if (!S.url) { rej(new Error('No URL set')); return; }
-    var cb = '__icb' + (++_ci);
-    var tid = setTimeout(function(){
-      window[cb] = null;
-      if (sc.parentNode) sc.parentNode.removeChild(sc);
-      rej(new Error('Timeout'));
-    }, ms || 20000);
-    window[cb] = function(d) {
-      clearTimeout(tid); window[cb] = null;
-      if (sc.parentNode) sc.parentNode.removeChild(sc);
-      res(d);
-    };
-    var qs = Object.keys(params).map(function(k){
-      return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
-    }).join('&');
-    var sc = document.createElement('script');
-    sc.src = S.url + '?callback=' + cb + '&' + qs;
+/* ══════════════════════════════════════════════════════════════
+   JSONP HELPER
+══════════════════════════════════════════════════════════════ */
+let _seq = 0;
+function apiFetch(params, ms = 18000) {
+  return new Promise((resolve, reject) => {
+    const cb = '_ic' + (++_seq);
+    const sid = '_s' + cb;
+    let done = false;
+    const timer = setTimeout(() => { cleanup(); if (!done) reject(new Error('Request timed out')); }, ms);
+    function cleanup() { delete window[cb]; const el = document.getElementById(sid); if (el) el.remove(); }
+    window[cb] = data => { done = true; clearTimeout(timer); cleanup(); resolve(data); };
+    const qs = Object.entries({ ...params, callback: cb })
+      .map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
+    const sc = document.createElement('script');
+    sc.id = sid;
+    sc.src = S.url + '?' + qs;
+    sc.onerror = () => { done = true; clearTimeout(timer); cleanup(); reject(new Error('Network / CORS error')); };
     document.head.appendChild(sc);
   });
 }
 
-/* ── Boot ───────────────────────────────────────────────────────────────── */
-(function init() {
-  var t = ls('inv-theme');
-  if (t) setTheme(t);
+/* ══════════════════════════════════════════════════════════════
+   BOX UTILITIES
+══════════════════════════════════════════════════════════════ */
+function buildBoxSet(data) {
+  const s = new Set();
+  if (!data) return s;
+  (data.boxes||[]).forEach(b => s.add(b.name.trim().toLowerCase()));
+  return s;
+}
+function isBoxCell(val, boxSet) {
+  if (!val || !val.trim()) return false;
+  return boxSet.has(val.trim().toLowerCase()) || /^box\s*\d+$/i.test(val.trim());
+}
+function findBox(name, data) {
+  if (!name || !data) return null;
+  return (data.boxes||[]).find(b => b.name.trim().toLowerCase() === name.trim().toLowerCase()) || null;
+}
 
-  // Low-vol settings
+/* ══════════════════════════════════════════════════════════════
+   SEARCH
+══════════════════════════════════════════════════════════════ */
+function itemText(item) {
+  return [item.name, item.labcollector, item.preparer].filter(Boolean).join(' ').toLowerCase();
+}
+function matchQ(item, q) { return !q || itemText(item).includes(q.toLowerCase()); }
+
+function getCrossResults(q) {
+  if (!q) return { otherBoxes: [], otherSheets: [] };
+  const otherBoxes = [], otherSheets = [];
+  if (S.data) {
+    (S.data.boxes||[]).forEach(box => {
+      if (box.name === S.activeBox) return;
+      if (box.items.some(it => matchQ(it, q))) otherBoxes.push(box.name);
+    });
+  }
+  Object.entries(S.cache).forEach(([sheet, data]) => {
+    if (sheet === S.activeSheet) return;
+    (data.boxes||[]).forEach(box => {
+      if (box.items.some(it => matchQ(it, q)))
+        otherSheets.push({ sheet, box: box.name });
+    });
+  });
+  return { otherBoxes, otherSheets };
+}
+
+function boxMatchMap(q) {
+  // Returns {boxNameLower: count} for cross-box highlighting on grid
+  const m = {};
+  if (!q || !S.data) return m;
+  (S.data.boxes||[]).forEach(box => {
+    const cnt = box.items.filter(it => matchQ(it, q)).length;
+    if (cnt) m[box.name.trim().toLowerCase()] = cnt;
+  });
+  return m;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LOW VOLUME
+══════════════════════════════════════════════════════════════ */
+function isLowVol(item) {
+  if (!S.lowVol.enabled) return false;
+  const c = parseFloat(item.concentration);
+  const v = parseFloat(item.volume);
+  return !isNaN(c) && !isNaN(v) && c < S.lowVol.minConc && v < S.lowVol.minVol;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════════════════════ */
+let _toastTimer;
+function toast(msg, dur = 2800) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), dur);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ESCAPE
+══════════════════════════════════════════════════════════════ */
+function h(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════════ */
+async function init() {
+  const th = localStorage.getItem('inv_theme');
+  if (th) document.documentElement.dataset.theme = th;
+
+  if (!S.url) {
+    const u = prompt('Enter your Google Apps Script web app URL:');
+    if (!u || !u.startsWith('http')) { showMainErr('No URL. Reload and try again.'); return; }
+    S.url = u.trim();
+    localStorage.setItem('inv_url', S.url);
+  }
+
+  showLoading('Connecting…');
   try {
-    var lv = JSON.parse(ls('inv-lowvol') || '{}');
-    if (lv.enabled !== undefined) S.lowVol.enabled = !!lv.enabled;
-    if (lv.concThresh) S.lowVol.concThresh = parseFloat(lv.concThresh);
-    if (lv.volThresh)  S.lowVol.volThresh  = parseFloat(lv.volThresh);
-  } catch(e) {}
-
-  var DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbwipyONVQsR24BTXXLl7syPxyQJvaNu1h0JFgnHiVV0IvcVt92AzoeLNJP7EI7_HCTk9w/exec';
-  var u = ls('inv-url') || DEFAULT_URL;
-  if (u) {
-    S.url = u;
-    document.getElementById('url-input').value = u;
-    document.getElementById('url-input-s').value = u;
-    document.getElementById('setup-banner').classList.remove('show');
-    loadSheets();
-  }
-
-  document.getElementById('save-url-btn').onclick = function() {
-    var u = document.getElementById('url-input').value.trim();
-    if (!u) return;
-    S.url = u; ls('inv-url', u);
-    document.getElementById('url-input-s').value = u;
-    document.getElementById('setup-banner').classList.remove('show');
-    loadSheets();
-  };
-  document.getElementById('dismiss-setup').onclick = function(){
-    document.getElementById('setup-banner').classList.remove('show');
-  };
-  document.getElementById('settings-btn').onclick = openSettings;
-  document.getElementById('refresh-btn').onclick = function(){
-    S.cache = {};
-    if (S.active) loadSheet(S.active);
-  };
-  document.getElementById('item-overlay').onclick = function(e){ if (e.target === this) closeModal(); };
-  document.getElementById('settings-overlay').onclick = function(e){ if (e.target === this) closeSettings(); };
-  document.getElementById('addbox-overlay').onclick = function(e){ if (e.target === this) closeAddBox(); };
-  document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape') { closeModal(); closeGridPopup(); closeSettings(); closeAddBox(); }
-  });
-
-  // Global search
-  var gsi = document.getElementById('global-search');
-  var gsc = document.getElementById('search-clear');
-  var _st;
-  gsi.oninput = function() {
-    clearTimeout(_st);
-    _st = setTimeout(function(){ applySearch(gsi.value.trim()); }, 250);
-    gsc.classList.toggle('show', !!gsi.value);
-  };
-  gsc.onclick = function() {
-    gsi.value = ''; gsc.classList.remove('show'); applySearch('');
-  };
-})();
-
-/* ── Load sheets ────────────────────────────────────────────────────────── */
-function loadSheets() {
-  status('Connecting…');
-  api({ action: 'getSheets' }).then(function(d) {
-    if (!d.success) { status('Error: ' + (d.error || ''), true); return; }
-    S.sheets = d.sheets || [];
-    buildTabs();
-    if (S.sheets.length) loadSheet(S.sheets[0].name);
-    else status('No sheets found', true);
-  }).catch(function(e){ status('Connection failed: ' + e.message, true); });
+    const res = await apiFetch({ action: 'getSheets' });
+    if (res.error) throw new Error(res.error);
+    S.sheets = res.sheets || [];
+    if (!S.sheets.find(s => s.name === S.activeSheet))
+      S.activeSheet = S.sheets[0]?.name || '';
+    renderTabs();
+    await loadSheet(S.activeSheet);
+  } catch(e) { showMainErr('Connection failed: ' + e.message); }
 }
 
-function buildTabs() {
-  var bar = document.getElementById('freezer-tabs');
-  bar.innerHTML = '';
-  S.sheets.forEach(function(sh) {
-    var t = el('div', 'freezer-tab');
-    var dot = el('span', 'tab-match-dot');
-    dot.id = 'tab-dot-' + sh.name;
-    t.appendChild(document.createTextNode(sh.name));
-    t.appendChild(dot);
-    t.onclick = function(){ loadSheet(sh.name); };
-    bar.appendChild(t);
-  });
-}
-
-function setActive(name) {
-  S.active = name;
-  qsa('.freezer-tab').forEach(function(t){
-    t.classList.toggle('active', t.firstChild.textContent === name);
-  });
-}
-
-/* ── Load & render sheet ────────────────────────────────────────────────── */
-function loadSheet(name) {
+async function loadSheet(name, force = false) {
   if (!name) return;
-  setActive(name);
-  if (S.cache[name]) { render(name, S.cache[name]); applySearch(S.search); return; }
-  var m = document.getElementById('main-content');
-  m.innerHTML = '<div class="loading-panel"><div class="spinner"></div><span>Loading '+esc(name)+'…</span></div>';
-  status('Loading ' + name + '…');
-  api({ action: 'getData', sheet: name }).then(function(d){
-    if (!d.success) { status('Error: ' + (d.error || ''), true); return; }
-    S.cache[name] = d;
-    status('');
-    render(name, d);
-    applySearch(S.search);
-  }).catch(function(e){
-    m.innerHTML = '<div class="loading-panel" style="color:var(--danger)">Failed: '+esc(e.message)+'</div>';
-    status('Error: ' + e.message, true);
-  });
+  S.activeSheet = name;
+  S.activeBox   = null;
+  S.volFormRow  = null;
+  localStorage.setItem('inv_sheet', name);
+  renderTabs();
+  renderCrumb();
+
+  if (!force && S.cache[name]) {
+    S.data = S.cache[name];
+    render();
+    return;
+  }
+
+  showLoading('Loading ' + name + '…');
+  try {
+    const res = await apiFetch({ action: 'getData', sheet: name });
+    if (res.error) throw new Error(res.error);
+    S.data = res;
+    S.cache[name] = res;
+    render();
+  } catch(e) { showMainErr('Load failed: ' + e.message); }
 }
 
-/* ── Render ─────────────────────────────────────────────────────────────── */
-function render(name, data) {
-  var m = document.getElementById('main-content');
-  m.innerHTML = '';
+async function refreshCurrent() {
+  const box = S.activeBox;
+  await loadSheet(S.activeSheet, true);
+  if (box && findBox(box, S.data)) {
+    S.activeBox = box;
+    render();
+  }
+}
 
-  // Collect box names for grid navigation
-  var boxNames = (data.boxes || []).map(function(b){ return b.name.toLowerCase(); });
+/* ══════════════════════════════════════════════════════════════
+   RENDER FRAME
+══════════════════════════════════════════════════════════════ */
+function showLoading(msg) {
+  document.getElementById('main').innerHTML =
+    `<div class="loading-wrap"><div class="spinner"></div>${h(msg)}</div>`;
+}
+function showMainErr(msg) {
+  document.getElementById('main').innerHTML =
+    `<div class="err-banner">⚠ ${h(msg)}</div>`;
+}
+function renderTabs() {
+  document.getElementById('tabs-scroll').innerHTML =
+    S.sheets.map(s =>
+      `<button class="tab-btn${s.name===S.activeSheet?' active':''}" onclick="loadSheet('${h(s.name)}')">${h(s.name)}</button>`
+    ).join('');
+}
+function renderCrumb() {
+  const parts = [];
+  if (S.activeSheet) {
+    parts.push(`<span class="crumb${S.activeBox?' link':' current'}" onclick="showGrid()">${h(S.activeSheet)}</span>`);
+  }
+  if (S.activeBox) {
+    parts.push('<span class="crumb-sep">›</span>');
+    parts.push(`<span class="crumb current">${h(S.activeBox)}</span>`);
+    parts.push('<div class="crumbbar-right"><button class="back-btn" onclick="showGrid()">← Grid</button></div>');
+  }
+  document.getElementById('crumbbar').innerHTML = parts.join('');
+}
+function render() {
+  renderTabs();
+  renderCrumb();
+  if (S.activeBox) renderBoxPanel();
+  else renderGrid();
+}
 
-  // Grid
-  var gs = el('div', 'grid-section');
-  gs.appendChild(sectionTitle('Freezer map — click to navigate or label'));
-  gs.appendChild(buildGrid(name, data.grid || [], boxNames));
-  m.appendChild(gs);
+/* ══════════════════════════════════════════════════════════════
+   GRID VIEW
+══════════════════════════════════════════════════════════════ */
+function showGrid() { S.activeBox = null; S.volFormRow = null; render(); }
 
-  // Boxes
-  var bsHdr = el('div', 'section-header');
-  bsHdr.appendChild(sectionTitle('Box contents'));
-  var addBoxBtn = el('button', 'btn btn-sm btn-primary');
-  addBoxBtn.innerHTML = '➕ Add Box';
-  addBoxBtn.onclick = function(){ openAddBox(name); };
-  bsHdr.appendChild(addBoxBtn);
-  m.appendChild(bsHdr);
+function renderGrid() {
+  if (!S.data) return;
+  const grid   = S.data.grid || [];
+  const boxSet = buildBoxSet(S.data);
+  const q      = S.search.trim();
+  const bmMap  = boxMatchMap(q);
+  const cross  = getCrossResults(q);
 
-  if ((data.boxes || []).length) {
-    var row = el('div', 'boxes-row');
-    row.id = 'boxes-row-' + name;
-    (data.boxes || []).forEach(function(box){
-      row.appendChild(buildBoxPanel(name, box));
+  let html = '';
+
+  // Cross-sheet/box chips
+  if (q && (cross.otherBoxes.length || cross.otherSheets.length)) {
+    html += '<div class="cross-banner"><span class="cross-banner-label">Also found in:</span>';
+    cross.otherBoxes.forEach(b => {
+      html += `<button class="cross-chip" onclick="navigateBox('${h(b)}')">`
+            + `<span class="rdot"></span>${h(b)}</button>`;
     });
-    m.appendChild(row);
+    cross.otherSheets.forEach(r => {
+      html += `<button class="cross-chip" onclick="jumpToSheet('${h(r.sheet)}','${h(r.box)}')">`
+            + `<span class="rdot"></span>${h(r.sheet)}: ${h(r.box)}</button>`;
+    });
+    html += '</div>';
+  }
+
+  html += '<div class="grid-wrap">';
+  html += `<div class="grid-header">
+    <h2>📦 ${h(S.activeSheet)}</h2>
+    <button class="btn-add-box" onclick="openAddBoxModal()">+ New Box</button>
+  </div>`;
+
+  html += '<div class="grid-table">';
+  // Header: corner + col labels
+  html += '<div class="gc-corner"></div>';
+  for (let c = 1; c <= 9; c++) html += `<div class="gc-col-label">${c}</div>`;
+
+  // Rows
+  for (let ri = 0; ri < grid.length; ri++) {
+    html += `<div class="gc-row-label">${ri+1}</div>`;
+    const row = grid[ri] || [];
+    for (let ci = 0; ci < 9; ci++) {
+      const val   = (row[ci] || '').trim();
+      const empty = val === '';
+      const isBox = !empty && isBoxCell(val, boxSet);
+      const isItem = !empty && !isBox;
+
+      // Dim non-matching item cells when searching
+      let dim = false;
+      if (q && isItem) dim = !val.toLowerCase().includes(q.toLowerCase());
+
+      let cls = empty ? 'empty' : isBox ? 'box-cell' : 'item-cell';
+      if (dim) cls += ' dimmed';
+
+      // Red dot if this box cell has matches
+      let badge = '';
+      if (isBox && bmMap[val.trim().toLowerCase()])
+        badge = `<span class="badge-dot" title="${bmMap[val.trim().toLowerCase()]} match(es)"></span>`;
+
+      let onclick = '';
+      if (empty)  onclick = `openGridEmptyModal(${ri},${ci})`;
+      else if (isBox) onclick = `navigateBox('${h(val)}')`;
+      else        onclick = `openGridItemModal(${ri},${ci},'${h(val)}')`;
+
+      const label = val.length > 30 ? val.slice(0,28)+'…' : val;
+      html += `<div class="gc ${cls}" onclick="${onclick}" title="${h(val)}">${badge}<span>${h(label)}</span></div>`;
+    }
+  }
+  html += '</div></div>'; // grid-table, grid-wrap
+  document.getElementById('main').innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BOX PANEL VIEW
+══════════════════════════════════════════════════════════════ */
+async function navigateBox(name) {
+  const box = findBox(name, S.data);
+  if (box) {
+    S.activeBox = box.name;
+    S.volFormRow = null;
+    render();
   } else {
-    var note = el('div', 'loading-panel');
-    note.style.color = 'var(--text3)';
-    note.textContent = 'No box sections found. Add a box to get started.';
-    m.appendChild(note);
+    if (!confirm(`"${name}" has no item list yet.\nCreate it now in the sheet?`)) return;
+    showLoading('Creating box…');
+    try {
+      const res = await apiFetch({ action: 'addBox', sheet: S.activeSheet, boxName: name });
+      if (res.error) throw new Error(res.error);
+      await loadSheet(S.activeSheet, true);
+      const b = findBox(name, S.data);
+      if (b) { S.activeBox = b.name; render(); }
+      toast(`Box "${name}" created ✓`);
+    } catch(e) { showMainErr('Create failed: ' + e.message); }
   }
 }
 
-/* ── 9×9 Grid ───────────────────────────────────────────────────────────── */
-function buildGrid(sheet, grid, boxNames) {
-  var wrap = el('div');
-  var g = el('div', 'freezer-grid');
+async function jumpToSheet(sheet, box) {
+  await loadSheet(sheet, false);
+  await navigateBox(box);
+}
 
-  g.appendChild(el('div', 'grid-corner'));
-  for (var c = 1; c <= 9; c++) {
-    var ch = el('div', 'grid-col-hdr'); ch.textContent = c; g.appendChild(ch);
+function renderBoxPanel() {
+  if (!S.data) return;
+  const box  = findBox(S.activeBox, S.data);
+  const q    = S.search.trim();
+  const cross = getCrossResults(q);
+
+  let html = '';
+
+  // Cross chips
+  if (q && (cross.otherBoxes.length || cross.otherSheets.length)) {
+    html += '<div class="cross-banner"><span class="cross-banner-label">Also in:</span>';
+    cross.otherBoxes.forEach(b => {
+      html += `<button class="cross-chip" onclick="navigateBox('${h(b)}')">`
+            + `<span class="rdot"></span>${h(b)}</button>`;
+    });
+    cross.otherSheets.forEach(r => {
+      html += `<button class="cross-chip" onclick="jumpToSheet('${h(r.sheet)}','${h(r.box)}')">`
+            + `<span class="rdot"></span>${h(r.sheet)}: ${h(r.box)}</button>`;
+    });
+    html += '</div>';
   }
-  for (var r = 0; r < 9; r++) {
-    var rh = el('div', 'grid-row-hdr'); rh.textContent = r + 1; g.appendChild(rh);
-    for (var cc = 0; cc < 9; cc++) {
-      var v = (grid[r] && grid[r][cc]) || '';
-      var isNav = v && boxNames.indexOf(v.toLowerCase()) !== -1;
-      var cls = 'grid-cell' + (v ? (isNav ? ' filled nav-cell' : ' filled') : ' dot');
-      var cell = el('div', cls);
-      if (isNav) {
-        // Show navigate + edit buttons
-        var navSpan = el('span', '');
-        navSpan.textContent = v;
-        cell.appendChild(navSpan);
-        var editBtn = el('button', 'cell-edit-btn');
-        editBtn.textContent = '✏️';
-        editBtn.title = 'Edit label';
-        editBtn.onclick = (function(ce, rv, cv){ return function(e){ e.stopPropagation(); openGridPopup(ce, rv, cv); }; })(cell, r + 1, cc + 1);
-        cell.appendChild(editBtn);
-        cell.title = 'Jump to ' + v;
-        cell.onclick = (function(boxName){ return function(){ scrollToBox(boxName); }; })(v);
+
+  html += '<div class="box-panel-header">';
+  html += `<h2>📋 ${h(S.activeBox)}</h2>`;
+  html += `<button class="btn-add-item" onclick="openAddItemModal()">+ Add Item</button>`;
+  html += '</div>';
+
+  if (!box || box.items.length === 0) {
+    html += `<div class="empty-state">
+      <h3>No items in "${h(S.activeBox)}"</h3>
+      <p>Click <strong>+ Add Item</strong> to add your first plasmid.</p>
+    </div>`;
+    document.getElementById('main').innerHTML = html;
+    return;
+  }
+
+  html += '<table class="items-table"><thead><tr>';
+  html += '<th>Name</th>';
+  if (box.hasLabCollector !== false) html += '<th>LabCollector</th>';
+  if (box.hasConc !== false)         html += '<th>Conc (ng/µL)</th>';
+  if (box.hasVolume !== false)       html += '<th>Volume (µL)</th>';
+  html += '<th>Date</th>';
+  if (box.hasPreparer !== false)     html += '<th>Preparer</th>';
+  html += '<th>Actions</th></tr></thead><tbody>';
+
+  box.items.forEach(item => {
+    const matches = matchQ(item, q);
+    const low     = isLowVol(item);
+    const rowCls  = (q && !matches) ? 'dimmed' : '';
+    html += `<tr class="${rowCls}">`;
+    html += `<td><span class="name-cell">${h(item.name)}</span>${low ? ' <span class="low-badge">⚠ low</span>' : ''}</td>`;
+
+    if (box.hasLabCollector !== false) {
+      const lc = item.labcollector || '';
+      html += '<td>' + (lc
+        ? `<a class="lc-link" href="https://bs-labcollect01.ethz.ch/moor/plasmids.php?search=1&strict=on&by_id=${h(lc)}" target="_blank" rel="noopener">${h(lc)} ↗</a>`
+        : '<span style="color:var(--text3)">—</span>') + '</td>';
+    }
+
+    if (box.hasConc !== false) html += `<td class="mono">${h(item.concentration||'—')}</td>`;
+
+    if (box.hasVolume !== false) {
+      const vStr = item.volume != null && item.volume !== '' ? item.volume : '';
+      if (S.volFormRow === item._row) {
+        html += `<td><div class="vol-form">
+          <input type="number" id="vfi" min="0" step="0.1" placeholder="used µL"
+            onkeydown="if(event.key==='Enter')applyVol(${item._row});if(event.key==='Escape')cancelVol()">
+          <button class="apply" onclick="applyVol(${item._row})">✓</button>
+          <button class="cancel" onclick="cancelVol()">✕</button>
+        </div></td>`;
       } else {
-        cell.textContent = v || '·';
-        cell.title = v || ('Row '+(r+1)+', Col '+(cc+1));
-        cell.onclick = (function(ce){ return function(){ openGridPopup(ce, parseInt(ce.dataset.r), parseInt(ce.dataset.c)); }; })(cell);
+        html += `<td><div class="vol-wrap">
+          <span class="vol-num">${h(vStr)||'—'}</span>
+          <button class="use-vol-btn" onclick="openVolForm(${item._row})">Use…</button>
+        </div></td>`;
       }
-      cell.dataset.r = r + 1;
-      cell.dataset.c = cc + 1;
-      cell.dataset.sheet = sheet;
-      g.appendChild(cell);
     }
-  }
-  wrap.appendChild(g);
-  return wrap;
-}
 
-function scrollToBox(boxName) {
-  var panels = qsa('.box-panel');
-  for (var i = 0; i < panels.length; i++) {
-    var nameEl = panels[i].querySelector('.box-name');
-    if (nameEl && nameEl.textContent === boxName) {
-      panels[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
-      panels[i].style.boxShadow = '0 0 0 3px var(--accent)';
-      setTimeout(function(p){ p.style.boxShadow = ''; }, 1500, panels[i]);
-      return;
-    }
-  }
-  status('Box "' + boxName + '" not found on this tab', true);
-}
-
-function openGridPopup(cellEl, r, c) {
-  S.gridCtx = { sheet: cellEl.dataset.sheet, r: r, c: c, el: cellEl };
-  var p = document.getElementById('grid-popup');
-  document.getElementById('popup-label').textContent = 'Row ' + r + ', Col ' + c;
-  var cur = cellEl.classList.contains('dot') ? '' : (cellEl.firstChild ? cellEl.firstChild.textContent || cellEl.textContent : cellEl.textContent);
-  document.getElementById('popup-input').value = cur === '·' ? '' : cur;
-  var rect = cellEl.getBoundingClientRect();
-  p.style.top  = Math.min(rect.bottom + window.scrollY + 4, window.innerHeight + window.scrollY - 130) + 'px';
-  p.style.left = Math.min(rect.left, window.innerWidth - 210) + 'px';
-  p.classList.add('show');
-  document.getElementById('popup-input').focus();
-}
-
-function closeGridPopup() {
-  document.getElementById('grid-popup').classList.remove('show');
-  S.gridCtx = null;
-}
-
-function saveGridCell() {
-  var ctx = S.gridCtx;
-  if (!ctx) return;
-  var v = document.getElementById('popup-input').value.trim();
-  closeGridPopup();
-  api({ action: 'updateGrid', sheet: ctx.sheet, gridRow: ctx.r, gridCol: ctx.c, value: v })
-    .then(function(d){
-      if (d.success) {
-        var cached = S.cache[ctx.sheet];
-        if (cached && cached.grid && cached.grid[ctx.r-1]) cached.grid[ctx.r-1][ctx.c-1] = v;
-        // Re-render grid
-        delete S.cache[ctx.sheet];
-        loadSheet(ctx.sheet);
-        status('Grid updated');
-      } else status('Error: ' + (d.error || ''), true);
-    }).catch(function(e){ status('Error: ' + e.message, true); });
-}
-
-/* ── Box panel ──────────────────────────────────────────────────────────── */
-function panelId(sheet, boxName) {
-  return 'bp-' + sheet.replace(/\s/g,'_') + '-' + boxName.replace(/\W/g,'_');
-}
-
-function buildBoxPanel(sheet, box) {
-  var panel = el('div', 'box-panel');
-  panel.id = panelId(sheet, box.name);
-
-  var hdr = el('div', 'box-header');
-  var nm = el('span', 'box-name'); nm.textContent = box.name;
-  var cnt = el('span', 'box-count'); cnt.id = 'cnt-' + panelId(sheet, box.name); cnt.textContent = (box.items||[]).length + ' items';
-  hdr.appendChild(nm); hdr.appendChild(cnt);
-  // Low-vol badge placeholder
-  var warnBadge = el('span', 'box-warn-badge'); warnBadge.id = 'warnbadge-' + panelId(sheet, box.name); warnBadge.style.display = 'none';
-  hdr.appendChild(warnBadge);
-  // Match badge placeholder
-  var matchBadge = el('span', 'box-match-badge'); matchBadge.id = 'matchbadge-' + panelId(sheet, box.name); matchBadge.style.display = 'none';
-  hdr.appendChild(matchBadge);
-  panel.appendChild(hdr);
-
-  var body = el('div', 'box-body');
-  body.appendChild(boxTable(sheet, box, '', ''));
-  panel.appendChild(body);
-
-  var foot = el('div', 'box-footer');
-  var ab = el('button', 'btn btn-primary btn-sm');
-  ab.textContent = '+ Add item';
-  ab.onclick = function(){ openAdd(sheet, box); };
-  foot.appendChild(ab);
-  panel.appendChild(foot);
-
-  // Update low-vol badge
-  updateWarnBadge(sheet, box);
-
-  return panel;
-}
-
-function updateWarnBadge(sheet, box) {
-  if (!S.lowVol.enabled) return;
-  var warnCount = 0;
-  (box.items || []).forEach(function(it){
-    var conc = parseFloat(it.concentration) || 0;
-    var vol  = parseFloat(it.volume)        || 0;
-    var lowC = box.hasConc   && conc > 0 && conc < S.lowVol.concThresh;
-    var lowV = box.hasVolume && vol  > 0 && vol  < S.lowVol.volThresh;
-    if (lowC || lowV) warnCount++;
+    html += `<td class="mono">${h(item.date||'—')}</td>`;
+    if (box.hasPreparer !== false) html += `<td>${h(item.preparer||'—')}</td>`;
+    html += `<td><div class="row-actions">
+      <button class="btn-edit" onclick="openEditModal(${item._row})">Edit</button>
+      <button class="btn-del" onclick="doDelete(${item._row})">Delete</button>
+    </div></td>`;
+    html += '</tr>';
   });
-  var badge = document.getElementById('warnbadge-' + panelId(sheet, box.name));
-  if (badge) {
-    badge.textContent = '⚠ ' + warnCount + ' low';
-    badge.style.display = warnCount > 0 ? '' : 'none';
+
+  html += '</tbody></table>';
+  document.getElementById('main').innerHTML = html;
+
+  if (S.volFormRow !== null) {
+    setTimeout(() => document.getElementById('vfi')?.focus(), 40);
   }
 }
 
-/* ── Box table ──────────────────────────────────────────────────────────── */
-function boxTable(sheet, box, q, globalQ) {
-  var searchQ = globalQ || q;
-  var items = (box.items || []).filter(function(it){ return true; }); // always show all rows, dim non-matches
+/* ── Volume inline form ─────────────────────────────────────── */
+function openVolForm(row) { S.volFormRow = row; renderBoxPanel(); }
+function cancelVol()      { S.volFormRow = null; renderBoxPanel(); }
 
-  if (!items.length) {
-    var d = el('div', 'box-empty');
-    d.textContent = 'No items yet.';
-    return d;
-  }
-
-  var tbl = el('table', 'box-table');
-  var thead = document.createElement('thead');
-  var hr = document.createElement('tr');
-  ['#','Name','Date','By','LC #','Conc. (ng/µL)','Vol. (µL)'].forEach(function(h){
-    var th = document.createElement('th'); th.textContent = h; hr.appendChild(th);
-  });
-  if (box.hasGlycerol) { var thG = document.createElement('th'); thG.textContent = 'Glycerol'; hr.appendChild(thG); }
-  var thA = document.createElement('th'); hr.appendChild(thA);
-  thead.appendChild(hr); tbl.appendChild(thead);
-
-  var tbody = document.createElement('tbody');
-  items.forEach(function(item, idx){
-    var tr = document.createElement('tr');
-    tr.dataset.row = item._row;
-
-    // Check low-vol
-    if (S.lowVol.enabled) {
-      var conc = parseFloat(item.concentration) || 0;
-      var vol  = parseFloat(item.volume)        || 0;
-      var lowC = box.hasConc   && conc > 0 && conc < S.lowVol.concThresh;
-      var lowV = box.hasVolume && vol  > 0 && vol  < S.lowVol.volThresh;
-      if (lowC && lowV) tr.classList.add('crit-warn');
-      else if (lowC || lowV) tr.classList.add('low-warn');
-    }
-
-    // Check search dim
-    if (searchQ) {
-      var lq = searchQ.toLowerCase();
-      var hit = [item.name, item.date, item.labcollector, item.glycerol, item.concentration, item.volume, item.preparer]
-        .some(function(v){ return (v||'').toLowerCase().indexOf(lq) !== -1; });
-      if (!hit) tr.classList.add('dim');
-    }
-
-    var td0 = el('td','item-meta'); td0.textContent = idx+1; tr.appendChild(td0);
-
-    var td1 = el('td',''); var ns = el('span','item-name'); ns.textContent = item.name||''; td1.appendChild(ns); tr.appendChild(td1);
-    var td2 = el('td','item-meta'); td2.textContent = item.date||''; tr.appendChild(td2);
-    var td3 = el('td','item-meta'); td3.textContent = item.preparer||''; tr.appendChild(td3);
-
-    // LabCollector link
-    var td4 = el('td','item-lab');
-    if (item.labcollector) {
-      var a = document.createElement('a');
-      a.href = LC_BASE + encodeURIComponent(item.labcollector);
-      a.target = '_blank'; a.rel = 'noopener';
-      a.textContent = item.labcollector;
-      td4.appendChild(a);
-    }
-    tr.appendChild(td4);
-
-    var td5 = el('td','item-meta'); td5.textContent = item.concentration || ''; tr.appendChild(td5);
-
-    // Volume cell with "Use" button
-    var td6 = el('td','vol-cell');
-    var volSpan = el('span','vol-val'); volSpan.id = 'vol-'+sheet.replace(/\W/g,'_')+'-'+item._row; volSpan.textContent = item.volume !== undefined ? item.volume : '';
-    td6.appendChild(volSpan);
-    if (box.hasVolume) {
-      var useBtn = el('button','btn-use-vol'); useBtn.textContent = 'Use';
-      var volForm = el('div','vol-inline-form');
-      var volInp = el('input','vol-inline-input'); volInp.type='number'; volInp.min='0'; volInp.step='any'; volInp.placeholder='µL used';
-      var volConfirm = el('button','btn btn-sm btn-primary'); volConfirm.textContent='−Use';
-      var volCancel  = el('button','btn btn-sm'); volCancel.textContent='✕';
-      volForm.appendChild(volInp); volForm.appendChild(volConfirm); volForm.appendChild(volCancel);
-      td6.appendChild(useBtn); td6.appendChild(volForm);
-      useBtn.onclick = function(){ volForm.classList.toggle('show'); if (volForm.classList.contains('show')) volInp.focus(); };
-      volCancel.onclick = function(){ volForm.classList.remove('show'); volInp.value=''; };
-      volConfirm.onclick = (function(it, vs, vi, vf, b2, s){ return function(){
-        var used = parseFloat(vi.value);
-        if (isNaN(used) || used <= 0) return;
-        api({ action: 'useVolume', sheet: s, box: b2.name, row: it._row, used: used })
-          .then(function(d){
-            if (d.success) {
-              vs.textContent = d.newVolume;
-              it.volume = String(d.newVolume);
-              vf.classList.remove('show'); vi.value='';
-              status('Volume updated → ' + d.newVolume + ' µL');
-              updateWarnBadge(s, b2);
-            } else status('Error: '+(d.error||''), true);
-          }).catch(function(e){ status('Error: '+e.message, true); });
-      }; })(item, volSpan, volInp, volForm, box, sheet);
-    }
-    tr.appendChild(td6);
-
-    if (box.hasGlycerol) {
-      var td7 = el('td','item-meta'); td7.textContent = item.glycerol||''; tr.appendChild(td7);
-    }
-
-    var tdA = el('td','item-actions');
-    var eb = el('button','btn-edit'); eb.textContent='✏️'; eb.title='Edit';
-    eb.onclick = (function(it){ return function(){ openEdit(sheet, box, it); }; })(item);
-    var db = el('button','btn-del'); db.textContent='🗑'; db.title='Delete';
-    db.onclick = (function(it){ return function(){ doDelete(sheet, box, it); }; })(item);
-    tdA.appendChild(eb); tdA.appendChild(db); tr.appendChild(tdA);
-    tbody.appendChild(tr);
-  });
-  tbl.appendChild(tbody);
-  return tbl;
+async function applyVol(row) {
+  const inp = document.getElementById('vfi');
+  if (!inp) return;
+  const used = parseFloat(inp.value);
+  if (isNaN(used) || used < 0) { inp.style.borderColor='var(--danger)'; inp.focus(); return; }
+  try {
+    const res = await apiFetch({
+      action:'useVolume', sheet:S.activeSheet, box:S.activeBox, row, used
+    });
+    if (res.error) throw new Error(res.error);
+    toast(`Used ${used} µL → ${res.newVolume} µL remaining`);
+    S.volFormRow = null;
+    await refreshCurrent();
+  } catch(e) { toast('Error: ' + e.message, 5000); }
 }
 
-function refreshBox(sheet, boxName) {
-  delete S.cache[sheet];
-  api({ action: 'getData', sheet: sheet }).then(function(d){
-    if (!d.success) { status('Refresh error', true); return; }
-    S.cache[sheet] = d;
-    var box = null;
-    (d.boxes||[]).forEach(function(b){ if (b.name === boxName) box = b; });
-    if (!box) return;
-    var pid = panelId(sheet, boxName);
-    var panel = document.getElementById(pid);
-    if (!panel) return;
-    panel.querySelector('.box-count').textContent = (box.items||[]).length + ' items';
-    var body = panel.querySelector('.box-body');
-    body.innerHTML = '';
-    body.appendChild(boxTable(sheet, box, '', S.search));
-    updateWarnBadge(sheet, box);
-    applySearch(S.search);
-  }).catch(function(e){ status('Error: ' + e.message, true); });
+/* ══════════════════════════════════════════════════════════════
+   MODALS
+══════════════════════════════════════════════════════════════ */
+function openModal(html) {
+  closeModal();
+  const ov = document.createElement('div');
+  ov.className = 'modal-overlay';
+  ov.id = 'modal-overlay';
+  ov.innerHTML = html;
+  ov.addEventListener('click', e => { if (e.target === ov) closeModal(); });
+  document.body.appendChild(ov);
 }
-
-/* ── Modal ──────────────────────────────────────────────────────────────── */
-function updateLcPreview() {
-  var v = document.getElementById('f-lab').value.trim();
-  var prev = document.getElementById('lc-preview');
-  if (v) {
-    prev.innerHTML = 'Preview: <a href="' + LC_BASE + encodeURIComponent(v) + '" target="_blank" rel="noopener">' + esc(v) + ' ↗</a>';
-  } else {
-    prev.innerHTML = '';
-  }
-}
-
-function openAdd(sheet, box) {
-  S.modal = { mode: 'add', sheet: sheet, box: box, item: null };
-  document.getElementById('modal-title').textContent = 'Add to ' + box.name;
-  ['f-name','f-lab','f-date','f-prep','f-conc','f-vol','f-glyc'].forEach(function(id){ document.getElementById(id).value = ''; });
-  document.getElementById('lc-preview').innerHTML = '';
-  ['f-name','f-lab'].forEach(function(id){ document.getElementById(id).classList.remove('error'); });
-  document.getElementById('f-glyc-row').style.display = box.hasGlycerol ? '' : 'none';
-  document.getElementById('item-overlay').classList.add('open');
-  setTimeout(function(){ document.getElementById('f-name').focus(); }, 50);
-}
-
-function openEdit(sheet, box, item) {
-  S.modal = { mode: 'edit', sheet: sheet, box: box, item: item };
-  document.getElementById('modal-title').textContent = 'Edit — ' + item.name;
-  document.getElementById('f-name').value  = item.name          || '';
-  document.getElementById('f-lab').value   = item.labcollector  || '';
-  document.getElementById('f-date').value  = item.date          || '';
-  document.getElementById('f-prep').value  = item.preparer      || '';
-  document.getElementById('f-conc').value  = item.concentration || '';
-  document.getElementById('f-vol').value   = item.volume        || '';
-  document.getElementById('f-glyc').value  = item.glycerol      || '';
-  document.getElementById('f-glyc-row').style.display = box.hasGlycerol ? '' : 'none';
-  updateLcPreview();
-  document.getElementById('item-overlay').classList.add('open');
-  setTimeout(function(){ document.getElementById('f-name').focus(); }, 50);
-}
-
 function closeModal() {
-  document.getElementById('item-overlay').classList.remove('open');
-  S.modal = null;
+  document.getElementById('modal-overlay')?.remove();
+}
+function modalErr(msg) {
+  const el = document.getElementById('modal-err-wrap');
+  if (el) el.innerHTML = `<div class="modal-err">⚠ ${h(msg)}</div>`;
 }
 
-function saveItem() {
-  var ctx = S.modal;
-  if (!ctx) return;
-  var name = document.getElementById('f-name').value.trim();
-  var lab  = document.getElementById('f-lab').value.trim();
-  var ok = true;
-  if (!name) { document.getElementById('f-name').classList.add('error'); document.getElementById('f-name').focus(); ok = false; }
-  else document.getElementById('f-name').classList.remove('error');
-  if (!lab)  { document.getElementById('f-lab').classList.add('error'); if (ok) document.getElementById('f-lab').focus(); ok = false; }
-  else document.getElementById('f-lab').classList.remove('error');
-  if (!ok) return;
-
-  var btn = document.getElementById('modal-save');
-  btn.textContent = 'Saving…'; btn.disabled = true;
-  var itemData = {
-    name:          name,
-    date:          document.getElementById('f-date').value.trim(),
-    labcollector:  lab,
-    preparer:      document.getElementById('f-prep').value.trim(),
-    concentration: document.getElementById('f-conc').value.trim(),
-    volume:        document.getElementById('f-vol').value.trim(),
-    glycerol:      document.getElementById('f-glyc').value.trim()
-  };
-  var params = {
-    action: ctx.mode === 'add' ? 'addItem' : 'updateItem',
-    sheet: ctx.sheet, box: ctx.box.name,
-    data: JSON.stringify(itemData)
-  };
-  if (ctx.mode === 'edit') params.row = ctx.item._row;
-  api(params).then(function(d){
-    btn.textContent = 'Save'; btn.disabled = false;
-    if (d.success) { closeModal(); status('Saved ✓'); refreshBox(ctx.sheet, ctx.box.name); }
-    else status('Error: ' + (d.error||''), true);
-  }).catch(function(e){ btn.textContent = 'Save'; btn.disabled = false; status('Error: '+e.message, true); });
+/* ── Add Item ──────────────────────────────────────────────── */
+function openAddItemModal() {
+  openModal(`<div class="modal">
+    <div class="modal-hd"><h3>Add Item — ${h(S.activeBox)}</h3><button class="modal-x" onclick="closeModal()">✕</button></div>
+    <div class="modal-bd">
+      <div id="modal-err-wrap"></div>
+      <div class="frow req"><label>Name</label><input class="finput" id="mi-name" placeholder="Plasmid / construct name" autocomplete="off"></div>
+      <div class="frow req"><label>LabCollector ID</label>
+        <input class="finput" id="mi-lab" placeholder="e.g. 4521" autocomplete="off">
+        <div class="fhint">Links to LabCollector plasmid record</div></div>
+      <div class="fgrid2">
+        <div class="frow req"><label>Concentration (ng/µL)</label><input class="finput" id="mi-conc" type="number" step="0.1" min="0" placeholder="500"></div>
+        <div class="frow req"><label>Volume (µL)</label><input class="finput" id="mi-vol" type="number" step="0.1" min="0" placeholder="50"></div>
+      </div>
+      <div class="fgrid2">
+        <div class="frow req"><label>Date prepped</label><input class="finput" id="mi-date" type="date"></div>
+        <div class="frow req"><label>Preparer</label><input class="finput" id="mi-prep" placeholder="Your name" autocomplete="off"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitAddItem()">Add Item</button>
+    </div>
+  </div>`);
+  setTimeout(() => document.getElementById('mi-name')?.focus(), 40);
 }
 
-function doDelete(sheet, box, item) {
-  if (!confirm('Delete "' + item.name + '"?')) return;
-  api({ action: 'deleteItem', sheet: sheet, box: box.name, row: item._row })
-    .then(function(d){
-      if (d.success) { status('Deleted'); refreshBox(sheet, box.name); }
-      else status('Error: ' + (d.error||''), true);
-    }).catch(function(e){ status('Error: '+e.message, true); });
-}
-
-/* ── Search ─────────────────────────────────────────────────────────────── */
-function applySearch(q) {
-  S.search = q;
-  var lq = q.toLowerCase();
-
-  // Apply to current tab's rendered panels
-  var panels = qsa('.box-panel');
-  var allDimmed = q.length > 0;
-  panels.forEach(function(panel){
-    var rows = panel.querySelectorAll('tbody tr');
-    var matchCount = 0;
-    rows.forEach(function(tr){
-      var cells = tr.querySelectorAll('td');
-      var text = '';
-      cells.forEach(function(td){ text += ' ' + td.textContent; });
-      var hit = !q || text.toLowerCase().indexOf(lq) !== -1;
-      tr.classList.toggle('dim', !hit);
-      if (hit) matchCount++;
-    });
-    var mbid = 'matchbadge-' + panel.id;
-    var mb = document.getElementById(mbid);
-    if (mb) {
-      mb.textContent = matchCount + ' match' + (matchCount !== 1 ? 'es' : '');
-      mb.style.display = (q && matchCount > 0) ? '' : 'none';
-    }
-    panel.classList.toggle('dimmed', q.length > 0 && matchCount === 0);
-    if (matchCount > 0) allDimmed = false;
-  });
-
-  // Cross-tab: search cached data for other tabs
-  var ctBar = document.getElementById('cross-tab-bar');
-  ctBar.innerHTML = '';
-  if (q) {
-    var otherMatches = [];
-    S.sheets.forEach(function(sh){
-      if (sh.name === S.active) return;
-      var cached = S.cache[sh.name];
-      if (!cached) return;
-      var count = 0;
-      (cached.boxes||[]).forEach(function(box){
-        (box.items||[]).forEach(function(it){
-          var text = [it.name, it.date, it.labcollector, it.glycerol, it.concentration, it.volume, it.preparer].join(' ').toLowerCase();
-          if (text.indexOf(lq) !== -1) count++;
-        });
-      });
-      if (count > 0) otherMatches.push({ name: sh.name, count: count });
-      var dot = document.getElementById('tab-dot-' + sh.name);
-      if (dot) dot.classList.toggle('show', count > 0);
-    });
-    // Also update dot for active tab
-    var activeDot = document.getElementById('tab-dot-' + S.active);
-    if (activeDot) activeDot.classList.toggle('show', !allDimmed);
-
-    if (otherMatches.length > 0) {
-      var strong = el('strong', ''); strong.textContent = 'Also found in:';
-      ctBar.appendChild(strong);
-      otherMatches.forEach(function(m){
-        var chip = el('span', 'cross-tab-chip');
-        chip.textContent = m.name + ' (' + m.count + ')';
-        chip.onclick = (function(n){ return function(){ loadSheet(n); }; })(m.name);
-        ctBar.appendChild(chip);
-      });
-      ctBar.classList.add('show');
-    } else {
-      ctBar.classList.remove('show');
-    }
-  } else {
-    ctBar.classList.remove('show');
-    qsa('.tab-match-dot').forEach(function(d){ d.classList.remove('show'); });
+async function submitAddItem() {
+  const name = document.getElementById('mi-name').value.trim();
+  const lab  = document.getElementById('mi-lab').value.trim();
+  const conc = document.getElementById('mi-conc').value.trim();
+  const vol  = document.getElementById('mi-vol').value.trim();
+  const date = document.getElementById('mi-date').value;
+  const prep = document.getElementById('mi-prep').value.trim();
+  if (!name || !lab || !conc || !vol || !date || !prep) {
+    modalErr('All fields are required.'); return;
   }
+  try {
+    const res = await apiFetch({
+      action: 'addItem', sheet: S.activeSheet, box: S.activeBox,
+      data: JSON.stringify({ name, labcollector:lab, concentration:conc, volume:vol, date, preparer:prep })
+    });
+    if (res.error) throw new Error(res.error);
+    closeModal();
+    toast('Item added ✓');
+    await refreshCurrent();
+  } catch(e) { modalErr(e.message); }
 }
 
-/* ── Settings ───────────────────────────────────────────────────────────── */
+/* ── Edit Item ─────────────────────────────────────────────── */
+function openEditModal(row) {
+  const box  = findBox(S.activeBox, S.data);
+  const item = box?.items.find(i => i._row === row);
+  if (!item) return;
+  openModal(`<div class="modal">
+    <div class="modal-hd"><h3>Edit Item</h3><button class="modal-x" onclick="closeModal()">✕</button></div>
+    <div class="modal-bd">
+      <div id="modal-err-wrap"></div>
+      <div class="frow req"><label>Name</label><input class="finput" id="mi-name" value="${h(item.name||'')}" autocomplete="off"></div>
+      <div class="frow req"><label>LabCollector ID</label><input class="finput" id="mi-lab" value="${h(item.labcollector||'')}" autocomplete="off"></div>
+      <div class="fgrid2">
+        <div class="frow req"><label>Concentration (ng/µL)</label><input class="finput" id="mi-conc" type="number" step="0.1" min="0" value="${h(item.concentration||'')}"></div>
+        <div class="frow req"><label>Volume (µL)</label><input class="finput" id="mi-vol" type="number" step="0.1" min="0" value="${h(item.volume||'')}"></div>
+      </div>
+      <div class="fgrid2">
+        <div class="frow req"><label>Date prepped</label><input class="finput" id="mi-date" type="date" value="${h(item.date||'')}"></div>
+        <div class="frow req"><label>Preparer</label><input class="finput" id="mi-prep" value="${h(item.preparer||'')}" autocomplete="off"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitEdit(${row})">Save</button>
+    </div>
+  </div>`);
+  setTimeout(() => document.getElementById('mi-name')?.focus(), 40);
+}
+
+async function submitEdit(row) {
+  const name = document.getElementById('mi-name').value.trim();
+  const lab  = document.getElementById('mi-lab').value.trim();
+  const conc = document.getElementById('mi-conc').value.trim();
+  const vol  = document.getElementById('mi-vol').value.trim();
+  const date = document.getElementById('mi-date').value;
+  const prep = document.getElementById('mi-prep').value.trim();
+  if (!name) { modalErr('Name is required.'); return; }
+  try {
+    const res = await apiFetch({
+      action: 'updateItem', sheet: S.activeSheet, box: S.activeBox, row,
+      data: JSON.stringify({ name, labcollector:lab, concentration:conc, volume:vol, date, preparer:prep })
+    });
+    if (res.error) throw new Error(res.error);
+    closeModal();
+    toast('Saved ✓');
+    await refreshCurrent();
+  } catch(e) { modalErr(e.message); }
+}
+
+/* ── Delete Item ───────────────────────────────────────────── */
+async function doDelete(row) {
+  const box  = findBox(S.activeBox, S.data);
+  const item = box?.items.find(i => i._row === row);
+  if (!confirm(`Delete "${item?.name || 'this item'}"?\nThis cannot be undone.`)) return;
+  try {
+    const res = await apiFetch({ action:'deleteItem', sheet:S.activeSheet, box:S.activeBox, row });
+    if (res.error) throw new Error(res.error);
+    toast('Deleted');
+    await refreshCurrent();
+  } catch(e) { toast('Error: ' + e.message, 5000); }
+}
+
+/* ── Grid cell modals ──────────────────────────────────────── */
+function openGridEmptyModal(ri, ci) {
+  openModal(`<div class="modal">
+    <div class="modal-hd"><h3>Empty cell — row ${ri+1}, col ${ci+1}</h3><button class="modal-x" onclick="closeModal()">✕</button></div>
+    <div class="modal-bd">
+      <div id="modal-err-wrap"></div>
+      <div class="frow"><label>Label</label>
+        <input class="finput" id="gv" placeholder="Box name (e.g. Box 5) or item name" autocomplete="off">
+        <div class="fhint">A box name (matching a box in this sheet) turns this into a navigation cell.</div></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitGridCell(${ri},${ci})">Set</button>
+    </div>
+  </div>`);
+  setTimeout(() => document.getElementById('gv')?.focus(), 40);
+}
+
+function openGridItemModal(ri, ci, val) {
+  openModal(`<div class="modal">
+    <div class="modal-hd"><h3>Cell — row ${ri+1}, col ${ci+1}</h3><button class="modal-x" onclick="closeModal()">✕</button></div>
+    <div class="modal-bd">
+      <div id="modal-err-wrap"></div>
+      <div class="frow"><label>Label</label>
+        <input class="finput" id="gv" value="${h(val)}" autocomplete="off"></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-danger2" onclick="submitGridCell(${ri},${ci},'')">Clear</button>
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitGridCell(${ri},${ci})">Save</button>
+    </div>
+  </div>`);
+  setTimeout(() => { const el = document.getElementById('gv'); el?.focus(); el?.select(); }, 40);
+}
+
+async function submitGridCell(ri, ci, forceVal) {
+  const val = forceVal !== undefined ? forceVal : (document.getElementById('gv')?.value?.trim() ?? '');
+  if (forceVal === '' && !confirm('Clear this cell?')) return;
+  try {
+    const res = await apiFetch({ action:'updateGrid', sheet:S.activeSheet, gridRow:ri, gridCol:ci, value:val });
+    if (res.error) throw new Error(res.error);
+    closeModal();
+    toast(val ? 'Label saved ✓' : 'Cell cleared');
+    await loadSheet(S.activeSheet, true);
+    render();
+  } catch(e) { modalErr(e.message); }
+}
+
+/* ── Add Box ───────────────────────────────────────────────── */
+function openAddBoxModal() {
+  openModal(`<div class="modal">
+    <div class="modal-hd"><h3>Create New Box</h3><button class="modal-x" onclick="closeModal()">✕</button></div>
+    <div class="modal-bd">
+      <div id="modal-err-wrap"></div>
+      <div class="frow req"><label>Box name</label>
+        <input class="finput" id="bn" placeholder="e.g. Box 5, AAV Box" autocomplete="off">
+        <div class="fhint">Adds header rows to your Google Sheet.</div></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitAddBox()">Create</button>
+    </div>
+  </div>`);
+  setTimeout(() => document.getElementById('bn')?.focus(), 40);
+}
+
+async function submitAddBox() {
+  const name = document.getElementById('bn')?.value?.trim();
+  if (!name) { modalErr('Name is required.'); return; }
+  try {
+    const res = await apiFetch({ action:'addBox', sheet:S.activeSheet, boxName:name });
+    if (res.error) throw new Error(res.error);
+    closeModal();
+    toast(`Box "${name}" created ✓`);
+    await loadSheet(S.activeSheet, true);
+    render();
+  } catch(e) { modalErr(e.message); }
+}
+
+/* ── Settings ──────────────────────────────────────────────── */
 function openSettings() {
-  document.getElementById('url-input-s').value = S.url;
-  document.getElementById('s-lv-enabled').checked    = S.lowVol.enabled;
-  document.getElementById('s-conc-thresh').value     = S.lowVol.concThresh;
-  document.getElementById('s-vol-thresh').value      = S.lowVol.volThresh;
-  document.getElementById('settings-overlay').classList.add('open');
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  openModal(`<div class="modal wide">
+    <div class="modal-hd"><h3>⚙ Settings</h3><button class="modal-x" onclick="closeModal()">✕</button></div>
+    <div class="modal-bd">
+      <div class="settings-section">
+        <h4>Connection</h4>
+        <div class="frow"><label>Apps Script URL</label>
+          <input class="finput" id="s-url" value="${h(S.url)}" style="font-size:11px;font-family:'IBM Plex Mono',monospace">
+          <div class="fhint">Deploy → Web app (Execute as Me, Anyone can access)</div></div>
+        <button class="btn-primary" style="width:100%;margin-top:8px" onclick="saveUrl()">Update URL &amp; Reconnect</button>
+      </div>
+      <div class="settings-section">
+        <h4>Low Volume Warning</h4>
+        <div class="toggle-row">
+          <span class="toggle-lbl">Enable warning</span>
+          <label class="toggle"><input type="checkbox" id="s-lv" ${S.lowVol.enabled?'checked':''}><span class="toggle-slider"></span></label>
+        </div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:10px">Warn when <em>both</em> concentration AND volume are below thresholds.</p>
+        <div class="fgrid2">
+          <div class="frow"><label>Conc threshold (ng/µL)</label><input class="finput" id="s-mc" type="number" step="1" min="0" value="${S.lowVol.minConc}"></div>
+          <div class="frow"><label>Volume threshold (µL)</label><input class="finput" id="s-mv" type="number" step="1" min="0" value="${S.lowVol.minVol}"></div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h4>Appearance</h4>
+        <div class="toggle-row">
+          <span class="toggle-lbl">Dark mode</span>
+          <label class="toggle"><input type="checkbox" id="s-dk" ${isDark?'checked':''} onchange="setTheme(this.checked)"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-secondary" onclick="closeModal()">Close</button>
+      <button class="btn-primary" onclick="saveSettings()">Save</button>
+    </div>
+  </div>`);
 }
 
-function closeSettings() {
-  document.getElementById('settings-overlay').classList.remove('open');
+function saveUrl() {
+  const u = document.getElementById('s-url')?.value?.trim();
+  if (!u) return;
+  S.url = u; localStorage.setItem('inv_url', u);
+  S.cache = {}; S.data = null;
+  closeModal(); init();
 }
 
 function saveSettings() {
-  var newUrl = document.getElementById('url-input-s').value.trim();
-  if (newUrl && newUrl !== S.url) {
-    S.url = newUrl; ls('inv-url', newUrl);
-    document.getElementById('url-input').value = newUrl;
-    S.cache = {}; loadSheets();
-  }
-  S.lowVol.enabled    = document.getElementById('s-lv-enabled').checked;
-  S.lowVol.concThresh = parseFloat(document.getElementById('s-conc-thresh').value) || 50;
-  S.lowVol.volThresh  = parseFloat(document.getElementById('s-vol-thresh').value)  || 10;
-  ls('inv-lowvol', JSON.stringify(S.lowVol));
-  closeSettings();
-  // Re-render current tab to apply warnings
-  if (S.active && S.cache[S.active]) render(S.active, S.cache[S.active]);
-  status('Settings saved');
+  S.lowVol.enabled = !!document.getElementById('s-lv')?.checked;
+  S.lowVol.minConc = parseFloat(document.getElementById('s-mc')?.value) || 10;
+  S.lowVol.minVol  = parseFloat(document.getElementById('s-mv')?.value) || 5;
+  localStorage.setItem('inv_lowvol', JSON.stringify(S.lowVol));
+  closeModal(); toast('Settings saved'); render();
 }
 
-/* ── Add Box ────────────────────────────────────────────────────────────── */
-var _addBoxSheet = '';
-function openAddBox(sheet) {
-  _addBoxSheet = sheet;
-  document.getElementById('ab-name').value = '';
-  document.getElementById('addbox-overlay').classList.add('open');
-  setTimeout(function(){ document.getElementById('ab-name').focus(); }, 50);
+function setTheme(dark) {
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  localStorage.setItem('inv_theme', dark ? 'dark' : 'light');
 }
 
-function closeAddBox() {
-  document.getElementById('addbox-overlay').classList.remove('open');
-}
+/* ══════════════════════════════════════════════════════════════
+   EVENT LISTENERS
+══════════════════════════════════════════════════════════════ */
+document.getElementById('search-input').addEventListener('input', e => {
+  S.search = e.target.value; render();
+});
+document.getElementById('btn-settings').addEventListener('click', openSettings);
+document.getElementById('btn-theme').addEventListener('click', () => {
+  const isDark = document.documentElement.dataset.theme === 'dark'
+    || (!document.documentElement.dataset.theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  setTheme(!isDark);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-function doAddBox() {
-  var name = document.getElementById('ab-name').value.trim();
-  if (!name) { document.getElementById('ab-name').focus(); return; }
-  var cols = ['Name'];
-  if (document.getElementById('ab-col-date').checked) cols.push('Date');
-  if (document.getElementById('ab-col-lab').checked)  cols.push('LabCollector no.');
-  if (document.getElementById('ab-col-conc').checked) cols.push('Concentration (ng/µL)');
-  if (document.getElementById('ab-col-vol').checked)  cols.push('Volume (µL)');
-  if (document.getElementById('ab-col-prep').checked) cols.push('Preparer');
-  if (document.getElementById('ab-col-glyc').checked) cols.push('Glycerol stock');
-
-  var btn = document.getElementById('ab-save');
-  btn.textContent = 'Adding…'; btn.disabled = true;
-  api({ action: 'addBox', sheet: _addBoxSheet, boxName: name, columns: cols.join(',') })
-    .then(function(d){
-      btn.textContent = 'Add Box'; btn.disabled = false;
-      if (d.success) {
-        closeAddBox();
-        status('Box "' + name + '" added — reloading…');
-        delete S.cache[_addBoxSheet];
-        loadSheet(_addBoxSheet);
-      } else status('Error: ' + (d.error||''), true);
-    }).catch(function(e){ btn.textContent = 'Add Box'; btn.disabled = false; status('Error: '+e.message, true); });
-}
-
-/* ── Util ───────────────────────────────────────────────────────────────── */
-function el(tag, cls) { var e = document.createElement(tag); if (cls) e.className = cls; return e; }
-function qsa(sel) { return Array.from(document.querySelectorAll(sel)); }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function sectionTitle(t) {
-  var d = el('div','section-title'); d.textContent = t; return d;
-}
+/* ══════════════════════════════════════════════════════════════
+   START
+══════════════════════════════════════════════════════════════ */
+init();
 </script>
 </body>
 </html>
