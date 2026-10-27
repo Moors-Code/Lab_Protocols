@@ -325,12 +325,22 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 
 /* ── Box cards (freezer overview) ──────────────────────────── */
 .box-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:12px;padding:6px 0}
-.box-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);padding:18px 16px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.box-card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);padding:18px 16px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
 .box-card:hover{border-color:var(--accent);box-shadow:var(--shadow-lg)}
 .box-card-icon{font-size:26px;margin-bottom:8px}
 .box-card-name{font-weight:600;font-size:15px;margin-bottom:4px;color:var(--text)}
 .box-card-count{font-size:13px;color:var(--text2)}
 .box-card-badge{display:inline-block;background:var(--accent);color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:1px 7px;margin-left:6px;vertical-align:middle}
+/* Box colour tags */
+.box-color-btn{position:absolute;top:8px;right:8px;width:16px;height:16px;border-radius:50%;cursor:pointer;border:1.5px dashed var(--border);background:var(--surface2);opacity:0;transition:opacity .15s;padding:0;z-index:2}
+.box-card:hover .box-color-btn,.box-color-btn[data-colored]{opacity:1}
+.box-color-btn[data-colored]{border:none;opacity:.7}
+.box-color-btn[data-colored]:hover{opacity:1}
+.box-color-pop{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;box-shadow:0 4px 20px rgba(0,0,0,.2);display:flex;flex-wrap:wrap;gap:5px;width:130px;z-index:9999}
+.color-sw{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;flex-shrink:0;transition:transform .12s}
+.color-sw:hover{transform:scale(1.2)}
+.color-sw.selected{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--text)}
+.color-sw-none{background:var(--surface2)!important;border:1.5px dashed var(--border)!important;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:11px;font-weight:700;line-height:1}
 
 /* ── Plate grid (box physical layout) ─────────────────────── */
 .plate-wrap{margin-bottom:20px}
@@ -375,7 +385,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
    STATE
 ══════════════════════════════════════════════════════════════ */
 const S = {
-  url:         localStorage.getItem('inv_url') || 'https://script.google.com/macros/s/AKfycbwnZAfMHfrQuOjdugx9w0AHMVoc6qZQlnM8OZx5VzZ4r5PTJMOabNmB0gmbRsVH9ripbw/exec',
+  url:         localStorage.getItem('inv_url') || 'https://script.google.com/macros/s/AKfycbzGjVBRKzXPa5QNnz5ngKVSQbbKQh_C-gmi97_LhKmQY2Wz_KSi5-q3f3fKGgROgZ3Q_A/exec',
   sheets:      [],
   activeSheet: localStorage.getItem('inv_sheet') || '',
   data:        null,
@@ -639,7 +649,11 @@ function renderGrid() {
     const count = filledItems.length;
     const hasMatch = q && bmMap[box.name.trim().toLowerCase()];
     const badge = hasMatch ? `<span class="box-card-badge">${bmMap[box.name.trim().toLowerCase()]}</span>` : '';
-    html += `<div class="box-card" onclick="navigateBox('${h(box.name)}')">
+    const bColor = getBoxColor(S.activeSheet, box.name);
+    const bStyle = bColor ? ` style="border-left:4px solid ${bColor}"` : '';
+    const bBtnAttr = bColor ? ` data-colored style="background:${bColor}"` : '';
+    html += `<div class="box-card"${bStyle} onclick="navigateBox('${h(box.name)}')">
+      <button class="box-color-btn"${bBtnAttr} onclick="toggleColorPop(event,'${h(box.name)}')" title="Set box colour"></button>
       <div class="box-card-icon">🧊</div>
       <div class="box-card-name">${h(box.name)}${badge}</div>
       <div class="box-card-count">${count} / 81 positions filled</div>
@@ -861,6 +875,41 @@ function modalErr(msg) {
   if (el) el.innerHTML = `<div class="modal-err">⚠ ${h(msg)}</div>`;
 }
 
+/* ── Box colour tags ──────────────────────────────────────── */
+const BOX_PALETTE = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899','#64748b'];
+function getBoxColors(){try{return JSON.parse(localStorage.getItem('inv_box_colors')||'{}');}catch(e){return {};}}
+function getBoxColor(s,b){return getBoxColors()[(s||'')+'::'+b]||'';}
+function setBoxColor(s,b,c){const a=getBoxColors();const k=(s||'')+'::'+b;if(c)a[k]=c;else delete a[k];try{localStorage.setItem('inv_box_colors',JSON.stringify(a));}catch(e){}}
+let _cpOpen=null;
+function toggleColorPop(e, boxName) {
+  e.stopPropagation();
+  const old = document.getElementById('box-color-pop');
+  if (old) { old.remove(); if (_cpOpen === boxName) { _cpOpen = null; return; } }
+  _cpOpen = boxName;
+  const btn = e.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  const cur = getBoxColor(S.activeSheet, boxName);
+  const pop = document.createElement('div');
+  pop.id = 'box-color-pop'; pop.className = 'box-color-pop';
+  pop.style.top  = (rect.bottom + 4) + 'px';
+  pop.style.left = Math.max(8, rect.right - 130) + 'px';
+  const ns = document.createElement('div');
+  ns.className = 'color-sw color-sw-none' + (!cur ? ' selected' : '');
+  ns.title = 'Remove colour'; ns.textContent = '✕';
+  ns.onclick = ev => { ev.stopPropagation(); setBoxColor(S.activeSheet, boxName, ''); render(); pop.remove(); _cpOpen=null; };
+  pop.appendChild(ns);
+  BOX_PALETTE.forEach(c => {
+    const sw = document.createElement('div');
+    sw.className = 'color-sw' + (cur === c ? ' selected' : '');
+    sw.style.background = c; sw.title = c;
+    sw.onclick = ev => { ev.stopPropagation(); setBoxColor(S.activeSheet, boxName, c); render(); pop.remove(); _cpOpen=null; };
+    pop.appendChild(sw);
+  });
+  document.body.appendChild(pop);
+  const dismiss = ev => { if (!pop.contains(ev.target) && ev.target !== btn) { pop.remove(); _cpOpen=null; document.removeEventListener('click', dismiss, true); } };
+  setTimeout(() => document.addEventListener('click', dismiss, true), 50);
+}
+
 /* ── Add Item ──────────────────────────────────────────────── */
 function openAddItemModal() {
   const box = findBox(S.activeBox, S.data);
@@ -878,7 +927,7 @@ function openAddItemModal() {
       <div class="frow"><label>LabCollector ID</label>
         <input class="finput" id="mi-lab" placeholder="e.g. 4521" autocomplete="off">
         <div class="fhint">Links to LabCollector plasmid record</div></div>
-      <div class="frow req"><label>Date</label><input class="finput" id="mi-date" type="date"></div>
+      <div class="frow req"><label>Date</label><input class="finput" id="mi-date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
       ${extraFields}
     </div>
     <div class="modal-ft">
@@ -898,6 +947,7 @@ async function submitAddItem() {
   const vol     = (document.getElementById('mi-vol')?.value     || '').trim();
   const prep    = (document.getElementById('mi-prep')?.value    || '').trim();
   if (!name) { modalErr('Name is required.'); return; }
+  if (!date) { modalErr('Date is required.'); return; }
   try {
     const res = await apiFetch({
       action: 'addItem', sheet: S.activeSheet, box: S.activeBox,
