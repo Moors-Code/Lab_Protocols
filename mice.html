@@ -1043,7 +1043,7 @@ var WIZ = {
   step: 1,
   csv: null,         // { headers: [], rows: [] }
   sel: new Set(),    // selected CSV row indices
-  filters: { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', query: '' },
+  filters: { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', endDate: '', query: '' },
   conditions: {},    // fields applied to all selected mice
   groupLabel: '',
 };
@@ -1084,6 +1084,7 @@ function getFilteredItems() {
   if (!WIZ.csv) return [];
   var now = new Date();
   var procDate = WIZ.filters.procDate ? new Date(WIZ.filters.procDate) : null;
+  var endDate = WIZ.filters.endDate ? new Date(WIZ.filters.endDate) : null;
   var minA = WIZ.filters.minAge !== '' ? +WIZ.filters.minAge : null;
   var maxA = WIZ.filters.maxAge !== '' ? +WIZ.filters.maxAge : null;
   var q = WIZ.filters.query.toLowerCase();
@@ -1092,6 +1093,7 @@ function getFilteredItems() {
     var dob = parseDOB(row['DOB'] || '');
     var ageNow = dob ? ageWeeks(dob, now) : null;
     var ageAtProc = (dob && procDate) ? ageWeeks(dob, procDate) : null;
+    var ageAtEnd = (dob && endDate) ? ageWeeks(dob, endDate) : null;
 
     // Sex filter
     if (WIZ.filters.sex) {
@@ -1108,13 +1110,15 @@ function getFilteredItems() {
     // Age filter (use ageAtProc if proc date given, else ageNow)
     var ageRef = (procDate && ageAtProc != null) ? ageAtProc : ageNow;
     if (minA != null && ageRef != null && ageRef < minA) return null;
-    if (maxA != null && ageRef != null && ageRef > maxA) return null;
+    // Max-age filter: if endDate given, check age at end; otherwise use ageRef
+    var maxAgeRef = (endDate && ageAtEnd != null) ? ageAtEnd : ageRef;
+    if (maxA != null && maxAgeRef != null && maxAgeRef > maxA) return null;
     // Text search
     if (q) {
       var haystack = Object.values(row).map(String).join(' ').toLowerCase();
       if (!haystack.includes(q)) return null;
     }
-    return { idx: idx, row: row, dob: dob, ageNow: ageNow, ageAtProc: ageAtProc };
+    return { idx: idx, row: row, dob: dob, ageNow: ageNow, ageAtProc: ageAtProc, ageAtEnd: ageAtEnd };
   }).filter(Boolean);
 }
 
@@ -1129,12 +1133,14 @@ function applyWizFilters() {
   if (sa) sa.checked = allSel;
 
   var procDate = WIZ.filters.procDate ? new Date(WIZ.filters.procDate) : null;
+  var endDate = WIZ.filters.endDate ? new Date(WIZ.filters.endDate) : null;
 
   var html = '<table class="import-table"><thead><tr>';
   html += '<th><input type="checkbox" id="wiz-sel-all2"' + (allSel?' checked':'') + '></th>';
   html += '<th>ID</th><th>Lab ID</th><th>Sex</th><th>Gen</th><th>Line/Strain</th>';
   html += '<th>DOB</th><th>Age now (w)</th>';
   if (procDate) html += '<th>Age at proc. (w)</th>';
+  if (endDate) html += '<th>Age at end (w)</th>';
   html += '<th>Condition</th>';
   html += '</tr></thead><tbody>';
 
@@ -1151,6 +1157,7 @@ function applyWizFilters() {
         : esc(r['Sex'] || '');
       var ageNowCell = it.ageNow != null ? it.ageNow : '—';
       var ageProcCell = procDate ? (it.ageAtProc != null ? it.ageAtProc : '—') : '';
+      var ageEndCell = endDate ? (it.ageAtEnd != null ? it.ageAtEnd : '—') : '';
       var cond = WIZ.conditions['cond_' + it.idx] || '';
       html += '<tr data-idx="' + it.idx + '">';
       html += '<td><input type="checkbox" class="wiz-row-chk" data-idx="' + it.idx + '"' + chk + '></td>';
@@ -1162,6 +1169,7 @@ function applyWizFilters() {
       html += '<td>' + esc(r['DOB'] || '') + '</td>';
       html += '<td>' + ageNowCell + '</td>';
       if (procDate) html += '<td>' + ageProcCell + '</td>';
+      if (endDate) html += '<td>' + ageEndCell + '</td>';
       html += '<td><input class="wiz-cond-input" data-idx="' + it.idx + '" value="' + esc(cond) + '" placeholder="e.g. Control" style="width:90px;padding:2px 5px;font-size:11px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);"></td>';
       html += '</tr>';
     });
@@ -1220,7 +1228,7 @@ function saveConditions() {
 
 function openCSVWizard() {
   WIZ.step = 1; WIZ.csv = null; WIZ.sel = new Set();
-  WIZ.filters = { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', query: '' };
+  WIZ.filters = { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', endDate: '', query: '' };
   WIZ.conditions = {}; WIZ.groupLabel = '';
   document.getElementById('csv-wizard').classList.remove('hidden');
   renderWizard();
@@ -1321,6 +1329,12 @@ function renderWizStep1() {
   html += '<div style="font-size:10.5px;color:var(--text3);margin-top:3px;">Shows age at AAV / surgery / colonoscopy</div>';
   html += '</div>';
 
+  // Experiment end date
+  html += '<div><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Experiment end date</div>';
+  html += '<input type="date" id="f-end-date" value="' + esc(WIZ.filters.endDate) + '" style="padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;">';
+  html += '<div style="font-size:10.5px;color:var(--text3);margin-top:3px;">Max age filter applied at this date</div>';
+  html += '</div>';
+
   // Text search
   html += '<div style="flex:1;min-width:130px;"><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Search</div>';
   html += '<input type="text" id="f-query" placeholder="ID, cage, line…" value="' + esc(WIZ.filters.query) + '" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;">';
@@ -1359,16 +1373,17 @@ function renderWizStep1() {
     WIZ.filters.minAge = (document.getElementById('f-min-age') || {}).value || '';
     WIZ.filters.maxAge = (document.getElementById('f-max-age') || {}).value || '';
     WIZ.filters.procDate = (document.getElementById('f-proc-date') || {}).value || '';
+    WIZ.filters.endDate = (document.getElementById('f-end-date') || {}).value || '';
     WIZ.filters.query = (document.getElementById('f-query') || {}).value || '';
     applyWizFilters(); updateWizStep1Footer();
   }
-  ['f-min-age','f-max-age','f-proc-date','f-query'].forEach(function(id) {
+  ['f-min-age','f-max-age','f-proc-date','f-end-date','f-query'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) { el.addEventListener('input', refilter); el.addEventListener('change', refilter); }
   });
   document.getElementById('wiz-re-upload').onclick = function() {
     WIZ.csv = null; WIZ.sel.clear();
-    WIZ.filters = { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', query: '' };
+    WIZ.filters = { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', endDate: '', query: '' };
     renderWizard();
   };
 
@@ -1398,6 +1413,13 @@ function loadCSVFile(file) {
 
 function parseCSV(text) {
   text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // Auto-detect delimiter: count tabs vs commas in the first non-empty line
+  var firstLine = text.split('\n')[0] || '';
+  var tabCount = (firstLine.match(/\t/g) || []).length;
+  var commaCount = (firstLine.match(/,/g) || []).length;
+  var delim = tabCount > commaCount ? '\t' : ',';
+
   var lines = [];
   var cur = [];
   var inQ = false;
@@ -1408,7 +1430,7 @@ function parseCSV(text) {
     if (c === '"') {
       if (inQ && text[i+1] === '"') { cell += '"'; i++; }
       else inQ = !inQ;
-    } else if (c === ',' && !inQ) {
+    } else if (c === delim && !inQ) {
       cur.push(cell); cell = '';
     } else if (c === '\n' && !inQ) {
       cur.push(cell); cell = '';
@@ -1420,11 +1442,17 @@ function parseCSV(text) {
   }
 
   if (lines.length === 0) return null;
-  var headers = lines[0].map(function(h) { return h.trim(); });
+  // Strip surrounding quotes from header names
+  var headers = lines[0].map(function(h) { return h.trim().replace(/^"|"$/g, ''); });
   var rows = [];
   for (var j = 1; j < lines.length; j++) {
     var row = {};
-    headers.forEach(function(h, k) { row[h] = (lines[j][k] || '').trim(); });
+    headers.forEach(function(h, k) {
+      var v = (lines[j][k] || '').trim().replace(/^"|"$/g, '');
+      row[h] = v;
+    });
+    // Alias WR → Number for sheet mapping
+    if (row['WR'] !== undefined && !row['Number']) row['Number'] = row['WR'];
     rows.push(row);
   }
   return { headers: headers, rows: rows };
