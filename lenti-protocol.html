@@ -1,0 +1,1649 @@
+<title>Lenti Protocol</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+
+<style>
+:root {
+  --bg: #f5f6f8; --surface: #ffffff; --surface2: #eef0f4; --border: #dde1e8;
+  --fg: #1a1d23; --fg2: #555b6a; --fg3: #8a90a0;
+  --accent: #2a6fc9; --accent-soft: #e6f0fd;
+  --green: #1a8a5a; --green-soft: #e3f5ee;
+  --amber: #b45e00; --amber-soft: #fef3e2;
+  --red: #c0392b; --tab-active: #2a6fc9;
+  --mono: 'IBM Plex Mono','Courier New',monospace;
+  --sans: 'IBM Plex Sans',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#12151c;--surface:#1c2130;--surface2:#242a38;--border:#2e3548;
+    --fg:#e4e8f0;--fg2:#9aa3b8;--fg3:#5c6478;
+    --accent:#5b9bf0;--accent-soft:#1a2d4a;--green:#3fc98a;--green-soft:#0f2e20;
+    --amber:#f0a830;--amber-soft:#2e2008;--red:#e05c50;--tab-active:#5b9bf0;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#12151c;--surface:#1c2130;--surface2:#242a38;--border:#2e3548;
+  --fg:#e4e8f0;--fg2:#9aa3b8;--fg3:#5c6478;
+  --accent:#5b9bf0;--accent-soft:#1a2d4a;--green:#3fc98a;--green-soft:#0f2e20;
+  --amber:#f0a830;--amber-soft:#2e2008;--red:#e05c50;--tab-active:#5b9bf0;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.6;display:flex;flex-direction:column;padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px))}
+
+/* topbar */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px max(20px,env(safe-area-inset-left,0px)) 0;position:sticky;top:env(safe-area-inset-top,0px);z-index:10}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--surface);z-index:11}
+.topbar-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;flex-wrap:wrap;gap:8px}
+.topbar-title{display:flex;align-items:center;gap:10px}
+.logo-dot{width:10px;height:10px;background:var(--accent);border-radius:50%;flex-shrink:0}
+h1{font-size:15px;font-weight:600;color:var(--fg);letter-spacing:-.01em}
+.lab-tag{font-size:11px;font-family:var(--mono);color:var(--fg3);letter-spacing:.04em;text-transform:uppercase}
+.progress-pill{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:12px;font-family:var(--mono);color:var(--fg3)}
+.progress-pill .count{color:var(--green);font-weight:500}
+.main-tabs{display:flex;overflow-x:auto;scrollbar-width:none}
+.main-tabs::-webkit-scrollbar{display:none}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:10px 18px;font-family:var(--sans);font-size:13px;font-weight:500;color:var(--fg3);cursor:pointer;transition:color .15s,border-color .15s;white-space:nowrap;letter-spacing:.01em}
+.tab-btn:hover{color:var(--fg2)}
+.tab-btn.active{color:var(--tab-active);border-bottom-color:var(--tab-active)}
+.content{flex:1;overflow-y:auto;padding:24px max(20px,env(safe-area-inset-left,0px));padding-bottom:40px}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* vessel configurator */
+.vessel-card{background:var(--surface);border:1.5px solid var(--accent);border-radius:12px;padding:18px 20px;margin-bottom:20px}
+.vessel-card-label{font-size:10px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.vessel-card-label::before{content:"";display:inline-block;width:6px;height:6px;background:var(--accent);border-radius:50%}
+.vessel-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.vessel-type-btns{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.vessel-btn{background:var(--surface);border:none;padding:8px 16px;font-size:13px;font-family:var(--sans);font-weight:500;color:var(--fg2);cursor:pointer;border-right:1px solid var(--border);transition:background .1s,color .1s;white-space:nowrap}
+.vessel-btn:last-child{border-right:none}
+.vessel-btn.active{background:var(--accent);color:white}
+.vessel-count-wrap{display:flex;align-items:center;gap:8px}
+.vessel-count-label{font-size:13px;font-weight:500;color:var(--fg2)}
+.vessel-count-row{display:flex;align-items:center;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.count-adj{background:var(--surface2);border:none;width:32px;height:34px;font-size:18px;line-height:1;color:var(--fg2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .1s}
+.count-adj:hover{background:var(--border)}
+#vessel-count{width:48px;text-align:center;background:var(--bg);border:none;border-left:1px solid var(--border);border-right:1px solid var(--border);font-family:var(--mono);font-size:15px;font-weight:500;color:var(--fg);padding:4px 0;outline:none;-moz-appearance:textfield}
+#vessel-count::-webkit-inner-spin-button,#vessel-count::-webkit-outer-spin-button{-webkit-appearance:none}
+.vessel-unit{font-size:13px;color:var(--fg3);white-space:nowrap}
+.vessel-summary{background:var(--accent-soft);border-radius:8px;padding:10px 14px;display:flex;gap:20px;flex-wrap:wrap}
+.vs-item{display:flex;flex-direction:column;gap:1px}
+.vs-item .vs-val{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--accent)}
+.vs-item .vs-key{font-size:10px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;font-family:var(--mono)}
+
+/* batch */
+.batch-banner{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.batch-label{font-size:10px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--fg3);margin-bottom:8px}
+.batch-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;flex:1}
+.batch-field{display:flex;flex-direction:column;gap:3px}
+.batch-field label{font-size:11px;color:var(--fg3);font-family:var(--mono)}
+.batch-field input{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:var(--mono);font-size:12px;color:var(--fg);outline:none;transition:border-color .15s}
+.batch-field input:focus{border-color:var(--accent);background:var(--accent-soft)}
+.batch-field input::placeholder{color:var(--fg3)}
+
+/* tfx selector */
+.tfx-selector{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;width:fit-content;margin-bottom:14px}
+.tfx-btn{background:var(--surface);border:none;padding:7px 14px;font-size:12px;font-family:var(--sans);font-weight:500;color:var(--fg2);cursor:pointer;border-right:1px solid var(--border);transition:background .1s,color .1s}
+.tfx-btn:last-child{border-right:none}
+.tfx-btn.active{background:var(--accent);color:white}
+
+/* day group */
+.day-group{margin-bottom:28px}
+.day-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.day-badge{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;background:var(--accent-soft);color:var(--accent);border-radius:5px;padding:3px 9px;white-space:nowrap}
+.day-title{font-size:13px;font-weight:600;color:var(--fg)}
+.day-divider{flex:1;height:1px;background:var(--border)}
+.day-progress{font-family:var(--mono);font-size:11px;color:var(--fg3)}
+
+/* step */
+.step{display:flex;gap:12px;padding:12px 14px;border-radius:8px;margin-bottom:6px;border:1px solid var(--border);background:var(--surface);transition:background .15s;align-items:flex-start;cursor:pointer}
+.step:hover{background:var(--surface2)}
+.step.done{background:var(--green-soft);border-color:transparent}
+.step.done .step-text{color:var(--fg3)}
+.step-check{flex-shrink:0;width:18px;height:18px;border:1.5px solid var(--border);border-radius:4px;background:var(--bg);display:flex;align-items:center;justify-content:center;margin-top:1px;transition:background .15s,border-color .15s}
+.step.done .step-check{background:var(--green);border-color:var(--green)}
+.step-check svg{display:none}
+.step.done .step-check svg{display:block}
+.step-content{flex:1;min-width:0}
+.step-text{font-size:13.5px;color:var(--fg);line-height:1.55}
+.step-text code{font-family:var(--mono);font-size:12px;background:var(--surface2);border-radius:3px;padding:1px 5px;color:var(--accent)}
+.step.done .step-text code{color:var(--fg3)}
+.note-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-family:var(--mono);color:var(--amber);background:var(--amber-soft);border-radius:4px;padding:1px 7px;margin-left:6px;vertical-align:middle}
+.tip-box{font-size:12px;color:var(--fg2);margin-top:6px;padding:6px 10px;background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 5px 5px 0;line-height:1.5;font-style:italic}
+.step-timer{margin-top:8px;display:flex;align-items:center;gap:8px}
+.timer-btn{font-family:var(--mono);font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 10px;color:var(--fg2);cursor:pointer;transition:background .1s}
+.timer-btn:hover{background:var(--border)}
+.timer-display{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--accent);min-width:50px}
+
+/* reagent table */
+.section-label{font-size:10px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:10px;margin-top:22px}
+.reagent-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:6px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.reagent-table th{background:var(--surface2);font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg3);padding:8px 12px;text-align:left;font-weight:500}
+.reagent-table td{padding:9px 12px;border-top:1px solid var(--border);color:var(--fg);background:var(--surface);vertical-align:middle}
+.reagent-table tr:hover td{background:var(--surface2)}
+.reagent-table .val{font-family:var(--mono);font-size:12px;color:var(--accent);white-space:nowrap}
+.reagent-table .note-cell{color:var(--fg3);font-size:12px;font-style:italic}
+.reagent-name{font-weight:500}
+
+/* sub tabs */
+.sub-tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+.sub-tab-btn{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 14px;font-size:12px;font-weight:500;color:var(--fg2);cursor:pointer;transition:background .12s,color .12s;font-family:var(--sans)}
+.sub-tab-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.sub-panel{display:none}
+.sub-panel.active{display:block}
+.setup-banner{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:20px}
+
+/* reset */
+.reset-area{margin-top:30px;padding-top:20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.reset-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:6px 14px;font-size:12px;color:var(--fg3);cursor:pointer;font-family:var(--sans);transition:border-color .12s,color .12s}
+.reset-btn:hover{border-color:var(--red);color:var(--red)}
+.reset-note{font-size:12px;color:var(--fg3)}
+
+/* ── PLATE PLANNER ── */
+.plate-planner{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+.plate-planner-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.plate-planner-title{font-size:13px;font-weight:600;color:var(--fg)}
+.plate-planner-subtitle{font-size:11px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.plate-planner-subtitle::before{content:"";display:inline-block;width:5px;height:5px;background:var(--accent);border-radius:50%}
+.plate-hint{font-size:11px;color:var(--fg3);font-style:italic}
+/* vessel icon cards */
+.vessel-icon-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.vessel-icon-card{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 10px 8px;border:2px solid var(--border);border-radius:10px;cursor:pointer;background:var(--surface);transition:border-color .15s,box-shadow .15s;min-width:72px;user-select:none}
+.vessel-icon-card:hover{border-color:var(--fg3)}
+.vessel-icon-card.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.vessel-icon-card svg{display:block}
+.vessel-icon-label{font-size:12px;font-weight:600;color:var(--fg);white-space:nowrap}
+.vessel-icon-sub{font-size:10px;color:var(--fg3);white-space:nowrap}
+/* paint / condition row */
+.cond-section-label{font-size:12px;font-weight:600;color:var(--fg2);margin-bottom:8px}
+.paint-row-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.paint-label{font-size:12px;font-weight:600;color:var(--fg2);flex-shrink:0}
+.cond-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.cond-pill{display:flex;align-items:center;gap:5px;border:2px solid transparent;border-radius:20px;padding:5px 8px 5px 8px;cursor:pointer;font-size:12px;font-weight:500;font-family:var(--sans);background:var(--surface2);color:var(--fg);transition:all .12s}
+.cond-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.cond-del{margin-left:2px;opacity:.35;font-size:15px;line-height:.9;cursor:pointer;padding:0 2px}
+.cond-del:hover{opacity:.75}
+.erase-pill{display:flex;align-items:center;gap:5px;border:2px solid var(--border);border-radius:20px;padding:5px 10px;cursor:pointer;font-size:12px;font-family:var(--sans);color:var(--fg3);background:var(--surface2);transition:all .12s}
+.erase-pill.active{border-color:var(--fg3);color:var(--fg)}
+.add-cond-btn{background:none;border:1.5px dashed var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--fg3);cursor:pointer;font-family:var(--sans);transition:border-color .15s,color .15s}
+.add-cond-btn:hover{border-color:var(--accent);color:var(--accent)}
+.plate-recipe-row{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.plate-outer{flex-shrink:0}
+.plate-col-labels{display:flex;padding-left:26px;margin-bottom:4px}
+.pcl{width:52px;text-align:center;font-size:11px;font-family:var(--mono);color:var(--fg3)}
+.plate-rows{display:flex;flex-direction:column;gap:4px}
+.plate-row-el{display:flex;align-items:center;gap:4px}
+.plate-row-label{width:20px;text-align:center;font-size:11px;font-family:var(--mono);color:var(--fg3)}
+.well{width:48px;height:48px;border-radius:50%;border:2px solid var(--border);background:var(--bg);cursor:pointer;transition:transform .1s,border-color .15s,background .15s;display:flex;align-items:center;justify-content:center;font-size:9px;font-family:var(--mono);font-weight:500;color:rgba(255,255,255,0);user-select:none}
+.well:hover{transform:scale(1.08);border-color:var(--fg3)}
+.well.filled{border-color:transparent;color:rgba(255,255,255,.9)}
+.plate-status{font-size:12px;font-weight:500;color:var(--accent);margin-top:10px;font-family:var(--sans)}
+.plate-actions{display:flex;gap:8px;margin-top:8px}
+.plate-action-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:11px;font-family:var(--sans);color:var(--fg2);cursor:pointer;transition:background .1s}
+.plate-action-btn:hover{background:var(--border)}
+.plate-recipes{flex:1;min-width:220px;display:flex;flex-direction:column;gap:10px}
+.recipe-card{border-radius:8px;padding:11px 13px;border-left:3px solid}
+.recipe-card-title{font-size:12px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.recipe-name-input{background:none;border:none;border-bottom:1px solid currentColor;font-size:12px;font-weight:600;color:inherit;outline:none;width:110px;font-family:var(--sans);padding:0}
+.vol-input-row{display:flex;align-items:center;gap:6px;margin-bottom:9px;font-size:11px;color:var(--fg3)}
+.vol-input{width:62px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:3px 7px;font-family:var(--mono);font-size:12px;color:var(--fg);outline:none;-moz-appearance:textfield}
+.vol-input::-webkit-inner-spin-button,.vol-input::-webkit-outer-spin-button{-webkit-appearance:none}
+.vol-input:focus{border-color:var(--accent)}
+.recipe-table{width:100%;font-size:12px;border-collapse:collapse}
+.recipe-table td{padding:3px 0;vertical-align:top}
+.recipe-table td:first-child{color:var(--fg3);padding-right:10px;white-space:nowrap}
+.recipe-table td:last-child{font-family:var(--mono);font-weight:500}
+.recipe-divider{border-top:1px solid}
+.no-wells-note{font-size:11px;color:var(--fg3);font-style:italic}
+
+/* reagents */
+.rg-item{display:flex;align-items:flex-start;gap:8px;padding:7px 6px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .1s;border-bottom:1px solid var(--border);user-select:none}
+.rg-item:last-child{border-bottom:none}
+.rg-item:hover{background:var(--surface2)}
+.rg-item.rg-done{background:var(--green-soft)}
+.rg-item.rg-done span{color:var(--fg3);text-decoration:line-through}
+.rg-cb{width:15px;height:15px;border-radius:3px;accent-color:var(--green);flex-shrink:0;margin-top:2px;cursor:pointer}
+/* print */
+.print-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 14px;font-size:12px;color:var(--fg2);cursor:pointer;font-family:var(--sans);display:inline-flex;align-items:center;gap:6px;transition:background .12s}
+.print-btn:hover{background:var(--border)}
+.print-bar{display:flex;justify-content:flex-end;margin-bottom:14px}
+@media print{
+  body{background:#fff!important;color:#000!important;font-size:11pt}
+  .topbar,.print-bar,.reset-area,.step-timer,.tab-btn,.sub-tab-btn,.vessel-btn,.vessel-icon-grid,.vessel-icon-card,.count-adj,.tfx-btn,.add-cond-btn,.erase-pill,.cond-del,.plate-planner,.plate-actions{display:none!important}
+  .tab-panel{display:none!important}
+  .tab-panel.print-target{display:block!important}
+  .sub-panel{display:none!important}
+  .sub-panel.active{display:block!important}
+  .content{padding:0!important;overflow:visible!important}
+  .step{border:1px solid #ccc!important;break-inside:avoid}
+  .reagent-table{border:1px solid #999!important}
+  .day-group{break-inside:avoid}
+  .vessel-card,.batch-banner,.setup-banner{border:1px solid #ccc!important}
+  input{border:1px solid #ccc!important}
+}
+@media(max-width:520px){
+  .content{padding:14px max(14px,env(safe-area-inset-left,0px))}
+  .topbar{padding:10px max(14px,env(safe-area-inset-left,0px)) 0}
+  .reagent-table th,.reagent-table td{padding:7px 9px}
+  .vessel-btn{padding:8px 11px;font-size:12px}
+  .well{width:42px;height:42px}
+  .pcl{width:46px}
+}
+</style>
+
+<div class="topbar">
+  <div class="topbar-head">
+    <div class="topbar-title">
+      <div class="logo-dot"></div>
+      <h1>Lentivirus Protocol</h1>
+      <span class="lab-tag">Syphy-lab</span>
+    </div>
+    <div class="progress-pill">
+      <span class="count" id="total-done">0</span>
+      <span>/ <span id="total-steps">0</span> steps</span>
+    </div>
+  </div>
+  <div class="main-tabs">
+    <button class="tab-btn" data-tab="reagents">📋 Reagents</button>
+    <button class="tab-btn active" data-tab="production">🧫 Lenti Production</button>
+    <button class="tab-btn" data-tab="transduction">💉 Transduction</button>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ═══ REAGENTS ═══ -->
+<div class="tab-panel" id="tab-reagents">
+<div class="print-bar"><button class="print-btn" onclick="printTab('reagents')">🖨 Print / Export PDF</button></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
+  <div style="font-size:10px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;font-weight:600">Plasmid DNA</div>
+  <div id="rg-dna"></div>
+</div>
+
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
+  <div style="font-size:10px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;font-weight:600">Transfection</div>
+  <div id="rg-tfx"></div>
+</div>
+
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
+  <div style="font-size:10px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;font-weight:600">Cells &amp; Media</div>
+  <div id="rg-media"></div>
+</div>
+
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
+  <div style="font-size:10px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;font-weight:600">Consumables</div>
+  <div id="rg-cons"></div>
+</div>
+
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
+  <div style="font-size:10px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;font-weight:600">Transduction — Cell lines</div>
+  <div id="rg-cells"></div>
+</div>
+
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
+  <div style="font-size:10px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;font-weight:600">Transduction — Organoids</div>
+  <div id="rg-orgs"></div>
+</div>
+
+</div>
+<div class="reset-area"><button class="reset-btn" onclick="resetReagents()">↺ Uncheck all reagents</button></div>
+</div><!-- /reagents -->
+
+<!-- ═══ PRODUCTION ═══ -->
+<div class="tab-panel active" id="tab-production">
+
+  <div class="print-bar"><button class="print-btn" onclick="printTab('production')">🖨 Print / Export PDF</button></div>
+  <div class="vessel-card">
+    <div class="vessel-card-label">Production vessel</div>
+    <div class="plate-planner-subtitle" style="margin-bottom:10px">① Select vessel</div>
+    <div class="vessel-icon-grid" id="prod-vessel-cards"></div>
+    <div class="vessel-row" style="margin-bottom:10px">
+      <div class="vessel-count-wrap">
+        <span class="vessel-count-label">Number of vessels:</span>
+        <div class="vessel-count-row">
+          <button class="count-adj" id="count-down">−</button>
+          <input type="number" id="vessel-count" min="1" max="24" value="1">
+          <button class="count-adj" id="count-up">+</button>
+        </div>
+        <span class="vessel-unit" id="vessel-unit-label">wells</span>
+      </div>
+    </div>
+    <div class="vessel-summary" id="vessel-summary"></div>
+
+    <!-- Production plate layout — only shown for 6-well -->
+    <div id="prod-layout-section" style="display:none;margin-top:20px;border-top:1px solid var(--border);padding-top:18px">
+      <div class="plate-planner-subtitle" style="margin-bottom:12px">② Assign constructs to wells</div>
+      <div class="paint-row-wrap" id="prod-cond-row-wrap">
+        <span class="paint-label" id="prod-paint-label">Paint:</span>
+        <div class="cond-row" id="prod-cond-row"></div>
+      </div>
+      <div class="plate-recipe-row">
+        <div class="plate-outer" id="prod-plate-outer">
+          <div class="plate-col-labels" id="prod-plate-col-labels"></div>
+          <div class="plate-rows" id="prod-plate-rows"></div>
+          <div class="plate-status" id="prod-plate-status"></div>
+          <div class="plate-actions" id="prod-plate-actions">
+            <button class="plate-action-btn" onclick="selectAllProdWells()">Select all</button>
+            <button class="plate-action-btn" onclick="clearAllProdWells()">Clear</button>
+          </div>
+        </div>
+        <div class="plate-recipes" id="prod-plate-recipes"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="batch-banner">
+    <div style="flex:1;min-width:200px">
+      <div class="batch-label">Batch info</div>
+      <div class="batch-fields">
+        <div class="batch-field"><label>Vector / GOI</label><input type="text" id="prod-vector" placeholder="e.g. pLVX-IRES-Puro-GFP"></div>
+        <div class="batch-field"><label>Start date (Day 0)</label><input type="date" id="prod-date"></div>
+        <div class="batch-field"><label>Operator</label><input type="text" id="prod-operator" placeholder="e.g. Morgan"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="day-group">
+    <div class="day-header"><div class="day-badge">Day 0</div><div class="day-title">Prepare &amp; coat</div><div class="day-divider"></div><div class="day-progress" id="prog-prod-d0">0/1</div></div>
+    <div class="step" data-step="prod-d0-1" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content">
+        <div class="step-text">Coat <span class="dv" data-k="vesselDesc"></span> with <code>poly-D-lysine</code> — add 5 mL per T75 (or proportional volume), incubate <strong>15 min</strong>, then aspirate and recycle.</div>
+        <div class="tip-box">Plates/flasks can be coated weeks ahead and stored at 4 °C.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="day-group">
+    <div class="day-header"><div class="day-badge">Day 1</div><div class="day-title">Seed HEK 293T cells</div><div class="day-divider"></div><div class="day-progress" id="prog-prod-d1">0/2</div></div>
+    <div class="step" data-step="prod-d1-1" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content">
+        <div class="step-text">Seed <code><span class="dv" data-k="totalCells"></span></code> HEK 293T in GM (DMEM + 10% FBS + Gln + HEPES). <strong>No antibiotics.</strong> <code><span class="dv" data-k="seedVol"></span> per <span class="dv" data-k="unitSingular"></span></code> in poly-D-lysine coated <span class="dv" data-k="vesselDesc"></span>.</div>
+      </div>
+    </div>
+    <div class="step" data-step="prod-d1-2" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content"><div class="step-text">Target <strong>70–80% confluency</strong> by Day 2. Adjust if HEK 293T are not low-passage.</div></div>
+    </div>
+  </div>
+
+  <div class="day-group">
+    <div class="day-header"><div class="day-badge">Day 2</div><div class="day-title">Transfection</div><div class="day-divider"></div><div class="day-progress" id="prog-prod-d2">0/6</div></div>
+    <div class="section-label">Transfection reagent</div>
+    <div class="tfx-selector">
+      <button class="tfx-btn active" data-tfx="jetoptimus">jetOPTIMUS® / jetPRIME®</button>
+      <button class="tfx-btn" data-tfx="pei">PEI (1 mg/mL)</button>
+    </div>
+    <div id="dna-tables-wrap"></div>
+    <div style="margin:6px 0 10px;display:flex;justify-content:flex-end">
+      <button onclick="updateStockVolumes()" title="Subtract used volumes from inventory stock"
+        style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--fg2);display:flex;align-items:center;gap:5px">
+        📤 Update stock volumes
+      </button>
+    </div>
+    <div id="tfx-tables-wrap"></div>
+    <div class="step" data-step="prod-d2-1" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content"><div class="step-text">Prepare <strong>Tube #1</strong>: dilute all plasmid DNA in buffer. Vortex 1 sec, quick spin.</div></div>
+    </div>
+    <div class="step" data-step="prod-d2-2" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content"><div class="step-text">Prepare <strong>Tube #2</strong>: dilute transfection reagent in buffer.</div></div>
+    </div>
+    <div class="step" data-step="prod-d2-3" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content">
+        <div class="step-text">Incubate tubes separately <strong>5 min at RT</strong>, then combine Tube #1 + Tube #2. Vortex 1 sec, quick spin.</div>
+        <div class="step-timer"><button class="timer-btn" onclick="startTimer(event,300,'t-prod-d2-3')">⏱ 5 min</button><span class="timer-display" id="t-prod-d2-3"></span></div>
+      </div>
+    </div>
+    <div class="step" data-step="prod-d2-4" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content">
+        <div class="step-text">Incubate combined mix <strong>20 min at RT</strong>.</div>
+        <div class="step-timer"><button class="timer-btn" onclick="startTimer(event,1200,'t-prod-d2-4')">⏱ 20 min</button><span class="timer-display" id="t-prod-d2-4"></span></div>
+      </div>
+    </div>
+    <div class="step" data-step="prod-d2-5" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content"><div class="step-text">Add <code><span class="dv" data-k="addVol"></span></code> dropwise per <span class="dv" data-k="unitSingular"></span>.</div></div>
+    </div>
+    <div class="step" data-step="prod-d2-6" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content"><div class="step-text"><span class="note-tag">⚑ optional</span> Inspect cells — syncytia visible due to VSV-G expression.</div></div>
+    </div>
+  </div>
+
+  <div class="day-group">
+    <div class="day-header"><div class="day-badge">Day 3</div><div class="day-title">Medium change</div><div class="day-divider"></div><div class="day-progress" id="prog-prod-d3">0/1</div></div>
+    <div class="step" data-step="prod-d3-1" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content"><div class="step-text dv-medchange"></div></div>
+    </div>
+  </div>
+
+  <div class="day-group">
+    <div class="day-header"><div class="day-badge">Day 4</div><div class="day-title">Harvest #1</div><div class="day-divider"></div><div class="day-progress" id="prog-prod-d4">0/4</div></div>
+    <div class="step" data-step="prod-d4-1" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content"><div class="step-text">Collect supernatant (<code><span class="dv" data-k="harvestVol"></span> per <span class="dv" data-k="unitSingular"></span></code>, <code><span class="dv" data-k="totalHarvestVol"></span> total</code>) into a Falcon tube. Spin at <code>300–500 g × 5 min</code> to remove debris.</div></div>
+    </div>
+    <div class="step" data-step="prod-d4-2" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content"><div class="step-text">Filter through <code>0.45 µm PVDF syringe filter</code> into a new tube.</div></div>
+    </div>
+    <div class="step" data-step="prod-d4-3" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content"><div class="step-text">Store filtrate at <code>4 °C</code> until ultracentrifugation, or aliquot and freeze at <code>−80 °C</code>.</div></div>
+    </div>
+    <div class="step" data-step="prod-d4-4" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content"><div class="step-text dv-d4-4"></div></div>
+    </div>
+  </div>
+
+  <div class="day-group" id="d5-group">
+    <div class="day-header"><div class="day-badge">Day 5</div><div class="day-title">Harvest #2</div><div class="day-divider"></div><div class="day-progress" id="prog-prod-d5">0/2</div></div>
+    <div class="step" data-step="prod-d5-1" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content"><div class="step-text">Repeat harvest: collect → spin <code>500 g × 5 min</code> → filter through <code>0.45 µm</code>.</div></div>
+    </div>
+    <div class="step" data-step="prod-d5-2" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content"><div class="step-text">Pool with Harvest #1 if concentrating, or store separately as Harvest #2 aliquots at <code>−80 °C</code>.</div></div>
+    </div>
+  </div>
+
+  <div class="day-group">
+    <div class="day-header"><div class="day-badge">Conc.</div><div class="day-title">Ultracentrifugation</div><div class="day-divider"></div><div class="day-progress" id="prog-prod-uc">0/4</div></div>
+    <div class="step" data-step="prod-uc-1" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content"><div class="step-text">Fill Ultraclear centrifuge tubes to <strong>≤1 cm below the top</strong>. Top up with PBS if needed.</div></div>
+    </div>
+    <div class="step" data-step="prod-uc-2" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content">
+        <div class="step-text">Spin at <code>20,000 g × 2 h at 4 °C</code> <span class="note-tag">= 10,500 rpm SURESPIN360</span>.</div>
+        <div class="step-timer"><button class="timer-btn" onclick="startTimer(event,7200,'t-prod-uc-2')">⏱ 2 hr</button><span class="timer-display" id="t-prod-uc-2"></span></div>
+      </div>
+    </div>
+    <div class="step" data-step="prod-uc-3" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content"><div class="step-text">Carefully aspirate supernatant. Resuspend pellet in <code>250–500 µL</code> AdDMEM F12 + GlutaMAX + P/S + HEPES.</div></div>
+    </div>
+    <div class="step" data-step="prod-uc-4" onclick="toggleStep(this)">
+      <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="step-content"><div class="step-text">Aliquot <code>50–100 µL</code> into labelled cryotubes. Freeze at <code>−80 °C</code>. Use at <code>1:100</code> dilution (concentrated).</div></div>
+    </div>
+  </div>
+
+  <div style="margin-top:28px;padding:14px 16px;background:var(--amber-soft);border:1.5px solid var(--amber);border-radius:10px;display:flex;gap:12px;align-items:flex-start">
+    <span style="font-size:18px;flex-shrink:0">⚠️</span>
+    <div>
+      <div style="font-size:12px;font-weight:600;color:var(--amber);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px">Record storage before leaving the bench</div>
+      <div style="font-size:13px;color:var(--fg2);line-height:1.55">Label each cryotube: <strong>vector name · date · concentration · aliquot vol · initials</strong>. Log box/rack position in lab notebook.</div>
+      <div style="margin-top:10px">
+        <button id="storage-record-btn" onclick="showConstructPicker('storage-record-btn')"
+          style="background:var(--surface);border:1.5px solid var(--amber);border-radius:7px;padding:6px 14px;font-size:12px;cursor:pointer;color:var(--amber);display:inline-flex;align-items:center;gap:6px;font-weight:600">
+          📥 Record in inventory
+        </button>
+        <span style="font-size:11px;color:var(--fg3);margin-left:8px">Add this prep to your stock</span>
+      </div>
+    </div>
+  </div>
+  <div class="reset-area"><button class="reset-btn" onclick="resetSection('prod')">↺ Reset production steps</button><span class="reset-note">Clears all checkboxes for this tab.</span></div>
+</div><!-- /production -->
+
+
+<!-- ═══ TRANSDUCTION ═══ -->
+<div class="tab-panel" id="tab-transduction">
+  <div class="print-bar"><button class="print-btn" onclick="printTab('transduction')">🖨 Print / Export PDF</button></div>
+  <div class="sub-tabs">
+    <button class="sub-tab-btn active" data-subtab="trans-cells">Cell lines</button>
+    <button class="sub-tab-btn" data-subtab="trans-orgs">Organoids</button>
+  </div>
+
+  <!-- CELLS -->
+  <div class="sub-panel active" id="subtab-trans-cells">
+
+    <!-- TRANSDUCTION PLANNER -->
+    <div class="plate-planner">
+      <div class="plate-planner-head">
+        <div class="plate-planner-title">Transduction Planner</div>
+        <span class="plate-hint" id="plate-hint-text">select a condition, then click wells to assign</span>
+      </div>
+      <div class="plate-planner-subtitle">① Select target vessel</div>
+      <div class="vessel-icon-grid" id="trans-vessel-btns"></div>
+      <div class="plate-planner-subtitle">② Assign conditions</div>
+      <div class="paint-row-wrap" id="cells-cond-row-wrap">
+        <span class="paint-label">Paint:</span>
+        <div class="cond-row" id="cells-cond-row"></div>
+      </div>
+      <div class="plate-recipe-row">
+        <div class="plate-outer" id="cells-plate-outer">
+          <div class="plate-col-labels" id="cells-plate-col-labels"></div>
+          <div class="plate-rows" id="cells-plate-rows"></div>
+          <div class="plate-status" id="cells-plate-status"></div>
+          <div class="plate-actions" id="cells-plate-actions" style="display:none">
+            <button class="plate-action-btn" onclick="selectAllWells('cells')">Select all</button>
+            <button class="plate-action-btn" onclick="clearAllWells('cells')">Clear</button>
+          </div>
+        </div>
+        <div class="plate-recipes" id="cells-plate-recipes">
+          <div style="font-size:12px;color:var(--fg3);padding:8px 0;font-style:italic">Add a condition to get started.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="setup-banner">
+      <div class="batch-label">Transduction notes</div>
+      <div class="batch-fields">
+        <div class="batch-field"><label>Cell line</label><input type="text" id="cells-line" placeholder="e.g. MC38, A549"></div>
+        <div class="batch-field"><label>Virus batch</label><input type="text" id="cells-virus" placeholder="e.g. 2024-11-01 pLVX-GFP"></div>
+        <div class="batch-field"><label>Selection</label><input type="text" id="cells-selection" placeholder="e.g. Puro 2 µg/mL"></div>
+      </div>
+    </div>
+
+    <div class="day-group">
+      <div class="day-header"><div class="day-badge">Day −1</div><div class="day-title">Seed target cells</div><div class="day-divider"></div><div class="day-progress" id="prog-cells-d0">0/1</div></div>
+      <div class="step" data-step="cells-d0-1" onclick="toggleStep(this)">
+        <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="step-content"><div class="step-text">Seed <code>75,000 cells/well</code> (MC38) or <code>150–200K/well</code> (A549) in 6-well plate. Aim for 50–70% confluency at transduction.</div></div>
+      </div>
+    </div>
+
+    <div class="day-group">
+      <div class="day-header"><div class="day-badge">Day 0</div><div class="day-title">Transduction</div><div class="day-divider"></div><div class="day-progress" id="prog-cells-d1">0/4</div></div>
+      <div class="step" data-step="cells-d1-1" onclick="toggleStep(this)">
+        <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="step-content"><div class="step-text">Add virus per the plate plan above. Use <code>8 µg/mL Polybrene</code> (1.6 µL of 10 mg/mL stock per 2 mL).</div></div>
+      </div>
+      <div class="step" data-step="cells-d1-2" onclick="toggleStep(this)">
+        <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="step-content">
+          <div class="step-text">Add <code>2 mL infection medium</code> per well. Test several dilutions (undiluted + 1:5 + 1:10 is a good start).</div>
+          <div class="tip-box">For MC38: 2 mL/well directly with polybrene. For A549: seed at 150–200K/well.</div>
+        </div>
+      </div>
+      <div class="step" data-step="cells-d1-3" onclick="toggleStep(this)">
+        <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="step-content"><div class="step-text">Incubate 4–8 h at 37 °C, then replace with fresh GM.</div></div>
+      </div>
+      <div class="step" data-step="cells-d1-4" onclick="toggleStep(this)">
+        <div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="step-content"><div class="step-text">Add selection antibiotic <strong>3 days post-transduction</strong>. Puromycin: <code>2 µg/mL</code> (verify with kill curve).</div></div>
+      </div>
+    </div>
+    <div class="reset-area"><button class="reset-btn" onclick="resetSection('cells')">↺ Reset cell steps</button></div>
+  </div>
+
+  <!-- ORGANOIDS -->
+  <div class="sub-panel" id="subtab-trans-orgs">
+
+    <!-- ORGANOID PLANNER -->
+    <div class="plate-planner">
+      <div class="plate-planner-head">
+        <div class="plate-planner-title">Organoid Transduction Planner</div>
+        <span class="plate-hint" id="org-plate-hint">select a condition then click wells to assign</span>
+      </div>
+      <div class="plate-planner-subtitle">① Select re-embed vessel</div>
+      <div class="vessel-icon-grid" id="org-vessel-btns"></div>
+      <div class="plate-planner-subtitle">② Assign conditions</div>
+      <div class="paint-row-wrap" id="orgs-cond-row-wrap">
+        <span class="paint-label">Paint:</span>
+        <div class="cond-row" id="orgs-cond-row"></div>
+      </div>
+      <div class="plate-recipe-row">
+        <div class="plate-outer" id="orgs-plate-outer">
+          <div class="plate-col-labels" id="orgs-plate-col-labels"></div>
+          <div class="plate-rows" id="orgs-plate-rows"></div>
+          <div class="plate-status" id="orgs-plate-status"></div>
+          <div class="plate-actions" id="orgs-plate-actions" style="display:none">
+            <button class="plate-action-btn" onclick="selectAllWells('orgs')">Select all</button>
+            <button class="plate-action-btn" onclick="clearAllWells('orgs')">Clear</button>
+          </div>
+        </div>
+        <div class="plate-recipes" id="orgs-plate-recipes">
+          <div style="font-size:12px;color:var(--fg3);padding:8px 0;font-style:italic">Add a condition to get started.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="setup-banner">
+      <div class="batch-label">Organoid transduction setup</div>
+      <div class="batch-fields">
+        <div class="batch-field"><label>Organoid line</label><input type="text" id="orgs-line" placeholder="e.g. Colon PDO-01"></div>
+        <div class="batch-field"><label>Virus batch</label><input type="text" id="orgs-virus" placeholder="e.g. 2024-11-01"></div>
+        <div class="batch-field"><label>Conditions</label><input type="text" id="orgs-conditions" placeholder="e.g. 3 conditions × 2 wells"></div>
+        <div class="batch-field"><label>Full medium</label><input type="text" id="orgs-medium" placeholder="e.g. WRN / colon OM"></div>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:4px">Infection medium — per condition</div>
+    <table class="reagent-table">
+      <thead><tr><th>Component</th><th class="val">Volume</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td class="reagent-name">Lentiviral supernatant</td><td class="val">1.8 mL</td><td class="note-cell">vehicle: HEK cell medium</td></tr>
+        <tr><td class="reagent-name">Colon / full organoid medium</td><td class="val">200 µL</td><td class="note-cell">or WRN (more survivors)</td></tr>
+        <tr><td class="reagent-name">Nicotinamide (1000×)</td><td class="val">2 µL</td><td class="note-cell"></td></tr>
+        <tr><td class="reagent-name">Polybrene (1000×)</td><td class="val">1.6 µL</td><td class="note-cell">4 µg/mL final</td></tr>
+        <tr><td class="reagent-name">ROCK inhibitor Y-27632 (1000×)</td><td class="val">2 µL</td><td class="note-cell">1× final</td></tr>
+        <tr><td><strong>Total</strong></td><td class="val"><strong>~2 mL</strong></td><td class="note-cell">per condition</td></tr>
+      </tbody>
+    </table>
+
+    <div class="day-group" style="margin-top:20px">
+      <div class="day-header"><div class="day-badge">Step 1</div><div class="day-title">Dissociate organoids</div><div class="day-divider"></div><div class="day-progress" id="prog-orgs-d1">0/5</div></div>
+      <div class="step" data-step="orgs-d1-1" onclick="toggleStep(this)"><div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="step-content"><div class="step-text">Collect <code>~4 full Matrigel domes (20 µL each)</code> per condition. Wash once with <code>3 mL ice-cold AdDMEM F12</code>.</div></div></div>
+      <div class="step" data-step="orgs-d1-2" onclick="toggleStep(this)"><div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="step-content"><div class="step-text">Leave on ice <strong>5–10 min</strong> to dissolve Matrigel. Spin down, discard supernatant.</div></div></div>
+      <div class="step" data-step="orgs-d1-3" onclick="toggleStep(this)"><div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="step-content">
+          <div class="step-text">Resuspend in <code>1 mL pre-warmed TrypLE</code>. Incubate <code>5–10 min at 37 °C</code>.</div>
+          <div class="step-timer"><button class="timer-btn" onclick="startTimer(event,300,'t-orgs-d1-3')">⏱ 5 min</button><span class="timer-display" id="t-orgs-d1-3"></span></div>
+        </div>
+      </div>
+      <div class="step" data-step="orgs-d1-4" onclick="toggleStep(this)"><div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="step-content"><div class="step-text">Add <code>2 vol DMEM</code> to quench TrypLE. Spin at <code>190 g</code>, discard supernatant.</div></div></div>
+      <div class="step" data-step="orgs-d1-5" onclick="toggleStep(this)"><div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="step-content"><div class="step-text">Resuspend in <code>2 mL infection medium</code> per condition. Add virus.</div></div></div>
+    </div>
+
+    <div class="day-group">
+      <div class="day-header"><div class="day-badge">Step 2</div><div class="day-title">Spinoculation</div><div class="day-divider"></div><div class="day-progress" id="prog-orgs-d2">0/3</div></div>
+      <div class="step" data-step="orgs-d2-1" onclick="toggleStep(this)"><div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="step-content"><div class="step-text">Seed at <strong>high density</strong> in 2 wells of a 48-well plate (<code>~500 µL</code> per well).</div></div></div>
+      <div class="step" data-step="orgs-d2-2" onclick="toggleStep(this)"><div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="step-content">
+          <div class="step-text">Seal with parafilm. Spin <code>600 g × 1 h at 32 °C</code>.</div>
+          <div class="step-timer"><button class="timer-btn" onclick="startTimer(event,3600,'t-orgs-d2-2')">⏱ 1 hr</button><span class="timer-display" id="t-orgs-d2-2"></span></div>
+        </div>
+      </div>
+      <div class="step" data-step="orgs-d2-3" onclick="toggleStep(this)"><div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="step-content">
+          <div class="step-text">Transfer to incubator. Leave <code>3–4 h at 37 °C</code>.</div>
+          <div class="step-timer"><button class="timer-btn" onclick="startTimer(event,10800,'t-orgs-d2-3')">⏱ 3 hr</button><span class="timer-display" id="t-orgs-d2-3"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="day-group">
+      <div class="day-header"><div class="day-badge">Step 3</div><div class="day-title">Re-embed &amp; culture</div><div class="day-divider"></div><div class="day-progress" id="prog-orgs-d3">0/4</div></div>
+      <div class="step" data-step="orgs-d3-1" onclick="toggleStep(this)"><div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="step-content"><div class="step-text">Collect cells, spin down, discard supernatant. Resuspend in <code>160 µL cold Matrigel</code>.</div></div></div>
+      <div class="step" data-step="orgs-d3-2" onclick="toggleStep(this)"><div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="step-content"><div class="step-text">Plate <code>8 × 20 µL domes</code> in a 48-well plate. Invert 5 min, then incubate to polymerize.</div></div></div>
+      <div class="step" data-step="orgs-d3-3" onclick="toggleStep(this)"><div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="step-content"><div class="step-text">Add <code>300 µL full medium + ROCK inhibitor (1×)</code> per well.</div></div></div>
+      <div class="step" data-step="orgs-d3-4" onclick="toggleStep(this)"><div class="step-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="step-content">
+          <div class="step-text">Add selection <strong>3 days post-transduction</strong>. Puromycin: <code>2 µg/mL</code>. Hygromycin: <code>200 µM</code>.</div>
+          <div class="tip-box">Or skip selection — grow and sort by fluorescence if GOI has a reporter.</div>
+        </div>
+      </div>
+    </div>
+    <div class="reset-area"><button class="reset-btn" onclick="resetSection('orgs')">↺ Reset organoid steps</button></div>
+  </div>
+</div><!-- /transduction -->
+
+</div><!-- /content -->
+
+<script>
+// ═══ INVENTORY INTEGRATION ═══
+let plasmidInvLinks = {}; // key ('pax2'|'vsvg'|'lenti') → {_row,_box,_sheet,_invUrl,name,stockVol}
+let _pendingInvSlot = null;   // {key, constructId}
+let _pendingDeductions = null;
+
+function loadPlasmidInvLinks(){try{const s=localStorage.getItem('lenti-inv-links');if(s)Object.assign(plasmidInvLinks,JSON.parse(s))}catch(e){}}
+function savePlasmidInvLinks(){try{localStorage.setItem('lenti-inv-links',JSON.stringify(plasmidInvLinks))}catch(e){}}
+
+function showToast(msg){
+  let t=document.getElementById('lenti-toast');
+  if(!t){t=document.createElement('div');t.id='lenti-toast';
+    t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(30,30,40,.92);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;pointer-events:none;transition:opacity .4s;box-shadow:0 4px 16px rgba(0,0,0,.25)';
+    document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';
+  clearTimeout(t._timer);t._timer=setTimeout(()=>{t.style.opacity='0';},3200);
+}
+
+function openInvPicker(key, constructId){
+  _pendingInvSlot = {key, constructId: constructId || null};
+  window.open('inventory.html','inv_picker','width=1000,height=700,resizable=yes,scrollbars=yes');
+}
+
+// ─── Record storage ───────────────────────────────────────────
+let _pendingPrefill = null;
+
+function openStorageRecord(name, conc){
+  _pendingPrefill = {type:'prefill-add', name: name||'', conc: String(conc||'')};
+  window.open('inventory.html','inv_picker','width=1000,height=700,resizable=yes,scrollbars=yes');
+}
+
+function showConstructPicker(anchorId){
+  const existing = document.getElementById('storage-construct-picker');
+  if(existing){existing.remove();return;}
+  const tubes = getMultiConstructTubes();
+  let candidates = [];
+  if(tubes && tubes.length > 0){
+    candidates = tubes.map(c => ({name: c.name||'Lentivector', conc: c._conc||plasmidConcs.lenti||''}));
+  } else {
+    candidates = [{name:'Lentivector', conc: plasmidConcs.lenti||''}];
+  }
+  if(candidates.length === 1){
+    openStorageRecord(candidates[0].name, candidates[0].conc);
+    return;
+  }
+  const anchor = document.getElementById(anchorId);
+  const rect = anchor ? anchor.getBoundingClientRect() : {bottom:200,left:20};
+  const picker = document.createElement('div');
+  picker.id = 'storage-construct-picker';
+  picker.style.cssText = 'position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.22);padding:6px 0;min-width:210px';
+  picker.style.top  = (rect.bottom + 6) + 'px';
+  picker.style.left = rect.left + 'px';
+  const hdr = document.createElement('div');
+  hdr.style.cssText = 'font-size:10px;color:var(--fg3);padding:5px 14px 6px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;border-bottom:1px solid var(--border);margin-bottom:4px';
+  hdr.textContent = 'Which construct?';
+  picker.appendChild(hdr);
+  candidates.forEach(c => {
+    const item = document.createElement('button');
+    item.style.cssText = 'display:block;width:100%;text-align:left;padding:8px 14px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--fg);border-radius:0';
+    item.textContent = c.name;
+    item.onmouseover = () => item.style.background = 'var(--hover,rgba(127,127,127,.1))';
+    item.onmouseout  = () => item.style.background = 'none';
+    item.onclick = () => { picker.remove(); openStorageRecord(c.name, c.conc); };
+    picker.appendChild(item);
+  });
+  document.body.appendChild(picker);
+  setTimeout(() => {
+    const dismiss = ev => { if(!picker.contains(ev.target)){picker.remove();document.removeEventListener('click',dismiss,true);} };
+    document.addEventListener('click', dismiss, true);
+  }, 50);
+}
+
+function updateStockVolumes(){
+  const v=VESSELS[currentVessel], n=vesselCount;
+  const deductions=[];
+  function addDeduction(invLink, concKey, ngPerWell, nWells, constructConc){
+    if(!invLink||!invLink._row) return;
+    const conc = constructConc !== undefined ? constructConc : (parseFloat(plasmidConcs[concKey])||0);
+    if(conc<=0){showToast('⚠️ '+(invLink.name||concKey)+' has no concentration — skipped');return;}
+    const volTotal=(ngPerWell*nWells/conc)*1.1;
+    const existing=deductions.find(d=>d.row===invLink._row&&d.sheet===invLink._sheet&&d.box===invLink._box);
+    if(existing){existing.used+=volTotal;}
+    else{deductions.push({row:invLink._row,box:invLink._box||'',sheet:invLink._sheet||'',invUrl:invLink._invUrl||'',name:invLink.name||concKey,used:volTotal,stockVol:invLink.stockVol});}
+  }
+  const tubes=getMultiConstructTubes();
+  if(tubes){
+    const totalWells=getProdWellIds().filter(w=>prodLayout.wellState[w]).length;
+    addDeduction(plasmidInvLinks.pax2,'pax2',v.pax2,totalWells);
+    addDeduction(plasmidInvLinks.vsvg,'vsvg',v.vsvg,totalWells);
+    for(const c of tubes){
+      const nWells=getProdWellIds().filter(w=>prodLayout.wellState[w]===c.id).length;
+      if(nWells===0)continue;
+      const link=c._invRow?{_row:c._invRow,_box:c._invBox||'',_sheet:c._invSheet||'',_invUrl:c._invUrl||'',name:c.name,stockVol:c._stockVol}:null;
+      if(!link)continue;
+      const conc=parseFloat(c._conc||plasmidConcs.lenti)||0;
+      addDeduction(link,'lenti',v.lenti,nWells,conc);
+    }
+  } else {
+    addDeduction(plasmidInvLinks.pax2,'pax2',v.pax2,n);
+    addDeduction(plasmidInvLinks.vsvg,'vsvg',v.vsvg,n);
+    addDeduction(plasmidInvLinks.lenti,'lenti',v.lenti,n);
+  }
+  if(deductions.length===0){showToast('ℹ️ No inventory-linked plasmids found — import via 📦 first');return;}
+  _pendingDeductions=deductions;
+  window.open('inventory.html','inv_picker','width=1000,height=700,resizable=yes,scrollbars=yes');
+}
+
+window.addEventListener('message',function(e){
+  if(!e.data)return;
+  if(e.data.type==='plasmid-pick'){
+    if(!_pendingInvSlot)return;
+    const{key,constructId}=_pendingInvSlot;
+    _pendingInvSlot=null;
+    const link={_row:e.data._row,_box:e.data.box||'',_sheet:e.data.sheet||'',_invUrl:e.data.invUrl||'',name:e.data.name||'',stockVol:parseFloat(e.data.volume)||0};
+    if(key==='lenti'&&constructId){
+      const c=prodLayout.constructs.find(x=>x.id===constructId);
+      if(c){
+        c._invRow=link._row;c._invBox=link._box;c._invSheet=link._sheet;c._invUrl=link._invUrl;c._stockVol=link.stockVol;
+        if(e.data.conc&&parseFloat(e.data.conc)>0)c._conc=String(e.data.conc);
+        saveProdLayout();
+      }
+    } else {
+      plasmidInvLinks[key]=link;
+      savePlasmidInvLinks();
+    }
+    if(e.data.conc&&parseFloat(e.data.conc)>0){
+      updateConc(key,String(e.data.conc));
+      // Refresh input fields for this key
+      document.querySelectorAll('[data-conc-input-key="'+key+'"]').forEach(el=>{el.value=e.data.conc;});
+    }
+    renderDnaTable(VESSELS[currentVessel],vesselCount);
+    showToast('📦 '+(e.data.name||key)+' loaded from stock');
+  }
+  if(e.data.type==='inv-ready'){
+    if(_pendingDeductions){
+      e.source.postMessage({type:'deduct-volumes',deductions:_pendingDeductions},'*');
+      _pendingDeductions=null;
+    }
+    if(_pendingPrefill){
+      e.source.postMessage(_pendingPrefill,'*');
+      _pendingPrefill=null;
+    }
+  }
+});
+
+// ═══ PLASMID CONCENTRATIONS ═══
+let plasmidConcs = {pax2:'',vsvg:'',lenti:''};
+function loadPlasmidConcs(){try{const s=localStorage.getItem('lenti-concs');if(s)Object.assign(plasmidConcs,JSON.parse(s))}catch(e){}}
+function savePlasmidConcs(){try{localStorage.setItem('lenti-concs',JSON.stringify(plasmidConcs))}catch(e){}}
+function updateConc(key,val){
+  plasmidConcs[key]=val; savePlasmidConcs();
+  const conc=parseFloat(val);
+  // Update every volume cell for this key without re-rendering the whole table
+  document.querySelectorAll('[data-vol-key="'+key+'"]').forEach(el=>{
+    const ngPer=parseFloat(el.dataset.ngPer)||0;
+    const nWells=parseInt(el.dataset.nwells)||1;
+    const totalNg=ngPer*nWells;
+    if(val&&conc>0){el.textContent=(totalNg/conc).toFixed(1)+' µL';el.style.color='var(--green)';}
+    else{el.textContent='—';el.style.color='var(--fg3)';}
+  });
+  // Also update any locked (read-only) conc display cells
+  document.querySelectorAll('[data-conc-key="'+key+'"]').forEach(el=>{
+    el.textContent=val?val+' ng/µL':'—';
+  });
+}
+
+// ═══ VESSEL DATA ═══
+const VESSELS={
+  well:{label:'6-well',area:'9.6 cm²',type:'plate',rows:['A','B'],cols:[1,2,3],unit:'well',units:'wells',seedCells:400000,seedVolMl:2,pax2:415,vsvg:210,lenti:875,buf1:50,jetopt:3,pei:null,pei_optimem:null,addUl:50,harvestMl:2,medChangeMl:2,isFlask:false},
+  t75:{label:'T75',area:'75 cm²',type:'flask',unit:'flask',units:'flasks',seedCells:1000000,seedVolMl:15,pax2:4400,vsvg:1500,lenti:5900,buf1:429,jetopt:15,pei:59,pei_optimem:369,addUl:700,harvestMl:15,medChangeMl:15,isFlask:true},
+  t175:{label:'T175',area:'175 cm²',type:'flask',unit:'flask',units:'flasks',seedCells:2500000,seedVolMl:30,pax2:10400,vsvg:3500,lenti:13800,buf1:1000,jetopt:35,pei:138,pei_optimem:862,addUl:1600,harvestMl:30,medChangeMl:30,isFlask:true}
+};
+let currentVessel='well', vesselCount=1, currentTfx='jetoptimus';
+
+function buildProdVesselCards(){
+  const container=document.getElementById('prod-vessel-cards');if(!container)return;
+  container.innerHTML=Object.entries(VESSELS).map(([key,v])=>`
+    <div class="vessel-icon-card${key===currentVessel?' active':''}" onclick="selectProdVessel('${key}')" title="${v.label}">
+      ${vesselSvg(v,54)}
+      <div class="vessel-icon-label">${v.label}</div>
+      <div class="vessel-icon-sub">${v.area||''}</div>
+    </div>`
+  ).join('');
+}
+function selectProdVessel(key){
+  currentVessel=key;
+  buildProdVesselCards();
+  saveVesselPref();updateVessel();
+}
+
+// ═══ FORMAT HELPERS ═══
+function fmtMass(ng){if(ng>=1000){const u=ng/1000;return(Number.isInteger(u)?u:u.toFixed(1))+' µg'}return ng+' ng'}
+function fmtUl(ul){if(ul>=1000){const m=ul/1000;return(Number.isInteger(m)?m:m.toFixed(1))+' mL'}return(Number.isInteger(ul)?ul:ul.toFixed(1))+' µL'}
+function fmtMl(ml){if(ml>=1000)return(ml/1000).toFixed(1)+' L';return(Number.isInteger(ml)?ml:ml.toFixed(1))+' mL'}
+function fmtCells(n){if(n>=1e6){const m=n/1e6;return(Number.isInteger(m)?m:m.toFixed(1))+' × 10⁶'}if(n>=1e3)return(n/1e3)+'K';return n.toString()}
+
+// ═══ VESSEL UPDATE ═══
+function updateVessel(){
+  const v=VESSELS[currentVessel], n=vesselCount;
+  const unitEl=document.getElementById('vessel-unit-label');
+  if(unitEl) unitEl.textContent=n===1?v.unit:v.units;
+  const summaryEl=document.getElementById('vessel-summary');
+  if(summaryEl) summaryEl.innerHTML=`
+    <div class="vs-item"><div class="vs-val">${n} ${n===1?v.unit:v.units}</div><div class="vs-key">Vessel</div></div>
+    <div class="vs-item"><div class="vs-val">${fmtCells(v.seedCells*n)}</div><div class="vs-key">HEK cells to seed</div></div>
+    <div class="vs-item"><div class="vs-val">${fmtMl(v.harvestMl*n)} <span style="font-weight:400;font-size:11px;color:var(--fg3)">per harvest</span></div><div class="vs-key">Expected harvest</div></div>`;
+  document.querySelectorAll('.dv[data-k]').forEach(el=>{
+    switch(el.dataset.k){
+      case 'vesselDesc': el.textContent=`${n} ${n===1?v.unit:v.units}`; break;
+      case 'unitSingular': el.textContent=v.unit; break;
+      case 'totalCells': el.textContent=fmtCells(v.seedCells*n); break;
+      case 'seedVol': el.textContent=fmtMl(v.seedVolMl); break;
+      case 'addVol': el.textContent=fmtUl(v.addUl); break;
+      case 'harvestVol': el.textContent=fmtMl(v.harvestMl); break;
+      case 'totalHarvestVol': el.textContent=fmtMl(v.harvestMl*n); break;
+    }
+  });
+  document.querySelectorAll('.dv-medchange').forEach(el=>{
+    if(currentVessel==='well'){el.innerHTML=`Replace medium with <code>GM + 1% BSA</code>. <code>${fmtMl(v.medChangeMl)}</code> per ${v.unit}.`}
+    else{el.innerHTML=`Change to fresh GM. <code>${fmtMl(v.medChangeMl)}</code> per ${v.unit}${n>1?' ('+fmtMl(v.medChangeMl*n)+' total)':''}.`}
+  });
+  document.querySelectorAll('.dv-d4-4').forEach(el=>{
+    if(currentVessel==='well'){el.innerHTML=`<span class="note-tag">6-well only</span> Single harvest — skip Day 5.`}
+    else{el.innerHTML=`Replenish medium on HEK ${v.units} (${fmtMl(v.medChangeMl)} per ${v.unit}) for Harvest #2 tomorrow.`}
+  });
+  const d5=document.getElementById('d5-group');
+  if(d5) d5.style.display=currentVessel==='well'?'none':'';
+  const prodLayoutSec=document.getElementById('prod-layout-section');
+  if(prodLayoutSec){
+    prodLayoutSec.style.display=currentVessel==='well'?'':'none';
+    if(currentVessel==='well')initProdLayout();
+  }
+  renderDnaTable(v,n);
+  renderTfxTable(v,n);
+}
+
+function buildDnaTubeHtml(v, nWells, tubeLabel, goiName, accentColor, constructId){
+  // tubeLabel e.g. "1", "1a", "1b" | goiName = null for single-construct
+  const showTotal = nWells > 1;
+  const dnaRows = [
+    {key:'pax2', name:'psPAX2',             ng:v.pax2},
+    {key:'vsvg', name:'pCMV-VSV-G',         ng:v.vsvg},
+    {key:'lenti', name: goiName ? `Lentivector — <em style="color:${accentColor||'var(--accent)'}">${goiName}</em>` : 'Lentivector (GOI)', ng:v.lenti},
+  ];
+  const concInputRow = (row) => {
+    // For per-construct GOI, use construct-specific conc; fall back to shared plasmidConcs
+    let conc, invLink, pickArgs;
+    if(row.key==='lenti'&&constructId){
+      const cc=prodLayout.constructs.find(x=>x.id===constructId);
+      conc=cc&&cc._conc?cc._conc:(plasmidConcs[row.key]||'');
+      invLink=cc&&cc._invRow?{_row:cc._invRow,_box:cc._invBox,_sheet:cc._invSheet,stockVol:cc._stockVol,name:cc.name}:null;
+      pickArgs=`'lenti','${constructId}'`;
+    } else {
+      conc=plasmidConcs[row.key]||'';
+      invLink=plasmidInvLinks[row.key]||null;
+      pickArgs=`'${row.key}',null`;
+    }
+    const concNum=parseFloat(conc);
+    const totalNg=row.ng*nWells;
+    const volNeeded=(conc&&concNum>0)?(totalNg/concNum):0;
+    const vol=volNeeded>0?volNeeded.toFixed(1)+' µL':'—';
+    const volColor=volNeeded>0?'var(--green)':'var(--fg3)';
+    // Stock warning: check if needed volume exceeds stock
+    const stockVol=invLink&&invLink.stockVol>0?invLink.stockVol:null;
+    const stockWarn=stockVol&&volNeeded>stockVol;
+    const stockTag=stockWarn
+      ?`<span title="Stock low: need ${volNeeded.toFixed(1)} µL but only ${stockVol} µL remain" style="margin-left:4px;color:#f59e0b;font-size:11px;cursor:default">⚠️ low stock</span>`:'';
+    const linkedTag=invLink
+      ?`<span style="font-size:10px;color:var(--green);margin-left:4px;cursor:pointer" title="Linked: ${invLink.name||''}${stockVol?' | stock: '+stockVol+' µL':''}" onclick="openInvPicker(${pickArgs})">📦</span>`
+      :`<button onclick="openInvPicker(${pickArgs})" title="Import from stock" style="margin-left:4px;background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:11px;padding:2px 5px;color:var(--fg2);line-height:1.2">📦</button>`;
+    const concCell = `<td style="white-space:nowrap"><input type="number" min="0" step="1" placeholder="e.g. 250" value="${conc}"
+         data-conc-input-key="${row.key==='lenti'&&constructId?'':row.key}"
+         style="width:80px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-family:var(--mono);font-size:12px;color:var(--fg);outline:none;-moz-appearance:textfield"
+         oninput="${row.key==='lenti'&&constructId?`(function(v){const cc=prodLayout.constructs.find(x=>x.id==='${constructId}');if(cc){cc._conc=v;saveProdLayout();updateConc('lenti',v)}})(this.value)`:''
+         }${!(row.key==='lenti'&&constructId)?`updateConc('${row.key}',this.value)`:''}"
+         onfocus="this.style.borderColor='var(--accent)'"
+         onblur="this.style.borderColor='var(--border)'">${linkedTag}</td>`;
+    return `<tr>
+      <td class="reagent-name">${row.name}</td>
+      <td class="val">${fmtMass(row.ng)}</td>
+      ${showTotal ? `<td class="val">${fmtMass(totalNg)}</td>` : ''}
+      ${concCell}
+      <td class="val" data-vol-key="${row.key}" data-ng-per="${row.ng}" data-nwells="${nWells}" style="font-weight:500;color:${stockWarn?'#f59e0b':volColor}">${vol}${stockTag}</td>
+    </tr>`;
+  };
+  const bufRow = `<tr style="background:var(--surface2)">
+    <td class="reagent-name" style="color:var(--fg2)">Buffer (Opti-MEM / jetOPTIMUS)</td>
+    <td class="val">${fmtUl(v.buf1)}</td>
+    ${showTotal ? `<td class="val">${fmtUl(v.buf1 * nWells)}</td>` : ''}
+    <td class="note-cell" colspan="2">top up after adding plasmids</td>
+  </tr>`;
+  const thead = `<thead><tr>
+    <th>Reagent</th>
+    <th class="val">Per ${v.unit}</th>
+    ${showTotal ? `<th class="val">Total (${nWells} ${nWells===1?v.unit:v.units})</th>` : ''}
+    <th class="val" style="text-transform:none">Conc. (ng/µL)</th>
+    <th class="val">Volume to pipette</th>
+  </tr></thead>`;
+  const rows = dnaRows.map(r => concInputRow(r)).join('') + bufRow;
+  const accent = accentColor ? `border-left:3px solid ${accentColor};` : '';
+  return `<div class="section-label" style="${accentColor?'display:flex;align-items:center;gap:8px':''}">
+    ${accentColor ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${accentColor};flex-shrink:0"></span>` : ''}
+    DNA mix — Tube #${tubeLabel}${goiName ? ` <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--fg3)">(${goiName})</span>` : ''}
+  </div>
+  <table class="reagent-table" style="${accent}">${thead}<tbody>${rows}</tbody></table>`;
+}
+
+function buildTfxTubeHtml(v, nWells, tubeLabel, goiName, accentColor){
+  const showTotal = nWells > 1;
+  let rows = [];
+  if(currentTfx === 'jetoptimus'){
+    rows=[['jetOPTIMUS® / jetPRIME® reagent', fmtUl(v.jetopt), showTotal ? fmtUl(v.jetopt*nWells) : null],
+          ['jetOPTIMUS buffer',               fmtUl(v.buf1),   showTotal ? fmtUl(v.buf1*nWells)   : null]];
+  } else {
+    const pei = v.pei, opt = v.pei_optimem;
+    rows=[['PEI (1 mg/mL stock)', pei ? fmtUl(pei) : '—', showTotal && pei ? fmtUl(pei*nWells) : (showTotal ? '—' : null)],
+          ['Opti-MEM',            opt ? fmtUl(opt) : '—', showTotal && opt ? fmtUl(opt*nWells) : (showTotal ? '—' : null)]];
+  }
+  const thead = `<thead><tr>
+    <th>Reagent</th>
+    <th class="val">Per ${v.unit}</th>
+    ${showTotal ? `<th class="val">Total (${nWells} ${nWells===1?v.unit:v.units})</th>` : ''}
+  </tr></thead>`;
+  const tbody = rows.map(([name,per,total]) =>
+    `<tr><td class="reagent-name">${name}</td><td class="val">${per}</td>${showTotal?`<td class="val">${total}</td>`:''}</tr>`
+  ).join('');
+  const accent = accentColor ? `border-left:3px solid ${accentColor};` : '';
+  return `<div class="section-label" style="${accentColor?'display:flex;align-items:center;gap:8px':''}">
+    ${accentColor ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${accentColor};flex-shrink:0"></span>` : ''}
+    Transfection reagent — Tube #${tubeLabel}${goiName ? ` <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--fg3)">(${goiName})</span>` : ''}
+  </div>
+  <table class="reagent-table" style="${accent}">${thead}<tbody>${tbody}</tbody></table>`;
+}
+
+function getMultiConstructTubes(){
+  // Returns active constructs for multi-tube mode, or null if single mode
+  if(currentVessel !== 'well') return null;
+  const active = prodLayout.constructs.filter(c =>
+    getProdWellIds().some(w => prodLayout.wellState[w] === c.id)
+  );
+  return active.length >= 2 ? active : null;
+}
+
+function renderDnaTable(v, n){
+  const wrap = document.getElementById('dna-tables-wrap');
+  if(!wrap) return;
+  const tubes = getMultiConstructTubes();
+  if(tubes){
+    const alpha = 'abcdefghijklmnop';
+    wrap.innerHTML = tubes.map((c, i) => {
+      const nWells = getProdWellIds().filter(w => prodLayout.wellState[w] === c.id).length;
+      return buildDnaTubeHtml(v, nWells, `1${alpha[i]}`, c.name, c.color, c.id);
+    }).join('');
+  } else {
+    wrap.innerHTML = buildDnaTubeHtml(v, n, '1', null, null, null);
+  }
+}
+
+function renderTfxTable(v, n){
+  const wrap = document.getElementById('tfx-tables-wrap');
+  if(!wrap) return;
+  const tubes = getMultiConstructTubes();
+  if(tubes){
+    const alpha = 'abcdefghijklmnop';
+    wrap.innerHTML = tubes.map((c, i) => {
+      const nWells = getProdWellIds().filter(w => prodLayout.wellState[w] === c.id).length;
+      return buildTfxTubeHtml(v, nWells, `2${alpha[i]}`, c.name, c.color);
+    }).join('');
+  } else {
+    wrap.innerHTML = buildTfxTubeHtml(v, n, '2', null, null);
+  }
+}
+
+// prod vessel cards are built dynamically; no static vessel-btn listeners needed here
+document.getElementById('count-up').addEventListener('click',()=>{
+  const inp=document.getElementById('vessel-count');
+  if(vesselCount<24){vesselCount++;inp.value=vesselCount;saveVesselPref();updateVessel()}
+});
+document.getElementById('count-down').addEventListener('click',()=>{
+  if(vesselCount>1){vesselCount--;document.getElementById('vessel-count').value=vesselCount;saveVesselPref();updateVessel()}
+});
+document.getElementById('vessel-count').addEventListener('change',e=>{
+  vesselCount=Math.max(1,Math.min(24,parseInt(e.target.value)||1));
+  e.target.value=vesselCount;saveVesselPref();updateVessel();
+});
+document.querySelectorAll('.tfx-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tfx-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTfx=btn.dataset.tfx;
+    renderTfxTable(VESSELS[currentVessel],vesselCount);
+  });
+});
+
+// ═══ MAIN TABS ═══
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+document.querySelectorAll('.sub-tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const parent=btn.closest('.tab-panel');
+    parent.querySelectorAll('.sub-tab-btn').forEach(b=>b.classList.remove('active'));
+    parent.querySelectorAll('.sub-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('subtab-'+btn.dataset.subtab).classList.add('active');
+  });
+});
+
+// ═══ STEP STATE ═══
+let stepState={}, timers={};
+function loadState(){try{const s=localStorage.getItem('lenti-steps');if(s)stepState=JSON.parse(s)}catch(e){}
+  document.querySelectorAll('.step[data-step]').forEach(el=>{if(stepState[el.dataset.step])el.classList.add('done')});
+}
+function saveState(){try{localStorage.setItem('lenti-steps',JSON.stringify(stepState))}catch(e){}}
+function toggleStep(el){
+  const id=el.dataset.step;
+  el.classList.toggle('done');
+  if(el.classList.contains('done'))stepState[id]=true;else delete stepState[id];
+  saveState();updateProgress();
+}
+const progressMap={
+  'prod-d0':{prefix:'prod-d0',count:1},'prod-d1':{prefix:'prod-d1',count:2},
+  'prod-d2':{prefix:'prod-d2',count:6},'prod-d3':{prefix:'prod-d3',count:1},
+  'prod-d4':{prefix:'prod-d4',count:4},'prod-d5':{prefix:'prod-d5',count:2},
+  'prod-uc':{prefix:'prod-uc',count:4},
+  'cells-d0':{prefix:'cells-d0',count:1},'cells-d1':{prefix:'cells-d1',count:4},
+  'orgs-d1':{prefix:'orgs-d1',count:5},'orgs-d2':{prefix:'orgs-d2',count:3},'orgs-d3':{prefix:'orgs-d3',count:4},
+};
+function updateProgress(){
+  let done=0,total=0;
+  Object.entries(progressMap).forEach(([key,{prefix,count}])=>{
+    let d=0;for(let i=1;i<=count;i++)if(stepState[`${prefix}-${i}`])d++;
+    const el=document.getElementById('prog-'+key);if(el)el.textContent=`${d}/${count}`;
+    done+=d;total+=count;
+  });
+  const d=document.getElementById('total-done'),t=document.getElementById('total-steps');
+  if(d)d.textContent=done;if(t)t.textContent=total;
+}
+function startTimer(e,secs,id){
+  e.stopPropagation();
+  if(timers[id]){clearInterval(timers[id]);delete timers[id];const el=document.getElementById(id);if(el)el.textContent='';return}
+  const end=Date.now()+secs*1000;
+  timers[id]=setInterval(()=>{
+    const rem=Math.max(0,Math.ceil((end-Date.now())/1000));
+    const el=document.getElementById(id);
+    if(el){const m=Math.floor(rem/60),s=rem%60;el.textContent=rem>0?`${m}:${s.toString().padStart(2,'0')}`:'Done ✓'}
+    if(rem<=0){clearInterval(timers[id]);delete timers[id]}
+  },500);
+}
+function resetSection(prefix){
+  Object.keys(stepState).forEach(k=>{
+    if(k.startsWith(prefix+'-')){delete stepState[k];const el=document.querySelector(`.step[data-step="${k}"]`);if(el)el.classList.remove('done')}
+  });
+  saveState();updateProgress();
+}
+function saveVesselPref(){try{localStorage.setItem('lenti-vessel',JSON.stringify({v:currentVessel,n:vesselCount}))}catch(e){}}
+function loadVesselPref(){try{const s=localStorage.getItem('lenti-vessel');if(s){const p=JSON.parse(s);currentVessel=p.v||'well';vesselCount=p.n||1}}catch(e){}}
+function persistInputs(){
+  document.querySelectorAll('input[id]').forEach(el=>{
+    try{const v=localStorage.getItem('lenti-inp-'+el.id);if(v!==null)el.value=v}catch(e){}
+    el.addEventListener('input',()=>{try{localStorage.setItem('lenti-inp-'+el.id,el.value)}catch(e){}});
+  });
+}
+
+// ═══ TRANSDUCTION PLANNER ═══
+const COND_COLORS=['#3a7bd5','#2daa6e','#9b59b6','#e67e22','#e91e8c','#0097a7','#795548','#00796b'];
+
+// ═══ PRODUCTION LAYOUT (6-well construct map) ═══
+const PROD_WELL_ROWS=['A','B'], PROD_WELL_COLS=[1,2,3];
+const prodLayout={constructs:[],wellState:{},activeCond:null};
+
+function getProdWellIds(){const ids=[];PROD_WELL_ROWS.forEach(r=>PROD_WELL_COLS.forEach(c=>ids.push(r+c)));return ids;}
+
+function initProdLayout(){
+  const sec=document.getElementById('prod-layout-section');
+  if(!sec)return;
+  // Build grid
+  const clabels=document.getElementById('prod-plate-col-labels');
+  if(clabels)clabels.innerHTML=PROD_WELL_COLS.map(c=>`<div class="pcl" style="width:52px">${c}</div>`).join('');
+  const rows=document.getElementById('prod-plate-rows');
+  if(rows)rows.innerHTML=PROD_WELL_ROWS.map(r=>
+    `<div class="plate-row-el"><div class="plate-row-label" style="font-size:11px">${r}</div>${PROD_WELL_COLS.map(c=>{
+      const id=r+c;
+      return `<div class="well" id="prod-well-${id}" onclick="clickProdWell('${id}')" title="${id}" style="width:46px;height:46px;font-size:9px;margin:2px"></div>`;
+    }).join('')}</div>`
+  ).join('');
+  updateProdVisual();
+  renderProdCondRow();
+  renderProdRecipes();
+}
+
+function renderProdCondRow(){
+  const row=document.getElementById('prod-cond-row');if(!row)return;
+  const wrap=document.getElementById('prod-cond-row-wrap');
+  if(prodLayout.constructs.length===0){
+    if(wrap)wrap.style.display='block';
+    row.innerHTML=`<button onclick="addProdConstruct()" style="background:var(--accent);color:white;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-family:var(--sans);font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:8px;margin-top:4px">＋ Add first construct</button>`;
+    const lbl=wrap?wrap.querySelector('#prod-paint-label'):null;
+    if(lbl)lbl.style.display='none';
+    return;
+  }
+  if(wrap){wrap.style.display='flex';const lbl=wrap.querySelector('#prod-paint-label');if(lbl)lbl.style.display='';}
+  let html=prodLayout.constructs.map(c=>{
+    const isA=prodLayout.activeCond===c.id;
+    return `<div class="cond-pill" onclick="setProdActiveCond('${c.id}')"
+      style="border-color:${isA?c.color:'transparent'};box-shadow:${isA?`0 0 0 2px ${c.color}40`:'none'}">
+      <div class="cond-dot" style="background:${c.color}"></div>
+      <span style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</span>
+      <span class="cond-del" onclick="event.stopPropagation();removeProdConstruct('${c.id}')">×</span>
+    </div>`;
+  }).join('');
+  html+=`<div class="erase-pill${prodLayout.activeCond==='erase'?' active':''}" onclick="setProdActiveCond('erase')">✕ Erase</div>`;
+  if(prodLayout.constructs.length<6) html+=`<button class="add-cond-btn" onclick="addProdConstruct()">+ Add construct</button>`;
+  row.innerHTML=html;
+}
+
+function addProdConstruct(){
+  if(prodLayout.constructs.length>=6)return;
+  const id='p'+Date.now();
+  prodLayout.constructs.push({id,name:'Construct '+(prodLayout.constructs.length+1),color:COND_COLORS[prodLayout.constructs.length%COND_COLORS.length]});
+  prodLayout.activeCond=id;
+  renderProdCondRow();updateProdVisual();renderProdRecipes();saveProdLayout();
+}
+
+function removeProdConstruct(id){
+  getProdWellIds().forEach(w=>{if(prodLayout.wellState[w]===id)delete prodLayout.wellState[w]});
+  prodLayout.constructs=prodLayout.constructs.filter(c=>c.id!==id);
+  if(prodLayout.activeCond===id)prodLayout.activeCond=prodLayout.constructs.length?prodLayout.constructs[0].id:null;
+  renderProdCondRow();updateProdVisual();renderProdRecipes();saveProdLayout();
+}
+
+function setProdActiveCond(id){prodLayout.activeCond=id;renderProdCondRow();}
+
+function clickProdWell(wellId){
+  if(prodLayout.activeCond==='erase')delete prodLayout.wellState[wellId];
+  else if(prodLayout.activeCond)prodLayout.wellState[wellId]=prodLayout.activeCond;
+  else return;
+  updateProdVisual();renderProdRecipes();saveProdLayout();
+}
+
+function selectAllProdWells(){
+  if(!prodLayout.activeCond||prodLayout.activeCond==='erase')return;
+  getProdWellIds().forEach(w=>{prodLayout.wellState[w]=prodLayout.activeCond;});
+  updateProdVisual();renderProdRecipes();saveProdLayout();
+}
+
+function clearAllProdWells(){
+  prodLayout.wellState={};
+  updateProdVisual();renderProdRecipes();saveProdLayout();
+}
+
+function updateProdVisual(){
+  const wellIds=getProdWellIds();
+  const assigned=wellIds.filter(w=>prodLayout.wellState[w]).length;
+  const status=document.getElementById('prod-plate-status');
+  if(status){
+    if(assigned===0){status.textContent='No wells assigned yet';}
+    else{
+      const parts=prodLayout.constructs.map(c=>{
+        const n=wellIds.filter(w=>prodLayout.wellState[w]===c.id).length;
+        return n>0?`<span style="color:${c.color};font-weight:600">${c.name}: ${n}</span>`:'';
+      }).filter(Boolean).join(' &nbsp;|&nbsp; ');
+      status.innerHTML=`${assigned} well${assigned!==1?'s':''} assigned &mdash; ${parts}`;
+    }
+  }
+  wellIds.forEach(wid=>{
+    const el=document.getElementById('prod-well-'+wid);if(!el)return;
+    const cond=prodLayout.wellState[wid]?prodLayout.constructs.find(c=>c.id===prodLayout.wellState[wid]):null;
+    if(cond){
+      el.style.background=cond.color;el.style.borderColor='transparent';
+      el.classList.add('filled');el.textContent=cond.name.slice(0,2).toUpperCase();
+    } else {
+      el.style.background='';el.style.borderColor='';el.classList.remove('filled');el.textContent='';
+    }
+  });
+}
+
+function renderProdRecipes(){
+  const container=document.getElementById('prod-plate-recipes');if(!container)return;
+  if(prodLayout.constructs.length===0){
+    container.innerHTML='<div style="font-size:12px;color:var(--fg3);padding:8px 0;font-style:italic">Add a construct to get started.</div>';
+  } else {
+    const wellIds=getProdWellIds();
+    container.innerHTML=prodLayout.constructs.map(c=>{
+      const nWells=wellIds.filter(w=>prodLayout.wellState[w]===c.id).length;
+      return `<div class="recipe-card" style="background:${c.color}15;border-left-color:${c.color}">
+        <div class="recipe-card-title" style="color:${c.color}">
+          <div style="width:9px;height:9px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
+          <input class="recipe-name-input" value="${c.name}" style="color:${c.color}"
+            oninput="(function(n){const cc=prodLayout.constructs.find(x=>x.id==='${c.id}');if(cc){cc.name=n;renderProdCondRow();updateProdVisual();renderDnaTable(VESSELS[currentVessel],vesselCount);renderTfxTable(VESSELS[currentVessel],vesselCount);saveProdLayout()}})(this.value)">
+          <span style="font-weight:400;font-size:11px;color:var(--fg3)">${nWells} well${nWells!==1?'s':''}</span>
+        </div>
+        ${nWells>0?`<table class="recipe-table">
+          <tr><td>Wells assigned</td><td style="color:${c.color};font-weight:600">${wellIds.filter(w=>prodLayout.wellState[w]===c.id).join(', ')}</td></tr>
+        </table>`:'<div style="font-size:11px;color:var(--fg3);font-style:italic;padding:4px 0">No wells assigned.</div>'}
+      </div>`;
+    }).join('');
+  }
+  // Re-render DNA/Tfx tables to reflect current construct layout
+  renderDnaTable(VESSELS[currentVessel], vesselCount);
+  renderTfxTable(VESSELS[currentVessel], vesselCount);
+}
+
+function saveProdLayout(){try{localStorage.setItem('lenti-prod-layout',JSON.stringify(prodLayout))}catch(e){}}
+function loadProdLayout(){
+  try{
+    const s=localStorage.getItem('lenti-prod-layout');
+    if(s){const p=JSON.parse(s);Object.assign(prodLayout,p);}
+  }catch(e){}
+}
+
+const TRANS_VESSELS={
+  w6: {label:'6-well', area:'9.6 cm²',type:'plate',rows:['A','B'],cols:[1,2,3],volMl:2,pbUl:1.6,seedCells:100000,sz:46,fs:9,maxC:8},
+  w12:{label:'12-well',area:'3.5 cm²',type:'plate',rows:['A','B','C'],cols:[1,2,3,4],volMl:1,pbUl:0.8,seedCells:50000,sz:35,fs:8,maxC:8},
+  w24:{label:'24-well',area:'1.9 cm²',type:'plate',rows:['A','B','C','D'],cols:[1,2,3,4,5,6],volMl:0.5,pbUl:0.4,seedCells:25000,sz:24,fs:7,maxC:8},
+  w48:{label:'48-well',area:'1.1 cm²',type:'plate',rows:['A','B','C','D','E','F'],cols:[1,2,3,4,5,6,7,8],volMl:0.25,pbUl:0.2,seedCells:10000,sz:17,fs:0,maxC:8},
+  t25:{label:'T25',area:'25 cm²',type:'flask',unit:'flask',units:'flasks',volMl:5,pbUl:4,seedCells:500000,maxC:6},
+  t75:{label:'T75',area:'75 cm²',type:'flask',unit:'flask',units:'flasks',volMl:15,pbUl:12,seedCells:1500000,maxC:4},
+  t175:{label:'T175',area:'175 cm²',type:'flask',unit:'flask',units:'flasks',volMl:30,pbUl:24,seedCells:4000000,maxC:4},
+};
+
+const ORG_VESSELS={
+  w24:{label:'24-well',area:'1.9 cm²',type:'plate',rows:['A','B','C','D'],cols:[1,2,3,4,5,6],volMl:0.5,pbUl:0.4,domesPerUnit:4,infVolMl:2,sz:24,fs:7,maxC:8},
+  w48:{label:'48-well',area:'1.1 cm²',type:'plate',rows:['A','B','C','D','E','F'],cols:[1,2,3,4,5,6,7,8],volMl:0.3,pbUl:0.24,domesPerUnit:2,infVolMl:2,sz:17,fs:0,maxC:8},
+  w96:{label:'96-well',area:'0.32 cm²',type:'plate',rows:['A','B','C','D','E','F','G','H'],cols:[1,2,3,4,5,6,7,8,9,10,11,12],volMl:0.2,pbUl:0.16,domesPerUnit:1,infVolMl:1,sz:11,fs:0,maxC:8},
+  t25:{label:'T25',area:'25 cm²',type:'flask',unit:'flask',units:'flasks',volMl:5,pbUl:4,domesPerUnit:8,infVolMl:5,maxC:6},
+  t75:{label:'T75',area:'75 cm²',type:'flask',unit:'flask',units:'flasks',volMl:15,pbUl:12,domesPerUnit:20,infVolMl:10,maxC:4},
+};
+
+// One state object per planner prefix
+const planners={
+  cells:{vessel:'w6',conditions:[],wellState:{},activeCond:null},
+  orgs: {vessel:'w48',conditions:[],wellState:{},activeCond:null},
+};
+
+function pvDef(pfx){return pfx==='orgs'?ORG_VESSELS:TRANS_VESSELS;}
+
+function getWellIds(pfx){
+  const v=pvDef(pfx)[planners[pfx].vessel];
+  if(v.type!=='plate')return[];
+  const ids=[];v.rows.forEach(r=>v.cols.forEach(c=>ids.push(r+c)));return ids;
+}
+
+// Generate SVG icon for vessel selector card
+function vesselSvg(vdef,size){
+  size=size||54;
+  if(vdef.type==='flask'){
+    // Simple flask silhouette
+    const s=size,h=s,w=s;
+    return `<svg width="${w}" height="${h}" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="19" y="4" width="16" height="16" rx="2" fill="none" stroke="var(--border)" stroke-width="2"/>
+      <path d="M14 50 L19 20 h16 l5 30 Q40 54 27 54 Q14 54 14 50Z" fill="var(--accent-soft)" stroke="var(--border)" stroke-width="2"/>
+      <text x="27" y="42" text-anchor="middle" font-size="8" font-family="var(--mono)" fill="var(--accent)" font-weight="500">${vdef.label}</text>
+    </svg>`;
+  }
+  // Plate: draw a grid of circles
+  const rows=vdef.rows.length,cols=vdef.cols.length;
+  const pad=4,maxDim=size-pad*2;
+  const spacing=Math.min(maxDim/cols,maxDim/rows);
+  const r=Math.max(1.5,spacing*0.35);
+  const gw=spacing*(cols-1)+r*2,gh=spacing*(rows-1)+r*2;
+  const ox=(size-gw)/2+r,oy=(size-gh)/2+r;
+  let circles='';
+  for(let ri=0;ri<rows;ri++)for(let ci=0;ci<cols;ci++){
+    circles+=`<circle cx="${(ox+ci*spacing).toFixed(1)}" cy="${(oy+ri*spacing).toFixed(1)}" r="${r.toFixed(1)}" fill="var(--border)"/>`;
+  }
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="none" xmlns="http://www.w3.org/2000/svg">${circles}</svg>`;
+}
+
+// Build vessel icon card buttons
+function buildVesselCards(pfx){
+  const vDefs=pvDef(pfx);
+  const btnsId=pfx==='cells'?'trans-vessel-btns':'org-vessel-btns';
+  const container=document.getElementById(btnsId);
+  if(!container)return;
+  const current=planners[pfx].vessel;
+  container.innerHTML=Object.entries(vDefs).map(([key,v])=>`
+    <div class="vessel-icon-card${key===current?' active':''}" onclick="switchPlanner('${pfx}','${key}')" title="${v.label}">
+      ${vesselSvg(v,54)}
+      <div class="vessel-icon-label">${v.label}</div>
+      <div class="vessel-icon-sub">${v.area||''}</div>
+    </div>`
+  ).join('');
+}
+
+function initPlanner(pfx){
+  const pv=planners[pfx],v=pvDef(pfx)[pv.vessel];
+  buildVesselCards(pfx);
+  const outer=document.getElementById(pfx+'-plate-outer');
+  const hint=document.getElementById(pfx===('cells')?'plate-hint-text':'org-plate-hint');
+  const actions=document.getElementById(pfx+'-plate-actions');
+  if(v.type==='plate'){
+    if(outer)outer.style.display='';
+    if(hint)hint.textContent='select a condition then click wells to assign';
+    const clabels=document.getElementById(pfx+'-plate-col-labels');
+    if(clabels)clabels.innerHTML=v.cols.map(c=>`<div class="pcl" style="width:${v.sz+6}px">${c}</div>`).join('');
+    const container=document.getElementById(pfx+'-plate-rows');
+    if(container)container.innerHTML=v.rows.map(r=>
+      `<div class="plate-row-el"><div class="plate-row-label" style="font-size:${Math.min(11,Math.max(8,v.sz/3))}px">${r}</div>${v.cols.map(c=>{
+        const id=r+c;
+        return `<div class="well" id="${pfx}-well-${id}" onclick="clickWell('${pfx}','${id}')" title="${id}"
+          style="width:${v.sz}px;height:${v.sz}px;font-size:${v.fs}px;margin:2px"></div>`;
+      }).join('')}</div>`
+    ).join('');
+    updatePlateVisual(pfx);
+    if(actions)actions.style.display='flex';
+  } else {
+    if(outer)outer.style.display='none';
+    if(hint)hint.textContent=`enter number of ${v.units} per condition`;
+    if(actions)actions.style.display='none';
+  }
+  renderCondRow(pfx);renderRecipes(pfx);
+}
+
+function addCondition(pfx){
+  const pv=planners[pfx],v=pvDef(pfx)[pv.vessel];
+  if(pv.conditions.length>=(v.maxC||8))return;
+  const id='c'+Date.now();
+  pv.conditions.push({id,name:'Condition '+(pv.conditions.length+1),color:COND_COLORS[pv.conditions.length%COND_COLORS.length],virusUl:200,count:1});
+  pv.activeCond=id;
+  renderCondRow(pfx);renderRecipes(pfx);savePlannerState(pfx);
+}
+
+function removeCondition(pfx,id){
+  const pv=planners[pfx];
+  getWellIds(pfx).forEach(w=>{if(pv.wellState[w]===id)delete pv.wellState[w]});
+  pv.conditions=pv.conditions.filter(c=>c.id!==id);
+  if(pv.activeCond===id)pv.activeCond=pv.conditions.length?pv.conditions[0].id:null;
+  renderCondRow(pfx);updatePlateVisual(pfx);renderRecipes(pfx);savePlannerState(pfx);
+}
+
+function setActiveCond(pfx,id){planners[pfx].activeCond=id;renderCondRow(pfx);}
+
+function clickWell(pfx,wellId){
+  const pv=planners[pfx];
+  if(pv.activeCond==='erase'){delete pv.wellState[wellId]}
+  else if(pv.activeCond){pv.wellState[wellId]=pv.activeCond}
+  else return;
+  updatePlateVisual(pfx);renderRecipes(pfx);savePlannerState(pfx);
+}
+
+function updatePlateVisual(pfx){
+  const pv=planners[pfx];
+  const wellIds=getWellIds(pfx);
+  const assigned=wellIds.filter(w=>pv.wellState[w]).length;
+  const status=document.getElementById(pfx+'-plate-status');
+  if(status){
+    if(assigned===0){status.textContent='No wells assigned yet';}
+    else{
+      const parts=pv.conditions.map(c=>{
+        const n=wellIds.filter(w=>pv.wellState[w]===c.id).length;
+        return n>0?`<span style="color:${c.color};font-weight:600">${c.name}: ${n}</span>`:'';
+      }).filter(Boolean).join(' &nbsp;|&nbsp; ');
+      status.innerHTML=`${assigned} well${assigned!==1?'s':''} assigned &mdash; ${parts}`;
+    }
+  }
+  wellIds.forEach(wid=>{
+    const el=document.getElementById(pfx+'-well-'+wid);if(!el)return;
+    const cond=pv.wellState[wid]?pv.conditions.find(c=>c.id===pv.wellState[wid]):null;
+    if(cond){
+      el.style.background=cond.color;el.style.borderColor='transparent';
+      el.classList.add('filled');el.textContent=cond.name.slice(0,2).toUpperCase();
+    } else {
+      el.style.background='';el.style.borderColor='';el.classList.remove('filled');el.textContent='';
+    }
+  });
+}
+
+function selectAllWells(pfx){
+  const pv=planners[pfx];
+  if(!pv.activeCond||pv.activeCond==='erase')return;
+  getWellIds(pfx).forEach(w=>{pv.wellState[w]=pv.activeCond;});
+  updatePlateVisual(pfx);renderRecipes(pfx);savePlannerState(pfx);
+}
+
+function clearAllWells(pfx){
+  planners[pfx].wellState={};
+  updatePlateVisual(pfx);renderRecipes(pfx);savePlannerState(pfx);
+}
+
+function renderCondRow(pfx){
+  const pv=planners[pfx],v=pvDef(pfx)[pv.vessel];
+  const row=document.getElementById(pfx+'-cond-row');if(!row)return;
+  const wrap=document.getElementById(pfx+'-cond-row-wrap');
+  if(pv.conditions.length===0){
+    // Hide paint label, show big prompt button spanning the whole row
+    if(wrap)wrap.style.display='block';
+    row.innerHTML=`<button onclick="addCondition('${pfx}')" style="background:var(--accent);color:white;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-family:var(--sans);font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:8px;margin-top:4px">＋ Add first condition</button>`;
+    const lbl=wrap?wrap.querySelector('.paint-label'):null;
+    if(lbl)lbl.style.display='none';
+    return;
+  }
+  // Restore paint label
+  if(wrap){wrap.style.display='flex';const lbl=wrap.querySelector('.paint-label');if(lbl)lbl.style.display='';}
+  let html=pv.conditions.map(c=>{
+    const isA=pv.activeCond===c.id;
+    return `<div class="cond-pill" onclick="setActiveCond('${pfx}','${c.id}')"
+      style="border-color:${isA?c.color:'transparent'};box-shadow:${isA?`0 0 0 2px ${c.color}40`:'none'}">
+      <div class="cond-dot" style="background:${c.color}"></div>
+      <span style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</span>
+      <span class="cond-del" onclick="event.stopPropagation();removeCondition('${pfx}','${c.id}')">×</span>
+    </div>`;
+  }).join('');
+  if(v.type==='plate') html+=`<div class="erase-pill${pv.activeCond==='erase'?' active':''}" onclick="setActiveCond('${pfx}','erase')">✕ Erase</div>`;
+  if(pv.conditions.length<(v.maxC||8)) html+=`<button class="add-cond-btn" onclick="addCondition('${pfx}')">+ Add condition</button>`;
+  row.innerHTML=html;
+}
+
+function renderRecipes(pfx){
+  const container=document.getElementById(pfx+'-plate-recipes');if(!container)return;
+  const pv=planners[pfx],v=pvDef(pfx)[pv.vessel];
+  if(pv.conditions.length===0){
+    container.innerHTML='<div style="font-size:12px;color:var(--fg3);padding:8px 0;font-style:italic">Add a condition to get started.</div>';return;
+  }
+  const wellIds=getWellIds(pfx);
+  const isOrg=pfx==='orgs';
+  const unitLbl=v.type==='plate'?'well':'flask';
+  const totalUlPerUnit=v.volMl*1000;
+  container.innerHTML=pv.conditions.map(c=>{
+    const nUnits=v.type==='plate'?wellIds.filter(w=>pv.wellState[w]===c.id).length:(c.count||1);
+    const vUl=parseFloat(c.virusUl)||0;
+    const pbUl=v.pbUl;
+    const medUl=Math.max(0,totalUlPerUnit-vUl-pbUl);
+    const fmt=ul=>ul>=1000?(ul/1000).toFixed(ul%1000===0?0:2)+' mL':ul.toFixed(0)+' µL';
+    const domesRow=isOrg&&v.domesPerUnit?`<tr><td>Matrigel domes / ${unitLbl}</td><td>${v.domesPerUnit} × 20 µL</td></tr>`:'';
+    const infRow=isOrg&&v.infVolMl?`<tr><td>Infection medium / cond.</td><td>${v.infVolMl} mL</td></tr>`:'';
+    const countInput=v.type==='flask'?`<div class="vol-input-row" style="margin-bottom:8px">
+      ${v.units.slice(0,1).toUpperCase()+v.units.slice(1)}:
+      <input class="vol-input" type="number" min="1" max="20" value="${c.count||1}"
+        oninput="(function(n){const cc=planners['${pfx}'].conditions.find(x=>x.id==='${c.id}');if(cc){cc.count=+n||1;renderRecipes('${pfx}');savePlannerState('${pfx}')}})(this.value)">
+    </div>`:'';
+    const noWellsMsg=v.type==='plate'&&nUnits===0?'<div class="no-wells-note">No wells assigned.</div>':'';
+    return `<div class="recipe-card" style="background:${c.color}15;border-left-color:${c.color}">
+      <div class="recipe-card-title" style="color:${c.color}">
+        <div style="width:9px;height:9px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
+        <input class="recipe-name-input" value="${c.name}" style="color:${c.color}"
+          oninput="(function(n){const cc=planners['${pfx}'].conditions.find(x=>x.id==='${c.id}');if(cc){cc.name=n;renderCondRow('${pfx}');updatePlateVisual('${pfx}');savePlannerState('${pfx}')}})(this.value)">
+        <span style="font-weight:400;font-size:11px;color:var(--fg3)">${nUnits} ${unitLbl}${nUnits!==1?'s':''}</span>
+      </div>
+      ${countInput}
+      <div class="vol-input-row">Virus / ${unitLbl}:
+        <input class="vol-input" type="number" min="0" max="${totalUlPerUnit}" step="10" value="${c.virusUl}"
+          oninput="(function(n){const cc=planners['${pfx}'].conditions.find(x=>x.id==='${c.id}');if(cc){cc.virusUl=+n;renderRecipes('${pfx}');savePlannerState('${pfx}')}})(this.value)">
+        µL${vUl>0?` <span style="color:var(--fg3)">1:${(totalUlPerUnit/vUl).toFixed(1).replace(/\.0$/,'')} dil.</span>`:''}
+      </div>
+      ${(nUnits>0||v.type==='flask')?`<table class="recipe-table">
+        <tr><td>Virus / ${unitLbl}</td><td>${vUl} µL</td></tr>
+        <tr><td>Polybrene / ${unitLbl}</td><td>${pbUl} µL <span style="color:var(--fg3);font-size:10px">(→ ${(pbUl/totalUlPerUnit*1000).toFixed(1)} µg/mL)</span></td></tr>
+        <tr><td>Medium / ${unitLbl}</td><td>${fmt(medUl)}</td></tr>
+        ${domesRow}${infRow}
+        <tr style="border-top:1px solid ${c.color}30"><td colspan="2" style="padding-top:5px;font-size:10px;font-family:var(--mono);color:var(--fg3);text-transform:uppercase;letter-spacing:.05em">Total — ${nUnits} ${unitLbl}${nUnits!==1?'s':''}</td></tr>
+        <tr><td>Virus</td><td style="color:${c.color};font-weight:600">${fmt(vUl*nUnits)}</td></tr>
+        <tr><td>Polybrene</td><td style="font-weight:600">${(pbUl*nUnits).toFixed(1)} µL</td></tr>
+        <tr><td>Medium</td><td style="font-weight:600">${fmt(medUl*nUnits)}</td></tr>
+      </table>`:noWellsMsg}
+    </div>`;
+  }).join('');
+}
+
+function savePlannerState(pfx){try{localStorage.setItem('lenti-planner-'+pfx,JSON.stringify(planners[pfx]))}catch(e){}}
+function loadPlannerState(pfx){try{const s=localStorage.getItem('lenti-planner-'+pfx);if(s)Object.assign(planners[pfx],JSON.parse(s))}catch(e){}}
+
+function switchPlanner(pfx,vkey){
+  planners[pfx].vessel=vkey;planners[pfx].wellState={};
+  initPlanner(pfx);savePlannerState(pfx);
+}
+
+// ═══ PRINT ═══
+function printTab(tabId){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('print-target'));
+  document.getElementById('tab-'+tabId).classList.add('print-target');
+  window.print();
+}
+
+// ═══ REAGENTS ═══
+const REAGENT_GROUPS={
+  'rg-dna':[
+    'psPAX2 (packaging plasmid)','pCMV-VSV-G (envelope plasmid)','Lentivector / GOI plasmid',
+  ],
+  'rg-tfx':[
+    'jetOPTIMUS® or jetPRIME® reagent','jetOPTIMUS / Opti-MEM buffer',
+    'PEI 25kDa (1 mg/mL in H₂O) — optional',
+    'Opti-MEM I Reduced Serum Medium — optional',
+  ],
+  'rg-media':[
+    'HEK 293T cells (low passage, <P20)','DMEM high-glucose','FBS (10%)','GlutaMAX (100×)','HEPES (1M stock)',
+    'Pen/Strep (P/S) — optional for producer cells',
+    'AdDMEM/F12 (for resuspension after UC)',
+  ],
+  'rg-cons':[
+    'Poly-D-lysine coated plates or flasks','6-well plates / T75 / T175 flasks',
+    '0.45 µm PVDF syringe filter(s)','Ultraclear ultracentrifuge tube(s)',
+    'Cryotubes (50–100 µL aliquots)','Falcon tubes (15 mL, 50 mL)',
+    'Serological pipettes','Syringe(s) for filtering',
+  ],
+  'rg-cells':[
+    'Target cells (e.g. MC38, A549)','Lentiviral supernatant (concentrated or raw)',
+    'Polybrene (10 mg/mL stock → 8 µg/mL final)','Complete growth medium (GM)',
+    'Selection antibiotic (e.g. Puromycin 1 mg/mL stock)',
+    'PBS',
+  ],
+  'rg-orgs':[
+    'Organoid line (in Matrigel domes)','Lentiviral supernatant',
+    'Full organoid medium (WRN / colon OM)','Nicotinamide (1000× stock)',
+    'Polybrene (1000× stock → 4 µg/mL final)','ROCK inhibitor Y-27632 (1000× stock)',
+    'TrypLE Express','Matrigel (cold, on ice)',
+    'AdDMEM/F12 (ice-cold, for washing)','Selection: Puromycin or Hygromycin B',
+    '48-well plates',
+  ],
+};
+let reagentState={};
+function loadReagentState(){try{const s=localStorage.getItem('lenti-reagents');if(s)reagentState=JSON.parse(s)}catch(e){}}
+function saveReagentState(){try{localStorage.setItem('lenti-reagents',JSON.stringify(reagentState))}catch(e){}}
+function toggleReagent(id,el){
+  reagentState[id]=!reagentState[id];
+  el.closest('.rg-item').classList.toggle('rg-done',!!reagentState[id]);
+  el.checked=!!reagentState[id];
+  saveReagentState();
+}
+function resetReagents(){
+  reagentState={};saveReagentState();
+  document.querySelectorAll('.rg-item').forEach(el=>el.classList.remove('rg-done'));
+  document.querySelectorAll('.rg-cb').forEach(cb=>cb.checked=false);
+}
+function renderReagents(){
+  loadReagentState();
+  Object.entries(REAGENT_GROUPS).forEach(([gid,items])=>{
+    const container=document.getElementById(gid);
+    if(!container)return;
+    container.innerHTML=items.map((name,i)=>{
+      const id=gid+'-'+i;
+      const done=!!reagentState[id];
+      return `<label class="rg-item${done?' rg-done':''}" onclick="toggleReagent('${id}',this.querySelector('input'))">
+        <input class="rg-cb" type="checkbox" ${done?'checked':''} onclick="event.stopPropagation();toggleReagent('${id}',this)">
+        <span>${name}</span>
+      </label>`;
+    }).join('');
+  });
+}
+
+// ═══ INIT ═══
+loadVesselPref();
+loadPlasmidConcs();
+loadPlasmidInvLinks();
+loadProdLayout();
+buildProdVesselCards();
+document.getElementById('vessel-count').value=vesselCount;
+loadState();
+updateProgress();
+updateVessel();
+loadPlannerState('cells');loadPlannerState('orgs');
+initPlanner('cells');initPlanner('orgs');
+renderReagents();
+persistInputs();
+</script>
