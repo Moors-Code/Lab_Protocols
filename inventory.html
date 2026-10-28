@@ -102,6 +102,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
   transition:background .15s,color .15s;
 }
 .icon-btn:hover{background:var(--surface2);color:var(--text)}
+.icon-btn.filter-active{background:var(--warn-lt)!important;color:var(--warn)!important;border-color:var(--warn)!important}
 
 /* ── Breadcrumb bar ─────────────────────────────────────────────── */
 #crumbbar{
@@ -369,6 +370,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
         <span class="search-icon">⌕</span>
         <input id="search-input" type="search" placeholder="Search…" autocomplete="off">
       </div>
+      <button class="icon-btn" id="btn-lowstock" title="Show low-stock items only">⚠</button>
       <button class="icon-btn" id="btn-settings" title="Settings">⚙</button>
       <button class="icon-btn" id="btn-theme" title="Toggle theme">◑</button>
     </div>
@@ -393,6 +395,7 @@ const S = {
   activeBox:   null,   // null = grid view, string = box name
   search:      '',
   volFormRow:  null,   // sheet row number of open inline vol form
+  filterLow:   false,
   lowVol: (() => {
     try { return JSON.parse(localStorage.getItem('inv_lowvol')) || {enabled:false,minConc:10,minVol:5}; }
     catch { return {enabled:false,minConc:10,minVol:5}; }
@@ -443,7 +446,7 @@ function findBox(name, data) {
    SEARCH
 ══════════════════════════════════════════════════════════════ */
 function itemText(item) {
-  return [item.name, item.labcollector, item.preparer].filter(Boolean).join(' ').toLowerCase();
+  return [item.name, item.labcollector, item.preparer, item.notes].filter(Boolean).join(' ').toLowerCase();
 }
 function matchQ(item, q) { return !q || itemText(item).includes(q.toLowerCase()); }
 
@@ -755,7 +758,10 @@ function renderBoxPanel() {
     html += '</div></div>'; // plate-grid, plate-wrap
   }
 
-  const hasItems = box && box.items.filter(i => i.name).length > 0;
+  const allItems     = box ? box.items.filter(i => i.name) : [];
+  const hasItems     = allItems.length > 0;
+  const visibleItems = S.filterLow ? allItems.filter(i => isLowVol(i)) : allItems;
+
   if (!box || !hasItems) {
     html += `<div class="empty-state">
       <h3>No items in "${h(S.activeBox)}"</h3>
@@ -765,33 +771,48 @@ function renderBoxPanel() {
     return;
   }
 
+  if (S.filterLow && visibleItems.length === 0) {
+    html += `<div class="empty-state"><h3>No low-stock items ✓</h3><p>All items are above your thresholds.</p></div>`;
+    document.getElementById('main').innerHTML = html;
+    return;
+  }
+
+  // Show columns if box declares them OR any item already has data for them
+  const showLC   = box.hasLabCollector !== false;
+  const showConc = box.hasConc !== false || allItems.some(i => i.concentration != null && i.concentration !== '');
+  const showVol  = box.hasVolume !== false || allItems.some(i => i.volume != null && i.volume !== '');
+  const showPrep = box.hasPreparer !== false || allItems.some(i => i.preparer);
+  const showGly  = box.hasGlycerol !== false || allItems.some(i => i.glycerol);
+  const showNote = allItems.some(i => i.notes);
+
   html += '<table class="items-table" id="items-list"><thead><tr>';
   html += '<th>Name</th>';
-  if (box.hasLabCollector !== false) html += '<th>LabCollector</th>';
-  if (box.hasConc !== false)         html += '<th>Conc (ng/µL)</th>';
-  if (box.hasVolume !== false)       html += '<th>Volume (µL)</th>';
+  if (showLC)   html += '<th>LabCollector</th>';
+  if (showConc) html += '<th>Conc (ng/µL)</th>';
+  if (showVol)  html += '<th>Volume (µL)</th>';
   html += '<th>Date</th>';
-  if (box.hasPreparer !== false)     html += '<th>Preparer</th>';
-  if (box.hasGlycerol !== false)     html += '<th>Glycerol stock</th>';
+  if (showPrep) html += '<th>Preparer</th>';
+  if (showGly)  html += '<th>Glycerol stock</th>';
+  if (showNote) html += '<th>Notes</th>';
   html += '<th>Actions</th></tr></thead><tbody>';
 
-  box.items.filter(i => i.name).forEach(item => {
+  visibleItems.forEach(item => {
     const matches = matchQ(item, q);
     const low     = isLowVol(item);
     const rowCls  = (q && !matches) ? 'dimmed' : '';
     html += `<tr class="${rowCls}" data-row="${item._row}">`;
     html += `<td><span class="name-cell">${h(item.name)}</span>${low ? ' <span class="low-badge">⚠ low</span>' : ''}</td>`;
 
-    if (box.hasLabCollector !== false) {
+    if (showLC) {
       const lc = item.labcollector || '';
       html += '<td>' + (lc
         ? `<a class="lc-link" href="https://bs-labcollect01.ethz.ch/moor/plasmids.php?search=1&strict=on&by_id=${h(lc)}" target="_blank" rel="noopener">${h(lc)} ↗</a>`
         : '<span style="color:var(--text3)">—</span>') + '</td>';
     }
 
-    if (box.hasConc !== false) html += `<td class="mono">${h(item.concentration||'—')}</td>`;
+    if (showConc) html += `<td class="mono">${h(item.concentration||'—')}</td>`;
 
-    if (box.hasVolume !== false) {
+    if (showVol) {
       const vStr = item.volume != null && item.volume !== '' ? item.volume : '';
       if (S.volFormRow === item._row) {
         html += `<td><div class="vol-form">
@@ -809,8 +830,13 @@ function renderBoxPanel() {
     }
 
     html += `<td class="mono">${h(item.date||'—')}</td>`;
-    if (box.hasPreparer !== false) html += `<td>${h(item.preparer||'—')}</td>`;
-    if (box.hasGlycerol !== false) html += `<td>${h(item.glycerol||'—')}</td>`;
+    if (showPrep) html += `<td>${h(item.preparer||'—')}</td>`;
+    if (showGly)  html += `<td>${h(item.glycerol||'—')}</td>`;
+    if (showNote) {
+      const note    = item.notes || '';
+      const snippet = note.length > 60 ? note.slice(0, 57) + '…' : note;
+      html += `<td style="max-width:180px;white-space:pre-wrap;font-size:12px;color:var(--text2)" title="${h(note)}">${h(snippet)||'<span style="color:var(--text3)">—</span>'}</td>`;
+    }
     html += `<td><div class="row-actions">
       <button class="btn-edit" onclick="openEditModal(${item._row})">Edit</button>
       <button class="btn-del" onclick="doDelete(${item._row})">Delete</button>
@@ -912,13 +938,6 @@ function toggleColorPop(e, boxName) {
 
 /* ── Add Item ──────────────────────────────────────────────── */
 function openAddItemModal() {
-  const box = findBox(S.activeBox, S.data);
-  let extraFields = '';
-  if (box?.hasGlycerol !== false) extraFields += `<div class="frow"><label>Glycerol stock</label><input class="finput" id="mi-glycerol" placeholder="e.g. yes / -80°C" autocomplete="off"></div>`;
-  if (box?.hasConc !== false)     extraFields += `<div class="frow"><label>Concentration (ng/µL)</label><input class="finput" id="mi-conc" type="number" step="0.1" min="0" placeholder="500"></div>`;
-  if (box?.hasVolume !== false)   extraFields += `<div class="frow"><label>Volume (µL)</label><input class="finput" id="mi-vol" type="number" step="0.1" min="0" placeholder="50"></div>`;
-  if (box?.hasPreparer !== false) extraFields += `<div class="frow"><label>Preparer</label><input class="finput" id="mi-prep" placeholder="Your name" autocomplete="off"></div>`;
-
   openModal(`<div class="modal">
     <div class="modal-hd"><h3>Add Item — ${h(S.activeBox)}</h3><button class="modal-x" onclick="closeModal()">✕</button></div>
     <div class="modal-bd">
@@ -928,7 +947,13 @@ function openAddItemModal() {
         <input class="finput" id="mi-lab" placeholder="e.g. 4521" autocomplete="off">
         <div class="fhint">Links to LabCollector plasmid record</div></div>
       <div class="frow req"><label>Date</label><input class="finput" id="mi-date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
-      ${extraFields}
+      <div class="frow"><label>Preparer</label><input class="finput" id="mi-prep" placeholder="Who made this prep?" autocomplete="off"></div>
+      <div class="fgrid2">
+        <div class="frow"><label>Concentration (ng/µL)</label><input class="finput" id="mi-conc" type="number" step="0.1" min="0" placeholder="500"></div>
+        <div class="frow"><label>Volume (µL)</label><input class="finput" id="mi-vol" type="number" step="0.1" min="0" placeholder="50"></div>
+      </div>
+      <div class="frow"><label>Glycerol stock</label><input class="finput" id="mi-glycerol" placeholder="e.g. yes / -80°C box 3" autocomplete="off"></div>
+      <div class="frow"><label>Notes</label><textarea class="finput" id="mi-notes" rows="2" placeholder="Any extra details — insert size, backbone, resistance…" style="resize:vertical"></textarea></div>
     </div>
     <div class="modal-ft">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
@@ -946,12 +971,13 @@ async function submitAddItem() {
   const conc    = (document.getElementById('mi-conc')?.value    || '').trim();
   const vol     = (document.getElementById('mi-vol')?.value     || '').trim();
   const prep    = (document.getElementById('mi-prep')?.value    || '').trim();
+  const notes   = (document.getElementById('mi-notes')?.value   || '').trim();
   if (!name) { modalErr('Name is required.'); return; }
   if (!date) { modalErr('Date is required.'); return; }
   try {
     const res = await apiFetch({
       action: 'addItem', sheet: S.activeSheet, box: S.activeBox,
-      data: JSON.stringify({ name, labcollector:lab, date, glycerol, concentration:conc, volume:vol, preparer:prep })
+      data: JSON.stringify({ name, labcollector:lab, date, glycerol, concentration:conc, volume:vol, preparer:prep, notes })
     });
     if (res.error) throw new Error(res.error);
     closeModal();
@@ -965,11 +991,6 @@ function openEditModal(row) {
   const box  = findBox(S.activeBox, S.data);
   const item = box?.items.find(i => i._row === row);
   if (!item) return;
-  let extraFields = '';
-  if (box?.hasGlycerol !== false) extraFields += `<div class="frow"><label>Glycerol stock</label><input class="finput" id="mi-glycerol" value="${h(item.glycerol||'')}" autocomplete="off"></div>`;
-  if (box?.hasConc !== false)     extraFields += `<div class="frow"><label>Concentration (ng/µL)</label><input class="finput" id="mi-conc" type="number" step="0.1" min="0" value="${h(item.concentration||'')}"></div>`;
-  if (box?.hasVolume !== false)   extraFields += `<div class="frow"><label>Volume (µL)</label><input class="finput" id="mi-vol" type="number" step="0.1" min="0" value="${h(item.volume||'')}"></div>`;
-  if (box?.hasPreparer !== false) extraFields += `<div class="frow"><label>Preparer</label><input class="finput" id="mi-prep" value="${h(item.preparer||'')}" autocomplete="off"></div>`;
 
   openModal(`<div class="modal">
     <div class="modal-hd"><h3>Edit Item</h3><button class="modal-x" onclick="closeModal()">✕</button></div>
@@ -978,7 +999,13 @@ function openEditModal(row) {
       <div class="frow req"><label>Name</label><input class="finput" id="mi-name" value="${h(item.name||'')}" autocomplete="off"></div>
       <div class="frow"><label>LabCollector ID</label><input class="finput" id="mi-lab" value="${h(item.labcollector||'')}" autocomplete="off"></div>
       <div class="frow req"><label>Date</label><input class="finput" id="mi-date" type="date" value="${h(item.date||'')}"></div>
-      ${extraFields}
+      <div class="frow"><label>Preparer</label><input class="finput" id="mi-prep" value="${h(item.preparer||'')}" placeholder="Who made this prep?" autocomplete="off"></div>
+      <div class="fgrid2">
+        <div class="frow"><label>Concentration (ng/µL)</label><input class="finput" id="mi-conc" type="number" step="0.1" min="0" value="${h(item.concentration||'')}"></div>
+        <div class="frow"><label>Volume (µL)</label><input class="finput" id="mi-vol" type="number" step="0.1" min="0" value="${h(item.volume||'')}"></div>
+      </div>
+      <div class="frow"><label>Glycerol stock</label><input class="finput" id="mi-glycerol" value="${h(item.glycerol||'')}" placeholder="e.g. yes / -80°C box 3" autocomplete="off"></div>
+      <div class="frow"><label>Notes</label><textarea class="finput" id="mi-notes" rows="2" style="resize:vertical">${h(item.notes||'')}</textarea></div>
     </div>
     <div class="modal-ft">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
@@ -996,11 +1023,12 @@ async function submitEdit(row) {
   const conc    = (document.getElementById('mi-conc')?.value    || '').trim();
   const vol     = (document.getElementById('mi-vol')?.value     || '').trim();
   const prep    = (document.getElementById('mi-prep')?.value    || '').trim();
+  const notes   = (document.getElementById('mi-notes')?.value   || '').trim();
   if (!name) { modalErr('Name is required.'); return; }
   try {
     const res = await apiFetch({
       action: 'updateItem', sheet: S.activeSheet, box: S.activeBox, row,
-      data: JSON.stringify({ name, labcollector:lab, date, glycerol, concentration:conc, volume:vol, preparer:prep })
+      data: JSON.stringify({ name, labcollector:lab, date, glycerol, concentration:conc, volume:vol, preparer:prep, notes })
     });
     if (res.error) throw new Error(res.error);
     closeModal();
@@ -1167,6 +1195,11 @@ function setTheme(dark) {
 ══════════════════════════════════════════════════════════════ */
 document.getElementById('search-input').addEventListener('input', e => {
   S.search = e.target.value; render();
+});
+document.getElementById('btn-lowstock').addEventListener('click', () => {
+  S.filterLow = !S.filterLow;
+  document.getElementById('btn-lowstock').classList.toggle('filter-active', S.filterLow);
+  render();
 });
 document.getElementById('btn-settings').addEventListener('click', openSettings);
 document.getElementById('btn-theme').addEventListener('click', () => {
