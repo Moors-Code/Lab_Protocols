@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Transfection Batch Calculator</title>
-<link rel="icon" type="image/svg+xml" href="favicon-transfection.svg">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap">
 <style>
 :root {
@@ -122,6 +121,9 @@ header .hdr-sub { font-size: 11px; color: var(--fg3); }
 .cond-notes:focus { border-color: var(--accent); }
 .exp-notes-global { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--fg); font-family: var(--font); font-size: 12px; resize: vertical; min-height: 56px; outline: none; margin-bottom: 10px; }
 .exp-notes-global:focus { border-color: var(--accent); }
+.master-tube-a thead tr th { background: var(--accent2-bg); color: var(--accent2); }
+.master-tube-a { border: 1.5px solid var(--accent2); border-radius: 8px; overflow: hidden; }
+.master-hint { font-size: 11px; color: var(--accent2); font-weight: 600; text-align: center; padding: 4px 0 8px; letter-spacing: .02em; }
 
 .vessel-hint { font-size: 10px; color: var(--fg3); margin: 2px 0 6px 66px; line-height: 1.4; }
 
@@ -302,8 +304,13 @@ header .hdr-sub { font-size: 11px; color: var(--fg3); }
     <aside class="conditions-panel" id="conditions-panel">
       <div class="panel-header">
         <h2>Conditions</h2>
-        <button class="btn-icon" title="Reset all" onclick="resetAll()">↺</button>
+        <div style="display:flex;gap:4px;align-items:center">
+          <button class="btn-icon" title="Save plan as JSON" onclick="savePlan()" style="font-size:14px">💾</button>
+          <button class="btn-icon" title="Load saved plan" onclick="document.getElementById('load-plan-input').click()" style="font-size:14px">📂</button>
+          <button class="btn-icon" title="Reset all" onclick="resetAll()">↺</button>
+        </div>
       </div>
+      <input type="file" id="load-plan-input" accept=".json" style="display:none" onchange="loadPlan(event)">
       <div id="conditions-list"></div>
       <button class="btn-add" onclick="addCondition()">＋ Add condition</button>
     </aside>
@@ -440,6 +447,90 @@ function setProtocol(proto) {
     if (!vkeys.includes(c.vessel)) c.vessel = defaultVessel();
   });
   renderAll();
+}
+
+// ─── Save / Load plan ─────────────────────────────────────────────────────
+function savePlan() {
+  const expNotes = document.getElementById('exp-notes-global')?.value || '';
+  const plan = {
+    _type: 'transfection-plan',
+    _version: 1,
+    savedAt: new Date().toISOString(),
+    protocol: state.protocol,
+    mode: state.mode,
+    plateFormat: state.plateFormat,
+    expNotes,
+    conditions: state.conditions.map(c => ({
+      id: c.id, name: c.name, color: c.color, vessel: c.vessel,
+      ratio: c.ratio, notes: c.notes || '',
+      plasmids: c.plasmids.map(p => ({
+        name: p.name,
+        conc: p.conc,   // may be blank — that's fine
+        pct: p.pct
+      }))
+    })),
+    wells: state.wells,
+    listWells: state.listWells,
+    nextId: state.nextId,
+  };
+  const slug = plan.conditions.map(c => c.name).join('_').replace(/[^a-z0-9_\-]/gi,'').slice(0,40) || 'plan';
+  const date = new Date().toISOString().slice(0,10);
+  const fname = `transfection_${slug}_${date}.json`;
+  const blob = new Blob([JSON.stringify(plan, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fname;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function loadPlan(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  evt.target.value = '';   // reset so same file can be re-loaded
+  const reader = new FileReader();
+  reader.onload = e => {
+    let plan;
+    try { plan = JSON.parse(e.target.result); } catch { alert('Invalid JSON file.'); return; }
+    if (plan._type !== 'transfection-plan') { alert('Not a transfection plan file.'); return; }
+    // Restore state
+    state.protocol   = plan.protocol   || 'jetOPTIMUS';
+    state.mode       = plan.mode       || 'plate';
+    state.plateFormat= plan.plateFormat|| 24;
+    state.conditions = (plan.conditions || []).map(c => ({
+      id: c.id, name: c.name, color: c.color, vessel: c.vessel,
+      ratio: c.ratio ?? 2, notes: c.notes || '',
+      plasmids: (c.plasmids || []).map(p => ({name:p.name||'', conc:p.conc||'', pct:p.pct||0}))
+    }));
+    state.wells      = plan.wells      || {};
+    state.listWells  = plan.listWells  || {};
+    state.nextId     = plan.nextId     || state.conditions.length;
+    state.activeCondId = state.conditions.length ? state.conditions[0].id : null;
+    state.painting   = false;
+    state.paintErase = false;
+    // Restore protocol tabs / header
+    setProtocol(state.protocol);   // also calls renderAll
+    // Restore experiment notes textarea
+    const gn = document.getElementById('exp-notes-global');
+    if (gn) gn.value = plan.expNotes || '';
+    // Toast
+    showToast(`Plan loaded: ${state.conditions.length} condition${state.conditions.length!==1?'s':''}`);
+  };
+  reader.readAsText(file);
+}
+
+function showToast(msg) {
+  let t = document.getElementById('plan-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'plan-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#f1f5f9;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.3);pointer-events:none;transition:opacity 0.3s';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.style.opacity = '0', 2500);
 }
 
 // ─── Condition management ─────────────────────────────────────────────────
@@ -813,44 +904,78 @@ function renderResultsJopt(container, active) {
 }
 
 function renderResultsL3K(container, active) {
+  // ── Compute Master Tube A totals (sum across all conditions, one 10% excess) ──
+  const calcs = active.map(c => ({ cond: c, r: calculateCondL3K(c) }));
+  const masterL3K  = calcs.reduce((s, {r}) => s + r.L3K  * r.n, 0) * 1.1;
+  const masterOptA = calcs.reduce((s, {r}) => s + r.optA * r.n, 0) * 1.1;
+  const masterTubeA = masterL3K + masterOptA;
+  const multiCond = active.length > 1;
+
   const rows = [];
-  rows.push(`<table class="results-table"><thead><tr>
-    <th>Condition / Component</th><th>Wells</th><th>Per well (µL)</th><th>Master mix + 10% (µL)</th>
+
+  // ── Master Tube A block (only shown when >1 condition) ──
+  if (multiCond) {
+    rows.push(`<table class="results-table master-tube-a"><thead><tr>
+      <th colspan="2" style="color:var(--accent2);letter-spacing:.04em">🧪 MASTER TUBE A — Lipofectamine 3000 mix (shared, make once)</th>
+      <th style="color:var(--accent2)">Total +10% (µL)</th>
+    </tr></thead><tbody>`);
+    rows.push(`<tr><td class="sub-label" style="padding-left:16px" colspan="2">Lipofectamine 3000</td><td>${fmt1(masterL3K)}</td></tr>`);
+    rows.push(`<tr><td class="sub-label" style="padding-left:16px" colspan="2">Opti-MEM</td><td>${fmt1(masterOptA)}</td></tr>`);
+    rows.push(`<tr class="total-row"><td colspan="2" style="padding-left:12px;font-weight:700">Tube A total</td><td>${fmt1(masterTubeA)}</td></tr>`);
+    rows.push(`</tbody></table>`);
+    rows.push(`<div class="master-hint">↓ Mix well · then aliquot into each condition's Tube B below</div>`);
+  }
+
+  // ── Per-condition table ──
+  rows.push(`<table class="results-table" style="margin-top:${multiCond?'4':'0'}px"><thead><tr>
+    <th>Condition / Component</th><th>Wells</th><th>Per well (µL)</th><th>Sub-total (µL)</th>
   </tr></thead><tbody>`);
-  active.forEach(cond => {
-    const r = calculateCondL3K(cond);
+
+  calcs.forEach(({ cond, r }) => {
     const pctSum = cond.plasmids.reduce((s, p) => s + (parseFloat(p.pct)||0), 0);
     const pctWarn = Math.abs(pctSum - 100) > 0.5 ? ` <span class="warn">⚠ %≠100</span>` : '';
+    const tubeAAliquot = r.tubeA * r.n;   // exact amount to take from Master Tube A (no extra excess)
+    const tubeBtot     = r.P3K_tot + r.optB_tot + r.plasmidTotals.reduce((s,p)=>(p.volTotal!==null?s+p.volTotal:s),0);
+
     rows.push(`<tr class="separator"><td colspan="4" style="border-bottom:1px solid var(--border);padding-top:10px;padding-bottom:0"></td></tr>`);
-    // Condition header row
+    // Condition header
     rows.push(`<tr><td><div class="cond-label">
       <span class="cond-dot" style="background:${cond.color}"></span>
       ${esc(cond.name)}${pctWarn}
       <span class="vessel-tag">· ${esc(cond.vessel)}</span>
     </div></td><td style="text-align:right;font-family:var(--mono)">${r.n}</td><td></td><td></td></tr>`);
-    // Reference info
+    // Reference
     rows.push(`<tr class="ref-row"><td colspan="4">
       Reference: ${r.X} µg DNA/well · ${(r.media/1000).toFixed(1)} mL antibiotic-free media/well · ${r.cells} cells/well
     </td></tr>`);
-    // Tube A
-    rows.push(`<tr class="tube-header"><td colspan="4">── Tube A  (Lipofectamine 3000 mix)</td></tr>`);
-    rows.push(`<tr><td class="sub-label" style="padding-left:20px">Lipofectamine 3000</td><td></td><td>${fmt1(r.L3K)}</td><td>${fmt1(r.L3K_tot)}</td></tr>`);
-    rows.push(`<tr><td class="sub-label" style="padding-left:20px">Opti-MEM</td><td></td><td>${fmt1(r.optA)}</td><td>${fmt1(r.optA_tot)}</td></tr>`);
-    rows.push(`<tr><td class="sub-label" style="padding-left:20px;font-weight:600;color:var(--fg)">Tube A total</td><td></td><td>${fmt1(r.tubeA)}</td><td></td></tr>`);
+
+    if (multiCond) {
+      // Just show the aliquot amount from Master Tube A
+      rows.push(`<tr class="tube-header"><td colspan="4">── Tube A aliquot (from Master Tube A above)</td></tr>`);
+      rows.push(`<tr><td class="sub-label" style="padding-left:20px;font-weight:600;color:var(--accent2)">Take from Master Tube A</td><td></td><td>${fmt1(r.tubeA)}</td><td style="color:var(--accent2);font-weight:600">${fmt1(tubeAAliquot)}</td></tr>`);
+    } else {
+      // Single condition — show full Tube A breakdown as before
+      rows.push(`<tr class="tube-header"><td colspan="4">── Tube A  (Lipofectamine 3000 mix)</td></tr>`);
+      rows.push(`<tr><td class="sub-label" style="padding-left:20px">Lipofectamine 3000</td><td></td><td>${fmt1(r.L3K)}</td><td>${fmt1(r.L3K_tot)}</td></tr>`);
+      rows.push(`<tr><td class="sub-label" style="padding-left:20px">Opti-MEM</td><td></td><td>${fmt1(r.optA)}</td><td>${fmt1(r.optA_tot)}</td></tr>`);
+      rows.push(`<tr><td class="sub-label" style="padding-left:20px;font-weight:600;color:var(--fg)">Tube A total</td><td></td><td>${fmt1(r.tubeA)}</td><td></td></tr>`);
+    }
+
     // Tube B
-    rows.push(`<tr class="tube-header"><td colspan="4">── Tube B  (DNA + P3000 mix)</td></tr>`);
+    rows.push(`<tr class="tube-header"><td colspan="4">── Tube B  (DNA + P3000 mix, +10% excess)</td></tr>`);
     rows.push(`<tr><td class="sub-label" style="padding-left:20px">P3000 Reagent</td><td></td><td>${fmt1(r.P3K)}</td><td>${fmt1(r.P3K_tot)}</td></tr>`);
     rows.push(`<tr><td class="sub-label" style="padding-left:20px">Opti-MEM</td><td></td><td>${fmt1(r.optB)}</td><td>${fmt1(r.optB_tot)}</td></tr>`);
     r.plasmidTotals.forEach((p, i) => {
-      const label = p.name ? esc(p.name) : `Plasmid ${i+1}`;
-      const perWell = p.vol_ul !== null ? fmt1(p.vol_ul) : `<span class="warn">? (add ng/µL)</span>`;
+      const label   = p.name ? esc(p.name) : `Plasmid ${i+1}`;
+      const perWell = p.vol_ul   !== null ? fmt1(p.vol_ul)   : `<span class="warn">? (add ng/µL)</span>`;
       const total   = p.volTotal !== null ? fmt1(p.volTotal) : '—';
       rows.push(`<tr><td class="sub-label" style="padding-left:20px">${label} (${p.pct}% · ${fmt1(p.dna_ug)} µg/well)</td><td></td><td>${perWell}</td><td>${total}</td></tr>`);
     });
-    rows.push(`<tr><td class="sub-label" style="padding-left:20px;font-weight:600;color:var(--fg)">Tube B total</td><td></td><td>${fmt1(r.tubeB)}</td><td></td></tr>`);
-    // Grand total
+    rows.push(`<tr><td class="sub-label" style="padding-left:20px;font-weight:600;color:var(--fg)">Tube B total</td><td></td><td>${fmt1(r.tubeB)}</td><td>${fmt1(tubeBtot)}</td></tr>`);
+    // Complex total
     rows.push(`<tr class="total-row"><td style="padding-left:12px">Σ Complex per well (A + B)</td><td></td><td>${fmt1(r.complex)}</td><td>${fmt1(r.complex_tot)}</td></tr>`);
   });
+
   rows.push('</tbody></table>');
   container.innerHTML = rows.join('');
 }
@@ -916,10 +1041,28 @@ function showExport() {
   if (active.length === 0) {
     html += '<p style="color:#888">No conditions with wells assigned.</p>';
   } else {
+    // L3K multi-condition: prepend Master Tube A summary
+    if (isL3K && active.length > 1) {
+      const calcs = active.map(c => calculateCondL3K(c));
+      const mL3K  = calcs.reduce((s,r) => s + r.L3K  * r.n, 0) * 1.1;
+      const mOptA = calcs.reduce((s,r) => s + r.optA * r.n, 0) * 1.1;
+      html += `<div class="exp-cond" style="border:2px solid #0891b2;background:#ecfeff">
+        <div class="exp-cond-title" style="color:#0891b2;font-weight:700">🧪 MASTER TUBE A — Lipofectamine 3000 mix (make once, share across all conditions)</div>
+        <table>
+          <tr><th>Component</th><th>Total +10% (µL)</th></tr>
+          <tr><td>Lipofectamine 3000</td><td>${fmt1(mL3K)}</td></tr>
+          <tr><td>Opti-MEM</td><td>${fmt1(mOptA)}</td></tr>
+          <tr class="exp-total-row"><td><b>Master Tube A total</b></td><td><b>${fmt1(mL3K+mOptA)}</b></td></tr>
+        </table>
+        <div style="font-size:10px;color:#0e7490;margin-top:6px">Mix well, then aliquot the amounts shown per condition below into each Tube B.</div>
+      </div>`;
+    }
+
     active.forEach(cond => {
       const r = isL3K ? calculateCondL3K(cond) : calculateCondJopt(cond);
       const pctSum = cond.plasmids.reduce((s,p)=>s+(parseFloat(p.pct)||0),0);
       const pctWarn = Math.abs(pctSum-100)>0.5 ? ' ⚠ % ≠ 100' : '';
+      const multiL3K = isL3K && active.length > 1;
       html += `<div class="exp-cond">
         <div class="exp-cond-title">
           <span class="exp-dot" style="background:${cond.color}"></span>
@@ -929,13 +1072,19 @@ function showExport() {
 
       if (isL3K) {
         html += `<table>
-          <tr><th>Component</th><th>Per well (µL)</th><th>Master mix +10% (µL)</th></tr>
-          <tr class="exp-ref"><td colspan="3">Reference: ${r.X} µg DNA/well · ${(r.media/1000).toFixed(1)} mL media/well · ${r.cells} cells/well</td></tr>
-          <tr class="exp-section-row"><td colspan="3">Tube A — Lipofectamine 3000 mix</td></tr>
+          <tr><th>Component</th><th>Per well (µL)</th><th>${multiL3K ? 'Sub-total (µL)' : 'Master mix +10% (µL)'}</th></tr>
+          <tr class="exp-ref"><td colspan="3">Reference: ${r.X} µg DNA/well · ${(r.media/1000).toFixed(1)} mL media/well · ${r.cells} cells/well</td></tr>`;
+        if (multiL3K) {
+          const aliquot = r.tubeA * r.n;
+          html += `<tr class="exp-section-row"><td colspan="3">Tube A aliquot (from Master Tube A)</td></tr>
+          <tr><td style="color:#0891b2;font-weight:600">Take from Master Tube A</td><td style="color:#0891b2">${fmt1(r.tubeA)}</td><td style="color:#0891b2;font-weight:600">${fmt1(aliquot)}</td></tr>`;
+        } else {
+          html += `<tr class="exp-section-row"><td colspan="3">Tube A — Lipofectamine 3000 mix</td></tr>
           <tr><td>Lipofectamine 3000</td><td>${fmt1(r.L3K)}</td><td>${fmt1(r.L3K_tot)}</td></tr>
           <tr><td>Opti-MEM</td><td>${fmt1(r.optA)}</td><td>${fmt1(r.optA_tot)}</td></tr>
-          <tr><td><b>Tube A total</b></td><td><b>${fmt1(r.tubeA)}</b></td><td></td></tr>
-          <tr class="exp-section-row"><td colspan="3">Tube B — DNA + P3000 mix</td></tr>
+          <tr><td><b>Tube A total</b></td><td><b>${fmt1(r.tubeA)}</b></td><td></td></tr>`;
+        }
+        html += `<tr class="exp-section-row"><td colspan="3">Tube B — DNA + P3000 mix (+10% excess)</td></tr>
           <tr><td>P3000 Reagent</td><td>${fmt1(r.P3K)}</td><td>${fmt1(r.P3K_tot)}</td></tr>
           <tr><td>Opti-MEM</td><td>${fmt1(r.optB)}</td><td>${fmt1(r.optB_tot)}</td></tr>`;
         r.plasmidTotals.forEach((p,i) => {
