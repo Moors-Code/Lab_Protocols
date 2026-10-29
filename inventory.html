@@ -390,7 +390,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
    STATE
 ══════════════════════════════════════════════════════════════ */
 const S = {
-  url:         localStorage.getItem('inv_url') || 'https://script.google.com/macros/s/AKfycbyOOObVsMZbr4rE6mmbGJX1v0NWBXgGxFF3VMAF8J-U8fkJWe13Dyc6WSLO-eiG-rZzHw/exec',
+  url:         localStorage.getItem('inv_url') || 'https://script.google.com/macros/s/AKfycbxxKP0NutznuUsY7cI-FhOZGR4jcVcfrCuFPyXGcTmCOWeaRCm2QmQ24RQ4ulrZgSjGSg/exec',
   sheets:      [],
   activeSheet: localStorage.getItem('inv_sheet') || '',
   data:        null,
@@ -410,6 +410,93 @@ const S = {
 ══════════════════════════════════════════════════════════════ */
 let _seq = 0;
 let _pendingSeq = null;  // target well index for next "Add Item" (set by clicking a cell)
+/* ── Batch ID helper ───────────────────────────────────────────── */
+function makeBatchId() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:6}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+}
+
+let _lnpPickerMode = (new URLSearchParams(location.search).get('mode') === 'lnp-picker');
+let _highlightItemName = new URLSearchParams(location.search).get('highlight') || '';
+let _highlightDone = false;
+
+/* ── Archive / History ── */
+let _archive = [];
+try { _archive = JSON.parse(localStorage.getItem('inv_archive') || '[]'); } catch(e) {}
+function saveArchive() { try { localStorage.setItem('inv_archive', JSON.stringify(_archive)); } catch(e) {} }
+let _showingArchive = false;
+
+// Load archive from the Google Sheet's __Archive__ tab (cross-device sync)
+async function loadArchiveFromSheet() {
+  if (!S.url) return;
+  try {
+    const res = await apiFetch({ action: 'getArchive' });
+    if (!res.success || !res.items) return;
+    let changed = false;
+    res.items.forEach(si => {
+      if (!_archive.find(a => a.item._archRow === si._archRow)) {
+        _archive.push({
+          item: { ...si, _row: si._archRow },   // _row = _archRow for button/virtual-box compatibility
+          box: si.originalBox || '',
+          sheet: si.originalSheet || '',
+          archivedAt: (si.archivedAt || '').slice(0, 10)
+        });
+        changed = true;
+      }
+    });
+    if (changed) { saveArchive(); if (_showingArchive) renderArchivePanel(); }
+  } catch(e) { /* local-only archive still works */ }
+}
+
+async function archiveItem(row) {
+  const box  = findBox(S.activeBox, S.data);
+  const item = box?.items.find(i => i._row === row);
+  if (!item) return;
+  if (!confirm(`Archive "${item.name}"?\n\nIt will be removed from this box (the slot becomes free) and stored in Archive / History. All info is kept and it can still be picked in protocol apps.`)) return;
+  showLoading('Archiving…');
+  try {
+    const payload = { name: item.name, concentration: item.concentration || '', volume: item.volume || '',
+      date: item.date || '', preparer: item.preparer || '', glycerol: item.glycerol || '',
+      labcollector: item.labcollector || '', batchId: item.batchId || '', notes: item.notes || '' };
+    const res = await apiFetch({ action: 'archiveItem', sheet: S.activeSheet, box: S.activeBox, row: item._row, data: JSON.stringify(payload) });
+    if (res.error) throw new Error(res.error);
+    const archRow = res.archRow || 0;
+    const entry = {
+      item: { ...item, _row: archRow, _archRow: archRow, _originalRow: item._row },
+      box: S.activeBox || '', sheet: S.activeSheet || '',
+      archivedAt: new Date().toISOString().slice(0, 10)
+    };
+    const idx = _archive.findIndex(a => a.item._originalRow === row && a.sheet === S.activeSheet);
+    if (idx >= 0) _archive[idx] = entry; else _archive.push(entry);
+    saveArchive();
+    toast(`🗄️ "${item.name}" archived`);
+    await loadSheet(S.activeSheet, true);
+  } catch(e) { toast(`Archive failed: ${e.message}`, true); }
+}
+
+async function unarchiveItem(archRow) {
+  const entry = _archive.find(a => a.item._row === archRow || a.item._archRow === archRow);
+  if (!entry) return;
+  if (!confirm(`Restore "${entry.item.name}" to ${entry.box}?\n\nIt will go back to its original slot. Volume will be cleared — update it after restoring.`)) return;
+  showLoading('Restoring…');
+  try {
+    if (entry.item._archRow) {
+      const delRes = await apiFetch({ action: 'removeFromArchive', archRow: entry.item._archRow });
+      if (delRes.error) throw new Error(delRes.error);
+    }
+    const originalRow = entry.item._originalRow || entry.item._row;
+    const merged = { name: entry.item.name, concentration: entry.item.concentration || '', volume: '',
+      date: entry.item.date || '', preparer: entry.item.preparer || '', glycerol: entry.item.glycerol || '',
+      labcollector: entry.item.labcollector || '', batchId: entry.item.batchId || '' };
+    const res = await apiFetch({ action: 'updateItem', sheet: entry.sheet || S.activeSheet, box: entry.box, row: originalRow, data: JSON.stringify(merged) });
+    if (res.error) throw new Error(res.error);
+    _archive = _archive.filter(a => a !== entry);
+    saveArchive();
+    toast(`✅ "${entry.item.name}" restored to ${entry.box}`);
+    S.activeSheet = entry.sheet || S.activeSheet;
+    await loadSheet(S.activeSheet, true);
+  } catch(e) { toast(`Restore failed: ${e.message}`, true); }
+}
 
 /* ── Well-position helpers ── */
 function seqToPos(seq) {
@@ -550,8 +637,47 @@ async function init() {
       S.activeSheet = S.sheets[0]?.name || '';
     renderTabs();
     await loadSheet(S.activeSheet);
+    loadArchiveFromSheet(); // background sync — populates _archive from __Archive__ sheet tab
     // Signal the calculator that inventory is ready to receive deductions
     if (window.opener) window.opener.postMessage({ type: 'inv-ready' }, '*');
+    // URL ?highlight=BATCHID_or_NAME — navigate to the box containing the item and flash its row
+    if (_highlightItemName && S.data && !_highlightDone) {
+      const lc = _highlightItemName.trim().toLowerCase();
+      let found = null, foundBox = null;
+      // Search by batchId first (exact, case-insensitive)
+      for (const b of (S.data.boxes || [])) {
+        const it = (b.items || []).find(i => i.batchId && i.batchId.toLowerCase() === lc);
+        if (it) { found = it; foundBox = b.name; break; }
+      }
+      // Fallback: search by name
+      if (!found) {
+        for (const b of (S.data.boxes || [])) {
+          const it = (b.items || []).find(i => i.name && i.name.trim().toLowerCase() === lc);
+          if (it) { found = it; foundBox = b.name; break; }
+        }
+      }
+      if (found) {
+        _highlightDone = true;
+        S.activeBox = foundBox;
+        render();
+        setTimeout(() => scrollToItem(found._row), 200);
+      } else {
+        // Item is archived — show Archive panel and highlight there
+        const archEntry = _archive.find(a =>
+          (a.item.batchId && a.item.batchId.toLowerCase() === lc) ||
+          (a.item.name && a.item.name.trim().toLowerCase() === lc)
+        );
+        if (archEntry) {
+          _highlightDone = true;
+          _showingArchive = true;
+          render();
+          setTimeout(() => {
+            const tr = document.querySelector(`#items-list tr[data-row="${archEntry.item._row}"]`);
+            if (tr) { tr.scrollIntoView({ behavior:'smooth', block:'center' }); tr.style.outline='2px solid #0891b2'; setTimeout(()=>tr.style.outline='',2500); }
+          }, 200);
+        }
+      }
+    }
   } catch(e) { showMainErr('Connection failed: ' + e.message); }
 }
 
@@ -621,14 +747,15 @@ function renderCrumb() {
 function render() {
   renderTabs();
   renderCrumb();
-  if (S.activeBox) renderBoxPanel();
+  if (_showingArchive) renderArchivePanel();
+  else if (S.activeBox) renderBoxPanel();
   else renderGrid();
 }
 
 /* ══════════════════════════════════════════════════════════════
    GRID VIEW
 ══════════════════════════════════════════════════════════════ */
-function showGrid() { S.activeBox = null; S.volFormRow = null; render(); }
+function showGrid() { S.activeBox = null; S.volFormRow = null; _showingArchive = false; render(); }
 
 function renderGrid() {
   if (!S.data) return;
@@ -682,9 +809,101 @@ function renderGrid() {
       <div class="box-card-count">${count} / 81 positions filled</div>
     </div>`;
   });
+  // Archive card
+  const archCount = _archive.filter(a => a.sheet === S.activeSheet || !a.sheet).length;
+  html += `<div class="box-card" style="border-left:4px solid #6b7280;opacity:.8;" onclick="_showingArchive=true;render()">
+    <div class="box-card-icon">🗄️</div>
+    <div class="box-card-name">Archive / History</div>
+    <div class="box-card-count">${archCount} archived item${archCount !== 1 ? 's' : ''}</div>
+  </div>`;
   html += '</div>'; // box-cards
   html += '</div>'; // grid-wrap
   document.getElementById('main').innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ARCHIVE PANEL
+══════════════════════════════════════════════════════════════ */
+function renderArchivePanel() {
+  // All archived items for this sheet (or sheet-less entries)
+  const entries = _archive.filter(a => !a.sheet || a.sheet === S.activeSheet || !S.activeSheet);
+  const isPickerMode = _lnpPickerMode || !!window.opener;
+
+  let html = `<div class="box-panel-header">
+    <h2>🗄️ Archive / History</h2>
+    <button class="back-btn" onclick="showGrid()">← Grid</button>
+  </div>`;
+
+  if (entries.length === 0) {
+    html += `<div class="empty-state"><h3>No archived items</h3>
+      <p>When a plasmid or LNP runs out, click <strong>🗄️ Archive</strong> on it to move it here.</p></div>`;
+    document.getElementById('main').innerHTML = html;
+    return;
+  }
+
+  if (isPickerMode) {
+    html += `<div style="background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.3);border-radius:8px;padding:.6rem 1rem;font-size:13px;margin-bottom:.8rem;color:#0891b2;">
+      📜 These items are depleted but their records are intact. You can still pick them to link to a protocol.
+    </div>`;
+  }
+
+  html += `<table class="items-table" id="items-list">
+    <thead><tr>
+      <th>Name</th><th>Was in box</th><th>Archived</th>
+      <th>Conc (ng/µL)</th><th>Old volume (µL)</th><th>Date made</th><th>Preparer</th><th>Notes</th>
+      <th>Actions</th>
+    </tr></thead><tbody>`;
+
+  entries.forEach(entry => {
+    const it   = entry.item;
+    const rrow = it._row;
+    const archPickBtn = _lnpPickerMode
+      ? `<button class="btn-pick" onclick="sendLnpToMice(${rrow})" title="Pick this depleted item">→ Use</button>`
+      : (window.opener ? `<button class="btn-pick" onclick="sendToCalculator(${rrow})" title="Pick this depleted item">→ Send</button>` : '');
+    const note    = it.notes || '';
+    const snippet = note.length > 50 ? note.slice(0, 48) + '…' : note;
+    html += `<tr data-row="${rrow}" style="opacity:.85;">
+      <td><span class="name-cell" style="color:var(--text2)">⛔ ${h(it.name||'—')}</span></td>
+      <td><span style="font-size:11px;background:var(--surface2);border-radius:4px;padding:.1rem .4rem;">🧊 ${h(entry.box||'—')}</span></td>
+      <td style="font-size:11px;color:var(--text3);">${h(entry.archivedAt||'—')}</td>
+      <td class="mono" style="color:var(--text2);">${h(it.concentration||'—')}</td>
+      <td class="mono" style="color:var(--text3);text-decoration:line-through;">${h(it.volume||'—')}</td>
+      <td class="mono">${h(it.date||'—')}</td>
+      <td>${h(it.preparer||'—')}</td>
+      <td style="max-width:160px;font-size:12px;color:var(--text2);" title="${h(note)}">${h(snippet)||'—'}</td>
+      <td><div class="row-actions">
+        ${archPickBtn}
+        <button class="btn-edit" onclick="unarchiveItem(${rrow})" title="Restore to active inventory" style="font-size:11px;">↩ Restore</button>
+      </div></td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+
+  document.getElementById('main').innerHTML = html;
+
+  // Wire up sendToCalculator / sendLnpToMice for archived items (they need the full item data available)
+  if (window.opener || _lnpPickerMode) {
+    // Temporarily inject archived items into a virtual box so sendToCalculator/sendLnpToMice can find them
+    entries.forEach(entry => {
+      if (!S.data) return;
+      const vBox = findBox('__archive__', S.data);
+      if (!vBox) {
+        S.data.boxes = S.data.boxes || [];
+        S.data.boxes.push({ name: '__archive__', items: [] });
+      }
+      const vb = findBox('__archive__', S.data);
+      if (!vb.items.find(i => i._row === entry.item._row)) vb.items.push({ ...entry.item });
+    });
+    // Temporarily set activeBox to __archive__ for picker sends
+    document.getElementById('items-list')?.querySelectorAll('[onclick*="sendLnpToMice"],[onclick*="sendToCalculator"]').forEach(btn => {
+      btn.onclick = null;
+      const row = parseInt(btn.closest('tr')?.getAttribute('data-row'));
+      if (!row) return;
+      if (_lnpPickerMode) btn.onclick = () => { const prevBox = S.activeBox; S.activeBox = '__archive__'; sendLnpToMice(row); S.activeBox = prevBox; };
+      else btn.onclick = () => { const prevBox = S.activeBox; S.activeBox = '__archive__'; sendToCalculator(row); S.activeBox = prevBox; };
+    });
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -778,9 +997,9 @@ function renderBoxPanel() {
     html += '</div></div>'; // plate-grid, plate-wrap
   }
 
-  const allItems     = box ? box.items.filter(i => i.name) : [];
-  const hasItems     = allItems.length > 0;
-  const visibleItems = S.filterLow ? allItems.filter(i => isLowVol(i)) : allItems;
+  const allItems       = box ? box.items.filter(i => i.name) : [];
+  const hasItems       = allItems.length > 0;
+  const visibleItems   = S.filterLow ? allItems.filter(i => isLowVol(i)) : allItems;
 
   if (!box || !hasItems) {
     html += `<div class="empty-state">
@@ -821,7 +1040,7 @@ function renderBoxPanel() {
     const low     = isLowVol(item);
     const rowCls  = (q && !matches) ? 'dimmed' : '';
     html += `<tr class="${rowCls}" data-row="${item._row}">`;
-    html += `<td><span class="name-cell">${h(item.name)}</span>${low ? ' <span class="low-badge">⚠ low</span>' : ''}</td>`;
+    html += `<td><span class="name-cell">${h(item.name)}</span>${low ? ' <span class="low-badge">⚠ low</span>' : ''}${item.batchId ? ` <code style="font-size:9.5px;color:var(--text3);font-family:'IBM Plex Mono',monospace;letter-spacing:.02em;" title="Batch ID — used to link this item across mice, transfection calculator and lenti protocol">#${h(item.batchId)}</code>` : ''}</td>`;
 
     if (showLC) {
       const lc = item.labcollector || '';
@@ -857,16 +1076,20 @@ function renderBoxPanel() {
       const snippet = note.length > 60 ? note.slice(0, 57) + '…' : note;
       html += `<td style="max-width:180px;white-space:pre-wrap;font-size:12px;color:var(--text2)" title="${h(note)}">${h(snippet)||'<span style="color:var(--text3)">—</span>'}</td>`;
     }
-    const pickBtn = window.opener ? `<button class="btn-pick" onclick="sendToCalculator(${item._row})">→ Send</button>` : '';
+    const pickBtn = _lnpPickerMode
+      ? `<button class="btn-pick" onclick="sendLnpToMice(${item._row})">→ Use</button>`
+      : (window.opener ? `<button class="btn-pick" onclick="sendToCalculator(${item._row})">→ Send</button>` : '');
     html += `<td><div class="row-actions">
       ${pickBtn}
       <button class="btn-edit" onclick="openEditModal(${item._row})">Edit</button>
-      <button class="btn-del" onclick="doDelete(${item._row})">Delete</button>
+      <button class="btn-del" onclick="doDelete(${item._row})" style="color:var(--danger)">Delete</button>
+      <button class="btn-del" onclick="archiveItem(${item._row})" title="Archive — frees the box slot, stores record in Archive / History" style="color:var(--text3);font-size:11px;">🗄️ Archive</button>
     </div></td>`;
     html += '</tr>';
   });
 
   html += '</tbody></table>';
+
   document.getElementById('main').innerHTML = html;
 
   if (S.volFormRow !== null) {
@@ -1035,7 +1258,7 @@ async function submitAddItem() {
   }
 
   try {
-    const itemData = { name, labcollector:lab, date, glycerol, concentration:conc, volume:vol, preparer:prep, notes };
+    const itemData = { name, labcollector:lab, date, glycerol, concentration:conc, volume:vol, preparer:prep, notes, batchId: makeBatchId() };
     if (targetSeq !== null && targetSeq >= 0) itemData._seq = targetSeq;
     const res = await apiFetch({
       action: 'addItem', sheet: S.activeSheet, box: S.activeBox,
@@ -1077,6 +1300,7 @@ function openEditModal(row) {
       </div>
       <div class="frow"><label>Glycerol stock</label><input class="finput" id="mi-glycerol" value="${h(item.glycerol||'')}" placeholder="e.g. yes / -80°C box 3" autocomplete="off"></div>
       <div class="frow"><label>Notes</label><textarea class="finput" id="mi-notes" rows="2" style="resize:vertical">${h(item.notes||'')}</textarea></div>
+      ${item.batchId ? `<div class="frow"><label style="color:var(--text3)">Batch ID</label><input class="finput" value="${h(item.batchId)}" readonly style="font-family:var(--mono,'IBM Plex Mono',monospace);font-size:12px;color:var(--text2);background:var(--surface2);cursor:default;" title="Auto-generated batch identifier — links this item across mice, calculator and lenti protocol"></div>` : ''}
     </div>
     <div class="modal-ft">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
@@ -1118,7 +1342,7 @@ async function submitEdit(row) {
   }
 
   try {
-    const itemData = { name, labcollector:lab, date, glycerol, concentration:conc, volume:vol, preparer:prep, notes };
+    const itemData = { name, labcollector:lab, date, glycerol, concentration:conc, volume:vol, preparer:prep, notes, batchId: item?.batchId || '' };
     if (newSeq !== null) itemData._seq = newSeq;
     const res = await apiFetch({
       action: 'updateItem', sheet: S.activeSheet, box: S.activeBox, row,
@@ -1311,27 +1535,56 @@ function sendToCalculator(row) {
   const item = box?.items.find(i => i._row === row);
   if (!item || !window.opener) return;
   window.opener.postMessage({
-    type:   'plasmid-pick',
-    name:   item.name          || '',
-    conc:   item.concentration || '',
-    volume: item.volume        || '',
-    _row:   item._row,
-    box:    S.activeBox        || '',
-    sheet:  S.activeSheet      || '',
-    invUrl: S.url              || ''
+    type:    'plasmid-pick',
+    name:    item.name          || '',
+    conc:    item.concentration || '',
+    volume:  item.volume        || '',
+    batchId: item.batchId       || '',
+    _row:    item._row,
+    box:     S.activeBox        || '',
+    sheet:   S.activeSheet      || '',
+    invUrl:  S.url              || ''
   }, '*');
   window.close();
 }
 
 if (window.opener) {
-  // Running as a popup from the transfection calculator — show a banner
+  // Running as a popup — show a banner (LNP picker or plasmid picker)
   document.addEventListener('DOMContentLoaded', () => {
     const banner = document.createElement('div');
     banner.className = 'picker-banner';
-    banner.textContent = '📦 Stock picker mode — navigate to a box, then click → Send next to a plasmid to load it into the calculator';
+    if (_lnpPickerMode) {
+      banner.style.background = '#059669';
+      banner.innerHTML = '🧪 LNP picker — navigate to a box, then click <strong>→ Use</strong> next to an LNP item to link it to the mice sheet &nbsp;<button onclick="window.close()" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:12px;padding:.2rem .6rem;cursor:pointer;float:right;">✕ Cancel</button>';
+    } else {
+      banner.textContent = '📦 Stock picker mode — navigate to a box, then click → Send next to a plasmid to load it into the calculator';
+    }
     const app = document.getElementById('app');
     if (app) app.insertBefore(banner, app.firstChild);
   });
+}
+
+function sendLnpToMice(row) {
+  const box  = findBox(S.activeBox, S.data);
+  const item = box?.items.find(i => i._row === row);
+  if (!item || !window.opener) return;
+  window.opener.postMessage({
+    type:  'lnp-pick',
+    item:  {
+      _row:          item._row,
+      name:          item.name          || '',
+      batchId:       item.batchId       || '',
+      concentration: item.concentration || '',
+      volume:        item.volume        || '',
+      date:          item.date          || '',
+      preparer:      item.preparer      || '',
+      notes:         item.notes         || '',
+      labcollector:  item.labcollector  || ''
+    },
+    box:   { name: S.activeBox || '' },
+    sheet: S.activeSheet || ''
+  }, '*');
+  window.close();
 }
 
 /* ══════════════════════════════════════════════════════════════
