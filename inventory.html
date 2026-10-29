@@ -280,7 +280,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 /* Forms */
 .frow{margin-bottom:13px}
 .frow.req label::after{content:' *';color:var(--danger)}
-.frow label{display:block;font-size:11.5px;font-weight:600;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.frow label{display:block;font-size:11.5px;font-weight:600;color:var(--text2);margin-bottom:4px;letter-spacing:.01em}
 .finput{
   width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--rad);
   background:var(--surface2);color:var(--text);font-size:14px;
@@ -1387,22 +1387,23 @@ async function submitAddItem() {
 function openEditBoxModal() {
   const box = findBox(S.activeBox, S.data);
   if (!box) return;
-  openModal(`
+  openModal(`<div class="modal">
     <div class="modal-hd"><h3>✏️ Edit Box Info</h3><button class="modal-x" onclick="closeModal()">✕</button></div>
-    <div class="modal-body">
-      <label class="fi-label">Box Name</label>
-      <input id="bm-name" class="fi-input" value="${h(box.name)}" placeholder="Box 1: Plasmids">
-      <label class="fi-label">Description</label>
-      <input id="bm-desc" class="fi-input" value="${h(box.description||'')}" placeholder="e.g. Azenta Green Box">
-      <label class="fi-label">Location</label>
-      <input id="bm-loc" class="fi-input" value="${h(box.location||'')}" placeholder="e.g. Top shelf -20 under bench">
-      <p class="fi-hint" style="margin-top:8px;color:var(--muted);font-size:12px">These are written directly to the Google Sheet header rows.</p>
+    <div class="modal-bd">
+      <div id="modal-err-wrap"></div>
+      <div class="frow req"><label>Box Name</label>
+        <input id="bm-name" class="finput" value="${h(box.name)}" placeholder="Box 1: Plasmids" autocomplete="off"></div>
+      <div class="frow"><label>Description</label>
+        <input id="bm-desc" class="finput" value="${h(box.description||'')}" placeholder="e.g. Azenta Green Box" autocomplete="off"></div>
+      <div class="frow"><label>Location</label>
+        <input id="bm-loc" class="finput" value="${h(box.location||'')}" placeholder="e.g. Top shelf -20 under bench" autocomplete="off"></div>
+      <p class="fhint" style="margin-top:4px">These are written directly to the Google Sheet header rows.</p>
     </div>
-    <div class="modal-footer">
-      <button class="btn-primary" onclick="submitBoxMeta()">Save</button>
+    <div class="modal-ft">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitBoxMeta()">Save</button>
     </div>
-  `);
+  </div>`);
 }
 
 async function submitBoxMeta() {
