@@ -1,0 +1,2569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mice — SyPhy-lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ── Design tokens ─────────────────────────────────── */
+:root {
+  --accent:      #0c7c59;
+  --accent-light:#e6f4f0;
+  --bg:          #f8f9fa;
+  --surface:     #ffffff;
+  --surface2:    #f1f3f5;
+  --border:      #dee2e6;
+  --border2:     #e9ecef;
+  --text:        #212529;
+  --text2:       #6c757d;
+  --text3:       #adb5bd;
+  --header-bg:   #111318;
+  --header-text: #e8eaed;
+  --danger:      #dc3545;
+  --radius:      6px;
+  --font:        'IBM Plex Sans', sans-serif;
+  --mono:        'IBM Plex Mono', monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent:      #2ab88a;
+    --accent-light:#0d3326;
+    --bg:          #0f1117;
+    --surface:     #1a1d27;
+    --surface2:    #242736;
+    --border:      #2e3245;
+    --border2:     #262a3a;
+    --text:        #e8eaed;
+    --text2:       #9aa0b4;
+    --text3:       #5a6180;
+    --header-bg:   #060810;
+    --header-text: #d0d4e0;
+    --danger:      #ff6b6b;
+  }
+}
+:root[data-theme="dark"] {
+  --accent:      #2ab88a;
+  --accent-light:#0d3326;
+  --bg:          #0f1117;
+  --surface:     #1a1d27;
+  --surface2:    #242736;
+  --border:      #2e3245;
+  --border2:     #262a3a;
+  --text:        #e8eaed;
+  --text2:       #9aa0b4;
+  --text3:       #5a6180;
+  --header-bg:   #060810;
+  --header-text: #d0d4e0;
+  --danger:      #ff6b6b;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: var(--font); font-size: 14px; color: var(--text); background: var(--bg); display: flex; flex-direction: column; }
+
+/* ── Header ──────────────────────────────────── */
+.site-header { background: var(--header-bg); color: var(--header-text); padding: 0 20px; display: flex; align-items: center; gap: 14px; height: 50px; flex-shrink: 0; }
+.site-header a { color: var(--text3); text-decoration: none; font-size: 13px; }
+.site-header a:hover { color: var(--header-text); }
+.site-header .sep { color: var(--text3); }
+.site-title { font-size: 15px; font-weight: 600; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.theme-btn { background: none; border: none; cursor: pointer; color: var(--text2); font-size: 16px; padding: 4px; }
+.theme-btn:hover { color: var(--header-text); }
+
+/* ── Setup banner ────────────────────────────── */
+#setup-banner { background: var(--accent-light); border-bottom: 2px solid var(--accent); padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; flex-wrap: wrap; }
+#setup-banner.hidden { display: none; }
+#setup-banner p { font-size: 13px; line-height: 1.5; flex: 1; min-width: 200px; }
+#setup-banner strong { color: var(--accent); }
+.setup-row { display: flex; gap: 8px; align-items: center; }
+#script-url-input { width: 400px; max-width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--mono); font-size: 12px; background: var(--surface); color: var(--text); }
+#script-url-input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+
+/* ── Sheet tab bar ───────────────────────────── */
+.sheet-tabbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 12px; display: flex; align-items: stretch; overflow-x: auto; flex-shrink: 0; scrollbar-width: thin; }
+.sheet-tab { flex-shrink: 0; padding: 11px 15px; font-size: 13px; font-weight: 500; color: var(--text2); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.sheet-tab:hover { color: var(--text); }
+.sheet-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-add-btn { flex-shrink: 0; padding: 0 12px; font-size: 20px; line-height: 1; color: var(--text3); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; display: flex; align-items: center; }
+.tab-add-btn:hover { color: var(--accent); }
+
+/* ── Toolbar ─────────────────────────────────── */
+.toolbar { padding: 10px 16px; display: flex; gap: 10px; align-items: center; background: var(--surface); border-bottom: 1px solid var(--border2); flex-shrink: 0; flex-wrap: wrap; }
+.search-wrap { position: relative; flex: 1; max-width: 320px; min-width: 140px; }
+.search-wrap input { width: 100%; padding: 6px 10px 6px 28px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; }
+.search-wrap input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+.search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 12px; pointer-events: none; }
+.row-count { font-size: 12px; color: var(--text2); margin-right: auto; }
+.btn { padding: 7px 14px; border-radius: var(--radius); font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 6px; }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { opacity: .85; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover:not(:disabled) { background: var(--border); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-ghost { background: none; color: var(--text2); padding: 4px 8px; border: none; }
+.btn-ghost:hover { background: var(--surface2); }
+
+/* ── Main ────────────────────────────────────── */
+.main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+/* ── Table ───────────────────────────────────── */
+.table-wrap { flex: 1; overflow: auto; min-height: 0; }
+.data-table { border-collapse: collapse; width: max-content; min-width: 100%; font-size: 12.5px; }
+.data-table th { position: sticky; top: 0; z-index: 1; background: var(--surface2); color: var(--text2); font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; padding: 8px 10px; white-space: nowrap; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border2); cursor: pointer; user-select: none; }
+.data-table th:hover { color: var(--text); }
+.data-table th.sorted-asc::after  { content: ' ↑'; }
+.data-table th.sorted-desc::after { content: ' ↓'; }
+.data-table td { padding: 6px 10px; border-bottom: 1px solid var(--border2); border-right: 1px solid var(--border2); white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+.data-table tr:not(.group-hdr-row):hover td { background: var(--accent-light); }
+/* Sticky check col */
+.col-check { width: 36px !important; min-width: 36px; text-align: center; padding: 4px !important; cursor: default; position: sticky; left: 0; z-index: 2; background: var(--surface); border-right: 1px solid var(--border2) !important; }
+.data-table th.col-check { z-index: 3; background: var(--surface2); cursor: default; border-right: 1px solid var(--border2) !important; }
+.data-table th.col-check:hover { color: var(--text2) !important; }
+.col-check input[type=checkbox] { cursor: pointer; accent-color: var(--accent); width: 14px; height: 14px; display: block; margin: 0 auto; }
+.data-table tr.sel-row td { background: var(--accent-light); }
+.data-table tr.sel-row .col-check { background: var(--accent-light); }
+.data-table tr.sel-row .col-actions { background: var(--accent-light); }
+/* Sticky actions col */
+.col-actions { position: sticky; right: 0; background: var(--surface); border-left: 1px solid var(--border); padding: 3px 6px; display: flex; gap: 2px; }
+.data-table tr:not(.group-hdr-row):hover .col-actions { background: var(--accent-light); }
+.th-actions { position: sticky; right: 0; z-index: 2; background: var(--surface2); border-left: 1px solid var(--border); cursor: default; }
+.th-actions:hover { color: var(--text2) !important; background: var(--surface2) !important; }
+
+/* ── Collapsible group header rows ───────────── */
+.group-hdr-row { background: var(--surface2); cursor: pointer; user-select: none; }
+.group-hdr-row:hover { background: var(--border2); }
+.group-hdr-row td { padding: 5px 10px; border-bottom: 1px solid var(--border); border-right: none; color: var(--text2); font-size: 11.5px; font-weight: 600; white-space: nowrap; overflow: visible; max-width: none; }
+.group-toggle { display: flex; align-items: center; gap: 8px; }
+.group-toggle .gi { font-size: 9px; color: var(--accent); transition: transform .15s; display: inline-block; flex-shrink: 0; }
+.group-hdr-row.collapsed .gi { transform: rotate(-90deg); }
+.group-tag { background: var(--accent-light); color: var(--accent); padding: 1px 9px; border-radius: 10px; font-size: 10.5px; font-weight: 600; flex-shrink: 0; }
+.group-count { margin-left: 4px; color: var(--text3); font-weight: 400; font-size: 10.5px; }
+.data-row.group-hidden { display: none; }
+
+/* ── Inline cell editing ─────────────────────── */
+.editable-cell { cursor: text; }
+.editable-cell:hover { outline: 1px solid var(--border); }
+.editable-cell.editing { padding: 0 !important; min-width: 120px; }
+.cell-input { display: block; width: 100%; padding: 5px 10px; border: none; outline: 2px solid var(--accent); background: var(--surface); color: var(--text); font-family: var(--font); font-size: 12.5px; box-shadow: 0 0 0 4px rgba(10,124,89,.12); resize: none; }
+.cell-saving { opacity: .5; }
+.cell-saved { animation: flash-save .6s ease; }
+@keyframes flash-save { 0% { background: var(--accent-light); } 100% { background: transparent; } }
+.amo-id { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.badge-m { background: #dbeafe; color: #1d4ed8; }
+.badge-f { background: #fce7f3; color: #9d174d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .badge-m { background: #1e3a5f; color: #93c5fd; } :root:not([data-theme="light"]) .badge-f { background: #4a1942; color: #f9a8d4; } }
+:root[data-theme="dark"] .badge-m { background: #1e3a5f; color: #93c5fd; }
+:root[data-theme="dark"] .badge-f { background: #4a1942; color: #f9a8d4; }
+
+/* ── State messages ──────────────────────────── */
+.state-msg { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 24px; color: var(--text2); gap: 10px; text-align: center; }
+.state-msg .icon { font-size: 36px; }
+.state-msg h3 { font-size: 15px; color: var(--text); }
+.state-msg p { font-size: 13px; max-width: 340px; }
+.spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Modal ───────────────────────────────────── */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+.modal-backdrop.hidden { display: none; }
+.modal { background: var(--surface); border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,.3); width: 700px; max-width: 100%; max-height: 90vh; display: flex; flex-direction: column; }
+.modal.modal-sm { width: 440px; }
+.modal-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.modal-header h2 { font-size: 15px; font-weight: 600; flex: 1; }
+.modal-close { background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text2); padding: 2px 6px; border-radius: 4px; }
+.modal-close:hover { background: var(--surface2); }
+.modal-body { overflow-y: auto; padding: 14px 20px; flex: 1; }
+.modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.modal-footer .spacer { flex: 1; }
+.form-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border2); }
+.form-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+.form-section-title { font-size: 10.5px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-group { display: flex; flex-direction: column; gap: 3px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-group label { font-size: 10.5px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .04em; }
+.form-group input, .form-group textarea, .form-group select { padding: 6px 9px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; }
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: 2px solid var(--accent); border-color: transparent; }
+.form-group textarea { resize: vertical; min-height: 56px; }
+.form-hint { font-size: 11.5px; color: var(--text3); margin-top: 2px; }
+
+/* ── Batch bar ───────────────────────────────── */
+.batch-bar { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: var(--header-bg); color: var(--header-text); padding: 10px 22px; border-radius: 40px; display: flex; align-items: center; gap: 14px; box-shadow: 0 8px 32px rgba(0,0,0,.5); z-index: 90; font-size: 13px; font-weight: 500; transition: opacity .2s, transform .2s; white-space: nowrap; }
+.batch-bar.hidden { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(12px); }
+.batch-count { opacity: .6; font-size: 12px; }
+.batch-sep { opacity: .2; }
+.batch-bar .btn { font-size: 12px; padding: 5px 12px; }
+.batch-bar .btn-primary { background: var(--accent); }
+.batch-bar .btn-clear { background: none; color: var(--header-text); opacity: .5; padding: 4px 8px; border: none; border-radius: var(--radius); cursor: pointer; font-size: 13px; }
+.batch-bar .btn-clear:hover { opacity: 1; }
+
+/* ── Toast ───────────────────────────────────── */
+#toast { position: fixed; bottom: 20px; right: 20px; background: var(--text); color: var(--surface); padding: 9px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500; z-index: 200; transform: translateY(16px); opacity: 0; transition: transform .2s, opacity .2s; pointer-events: none; }
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.error { background: var(--danger); }
+
+/* ── CSV Import Wizard ───────────────────────── */
+.wizard-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 150; display: flex; flex-direction: column; overflow: hidden; }
+.wizard-overlay.hidden { display: none; }
+.wizard-hdr { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 20px; display: flex; align-items: center; gap: 16px; height: 54px; flex-shrink: 0; }
+.wizard-hdr h2 { font-size: 15px; font-weight: 600; }
+.wizard-steps-bar { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.wstep { padding: 4px 14px; font-size: 11.5px; font-weight: 600; color: var(--text3); border-radius: 20px; transition: all .15s; }
+.wstep.active { background: var(--accent); color: #fff; }
+.wstep.done { color: var(--accent); }
+.wstep.done::before { content: '✓ '; }
+.wizard-body { flex: 1; overflow: auto; padding: 24px 28px; }
+.wizard-footer { background: var(--surface); border-top: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.wizard-footer .spacer { flex: 1; }
+
+/* drop zone */
+.drop-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 40px 24px; text-align: center; cursor: pointer; color: var(--text2); transition: border-color .15s, background .15s; margin-bottom: 20px; }
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+.drop-zone .dz-icon { font-size: 36px; margin-bottom: 10px; }
+.drop-zone p { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+.drop-zone small { font-size: 12px; opacity: .7; }
+#csv-file-input { display: none; }
+
+/* import selection table */
+.import-tbl-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: auto; max-height: 400px; }
+.import-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.import-table th { position: sticky; top: 0; z-index: 1; background: var(--surface2); color: var(--text2); font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.import-table td { padding: 6px 10px; border-bottom: 1px solid var(--border2); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.import-table tr.imp-sel td { background: var(--accent-light); }
+.import-table .rc { width: 36px; text-align: center; padding: 4px; }
+.import-table .rc input { accent-color: var(--accent); cursor: pointer; }
+.import-sel-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.import-sel-bar .icount { font-size: 12px; color: var(--text2); margin-left: auto; }
+
+/* mapping grid (step 2) */
+.map-section { margin-bottom: 24px; }
+.map-section h3 { font-size: 11.5px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+.map-grid { display: grid; grid-template-columns: 1fr 20px 1fr; gap: 6px 8px; align-items: center; max-width: 680px; }
+.map-label { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 5px 10px; font-size: 12px; font-family: var(--mono); color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-arrow { text-align: center; color: var(--accent); font-size: 12px; }
+.map-select { width: 100%; padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-family: var(--font); font-size: 12px; }
+
+/* confirm step */
+.import-summary { background: var(--accent-light); border: 1px solid var(--accent); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 20px; font-size: 13px; line-height: 1.8; }
+.import-summary strong { color: var(--accent); }
+.import-progress { margin-top: 16px; }
+.prog-bar-wrap { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+.prog-bar { height: 100%; background: var(--accent); border-radius: 3px; transition: width .2s; }
+
+/* filter panel (step 1) */
+.wiz-filters { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
+.filter-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+.sex-btns { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.sex-btn { padding: 5px 12px; font-size: 12px; font-weight: 500; border: none; border-right: 1px solid var(--border); background: var(--bg); color: var(--text2); cursor: pointer; transition: background .12s, color .12s; }
+.sex-btn:last-child { border-right: none; }
+.sex-btn:hover { background: var(--surface2); }
+.sex-btn.active { background: var(--accent); color: #fff; }
+.gen-chips { display: flex; flex-wrap: wrap; gap: 4px; max-width: 360px; }
+.gen-chip { padding: 3px 10px; border-radius: 10px; font-size: 11.5px; font-weight: 500; border: 1px solid var(--border); background: var(--bg); color: var(--text2); cursor: pointer; transition: background .12s, color .12s, border-color .12s; }
+.gen-chip:hover { border-color: var(--accent); color: var(--accent); }
+.gen-chip.active { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a href="index.html">← Lab Portal</a>
+  <span class="sep">›</span>
+  <span class="site-title">🐭 Mice</span>
+  <div class="header-right">
+    <button class="theme-btn" id="theme-toggle" title="Toggle theme">☀</button>
+    <button class="btn btn-secondary" id="config-btn" style="font-size:12px;padding:5px 10px;">⚙ Config</button>
+  </div>
+</header>
+
+<div id="setup-banner">
+  <p><strong>Connect your Google Sheet</strong> — Deploy <code>mice-script.gs</code> as a Web App
+     (Execute as: Me · Anyone can access), then paste the URL here.</p>
+  <div class="setup-row">
+    <input type="url" id="script-url-input" placeholder="https://script.google.com/macros/s/…/exec">
+    <button class="btn btn-primary" id="save-url-btn">Connect</button>
+  </div>
+</div>
+
+<div class="sheet-tabbar" id="sheet-tabbar"></div>
+
+<main class="main" id="main">
+  <div class="state-msg">
+    <div class="icon">🐭</div>
+    <h3>Connect your sheet</h3>
+    <p>Paste your Apps Script URL above to get started.</p>
+  </div>
+</main>
+
+<!-- Row edit/add modal -->
+<div class="modal-backdrop hidden" id="row-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Add Mouse</h2>
+      <button class="modal-close" id="modal-close">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger hidden" id="modal-delete">Delete Row</button>
+      <div class="spacer"></div>
+      <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
+      <button class="btn btn-primary" id="modal-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- New sheet modal -->
+<div class="modal-backdrop hidden" id="new-sheet-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2>New Experiment / Sheet</h2>
+      <button class="modal-close" id="ns-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="ns-name" placeholder="e.g. APP KO Colonoscopy 2025" autocomplete="off">
+        <span class="form-hint">A new tab will be created in your Google Sheet with the standard header row.</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="spacer"></div>
+      <button class="btn btn-secondary" id="ns-cancel">Cancel</button>
+      <button class="btn btn-primary" id="ns-create">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk edit modal -->
+<div class="modal-backdrop hidden" id="bulk-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="bulk-title">Bulk Edit</h2>
+      <button class="modal-close" id="bulk-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12.5px;color:var(--text2);margin-bottom:14px;">Only fields you fill in will be updated. Blank fields are left as-is for each mouse.</p>
+      <div id="bulk-body"></div>
+    </div>
+    <div class="modal-footer">
+      <span id="bulk-status" style="font-size:12px;color:var(--text2);flex:1;"></span>
+      <button class="btn btn-secondary" id="bulk-cancel">Cancel</button>
+      <button class="btn btn-primary" id="bulk-save-btn">Save to <span id="bulk-save-count">0</span> mice</button>
+    </div>
+  </div>
+</div>
+
+<!-- Batch action bar -->
+<div class="batch-bar hidden" id="batch-bar">
+  <span class="batch-count" id="batch-count">0 selected</span>
+  <span class="batch-sep">|</span>
+  <button class="btn btn-primary" id="batch-edit-btn">✏ Bulk Edit</button>
+  <button class="btn btn-secondary" id="batch-del-btn" style="background:none;color:var(--danger);border-color:var(--danger);">🗑 Delete</button>
+  <button class="btn-clear" id="batch-clear-btn" title="Clear selection">✕</button>
+</div>
+
+<!-- CSV Import Wizard -->
+<div class="wizard-overlay hidden" id="csv-wizard">
+  <div class="wizard-hdr">
+    <h2>📥 Import from CSV</h2>
+    <div class="wizard-steps-bar" id="wiz-steps"></div>
+    <button class="modal-close" id="wiz-close" title="Cancel import" style="margin-left:12px;">✕</button>
+  </div>
+  <div class="wizard-body" id="wiz-body"></div>
+  <div class="wizard-footer" id="wiz-footer"></div>
+</div>
+
+<div id="toast"></div>
+
+<!-- AAV popover (shown when clicking a linked AAV badge) -->
+<div id="aav-popover" style="display:none;position:absolute;z-index:9999;background:var(--bg-card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:.75rem 1rem;min-width:280px;max-width:340px;"></div>
+<div id="lnp-popover" style="display:none;position:absolute;z-index:9999;background:var(--surface,#fff);border:1px solid var(--border,#e5e7eb);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:.75rem 1rem;min-width:280px;max-width:340px;"></div>
+
+<script>
+'use strict';
+// ── State ──────────────────────────────────────────────
+var S = {
+  url: '',
+  sheets: [],
+  active: null,
+  headers: [],
+  rows: [],
+  sortCol: null,
+  sortDir: 'asc',
+  query: '',
+  editRow: null,
+  selected: new Set(),    // _row values of selected rows
+  collapsed: {},          // groupId -> true/false
+};
+
+// ── Persist ────────────────────────────────────────────
+var DEFAULT_MICE_URL = 'https://script.google.com/macros/s/AKfycbyRMA9fa908cM9K7mQ__ghCZLKpjkjnOcC2uwPUZqqH3Pqbdr9GZZencbRo3qJY-mVP/exec';
+function loadUrl() { try { return localStorage.getItem('mice-script-url') || DEFAULT_MICE_URL; } catch(e) { return DEFAULT_MICE_URL; } }
+function saveUrl(u) { try { localStorage.setItem('mice-script-url', u); } catch(e) {} }
+
+// ── JSONP ──────────────────────────────────────────────
+var seq = 0;
+function jsonp(params, cb) {
+  var n = 'mice_cb_' + (++seq);
+  var url = S.url + '?' + Object.keys(params).map(function(k) {
+    return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+  }).join('&') + '&callback=' + n;
+
+  var t = setTimeout(function() {
+    delete window[n];
+    var el = document.getElementById('_js_' + n);
+    if (el) el.remove();
+    cb({ error: 'Timed out' });
+  }, 25000);
+
+  window[n] = function(d) {
+    clearTimeout(t);
+    delete window[n];
+    var el = document.getElementById('_js_' + n);
+    if (el) el.remove();
+    cb(d);
+  };
+
+  var s = document.createElement('script');
+  s.id = '_js_' + n;
+  s.src = url;
+  s.onerror = function() {
+    clearTimeout(t);
+    delete window[n];
+    s.remove();
+    cb({ error: 'Network error' });
+  };
+  document.head.appendChild(s);
+}
+
+// ── Toast ──────────────────────────────────────────────
+var toastT;
+function toast(msg, err) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (err ? ' error' : '');
+  clearTimeout(toastT);
+  toastT = setTimeout(function() { el.className = ''; }, 3500);
+}
+
+// ── Escape ─────────────────────────────────────────────
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escA(s) { return String(s == null ? '' : s).replace(/'/g,'&#39;').replace(/"/g,'&#34;'); }
+
+// ── Theme ──────────────────────────────────────────────
+(function() {
+  var t; try { t = localStorage.getItem('mice-theme'); } catch(e) {}
+  if (t) document.documentElement.setAttribute('data-theme', t);
+})();
+document.getElementById('theme-toggle').onclick = function() {
+  var c = document.documentElement.getAttribute('data-theme');
+  var n = c === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', n);
+  try { localStorage.setItem('mice-theme', n); } catch(e) {}
+};
+
+// ── URL setup ──────────────────────────────────────────
+function init() {
+  var u = loadUrl();
+  S.url = u;
+  document.getElementById('script-url-input').value = u;
+  document.getElementById('setup-banner').classList.toggle('hidden', !!u);
+  if (u) loadSheets();
+}
+
+document.getElementById('save-url-btn').onclick = function() {
+  var u = document.getElementById('script-url-input').value.trim();
+  if (!u) return;
+  S.url = u; saveUrl(u);
+  document.getElementById('setup-banner').classList.add('hidden');
+  loadSheets();
+};
+document.getElementById('config-btn').onclick = function() {
+  document.getElementById('setup-banner').classList.remove('hidden');
+  document.getElementById('script-url-input').focus();
+};
+
+// ── Load sheets ────────────────────────────────────────
+function loadSheets() {
+  showMsg('loading', 'Loading sheets…');
+  jsonp({ action: 'getSheets' }, function(d) {
+    if (d.error) { showMsg('error', d.error); return; }
+    S.sheets = d.sheets || [];
+    renderTabBar();
+    showMsg('idle');
+  });
+}
+
+// ── Tab bar ────────────────────────────────────────────
+function renderTabBar() {
+  var bar = document.getElementById('sheet-tabbar');
+  var html = S.sheets.map(function(s) {
+    return '<button class="sheet-tab' + (s.name === S.active ? ' active' : '') +
+           '" data-name="' + esc(s.name) + '">' + esc(s.name) + '</button>';
+  }).join('');
+  html += '<button class="tab-add-btn" id="tab-add-btn" title="New experiment / sheet">+</button>';
+  bar.innerHTML = html;
+  bar.querySelectorAll('.sheet-tab').forEach(function(btn) {
+    btn.onclick = function() { openSheet(btn.getAttribute('data-name')); };
+  });
+  document.getElementById('tab-add-btn').onclick = openNewSheetDialog;
+}
+
+function openSheet(name) {
+  S.active = name; S.sortCol = null; S.query = '';
+  S.selected.clear(); updateBatchBar();
+  renderTabBar();
+  showMsg('loading', 'Loading ' + name + '…');
+  jsonp({ action: 'getData', sheet: name }, function(d) {
+    if (d.error) { showMsg('error', d.error); return; }
+    S.headers = d.headers || [];
+    S.rows    = d.rows    || [];
+    renderSheet();
+  });
+}
+
+// ── State display ──────────────────────────────────────
+function showMsg(type, msg) {
+  var m = document.getElementById('main');
+  if (type === 'idle') {
+    m.innerHTML = '<div class="state-msg"><div class="icon">🐭</div><h3>Select a tab</h3><p>Click an experiment group above to view its mice.</p></div>';
+  } else if (type === 'loading') {
+    m.innerHTML = '<div class="state-msg"><div class="spinner"></div><p>' + esc(msg||'') + '</p></div>';
+  } else {
+    m.innerHTML = '<div class="state-msg"><div class="icon">⚠️</div><h3>Error</h3><p>' + esc(msg||'') + '</p></div>';
+  }
+}
+
+// ── Render sheet ───────────────────────────────────────
+function renderSheet() {
+  var m = document.getElementById('main');
+  m.innerHTML =
+    '<div class="toolbar">' +
+      '<div class="search-wrap"><span class="search-icon">🔍</span>' +
+        '<input id="q" type="text" placeholder="Search…" value="' + esc(S.query) + '"></div>' +
+      '<span class="row-count" id="cnt"></span>' +
+      '<button class="btn btn-secondary" id="import-csv-btn" title="Import mice from CSV">📥 Import CSV</button>' +
+      '<button class="btn btn-primary" id="add-btn">+ Add Mouse</button>' +
+    '</div>' +
+    '<div class="table-wrap" id="tw"><div class="state-msg"><div class="spinner"></div></div></div>';
+
+  document.getElementById('q').oninput = function(e) { S.query = e.target.value; renderTable(); };
+  document.getElementById('add-btn').onclick = function() { openModal(null); };
+  document.getElementById('import-csv-btn').onclick = openCSVWizard;
+  renderTable();
+}
+
+// ── Detect group headers ───────────────────────────────
+// A row is a section header if it has 1–3 non-empty cells,
+// none of which look like an animal ID or sex value.
+function detectGroups(rows) {
+  var groups = [];
+  var current = null;
+
+  rows.forEach(function(row, idx) {
+    var vals = S.headers.map(function(h) { return String(row[h] || '').trim(); });
+    var nonEmpty = vals.filter(function(v) { return v !== ''; });
+
+    var hasAnimalId = nonEmpty.some(function(v) {
+      return /^(AMO|SAMO|AMO-|SAMO-)/i.test(v);
+    });
+    var hasSex = nonEmpty.length === 1 && /^[mf]$/i.test(nonEmpty[0]);
+    var isOnlyNumber = nonEmpty.length === 1 && /^\d+$/.test(nonEmpty[0]);
+
+    var isSectionHeader = nonEmpty.length >= 1 &&
+                          nonEmpty.length <= 2 &&
+                          !hasAnimalId &&
+                          !hasSex &&
+                          !isOnlyNumber;
+
+    if (isSectionHeader) {
+      var gid = 'g_' + idx;
+      if (!(gid in S.collapsed)) S.collapsed[gid] = false;
+      current = { id: gid, title: nonEmpty[0], rows: [] };
+      groups.push(current);
+    } else if (nonEmpty.length > 0) {
+      if (!current) {
+        var gid2 = 'g_top';
+        if (!(gid2 in S.collapsed)) S.collapsed[gid2] = false;
+        current = { id: gid2, title: null, rows: [] };
+        groups.push(current);
+      }
+      current.rows.push(row);
+    }
+  });
+
+  return groups;
+}
+
+// ── Render table ───────────────────────────────────────
+function renderTable() {
+  var tw = document.getElementById('tw');
+  if (!tw) return;
+
+  var q = S.query.toLowerCase();
+
+  // Always detect groups from the full row set so group membership is stable
+  var allGroups = detectGroups(S.rows);
+  var totalMice = allGroups.reduce(function(n, g) { return n + g.rows.length; }, 0);
+
+  // Filter at the group level:
+  //   • if the group title matches → show ALL its mice (experiment search)
+  //   • if any mouse row matches   → show only those mice (within-group search)
+  //   • no match at all            → hide the group
+  var groups = q
+    ? allGroups.map(function(group) {
+        var titleHit = group.title && group.title.toLowerCase().includes(q);
+        var rows = titleHit
+          ? group.rows   // whole experiment
+          : group.rows.filter(function(r) {
+              return Object.values(r).some(function(v) { return String(v).toLowerCase().includes(q); });
+            });
+        return rows.length > 0 ? { id: group.id, title: group.title, rows: rows } : null;
+      }).filter(Boolean)
+    : allGroups;
+
+  // Sort within each group
+  if (S.sortCol !== null) {
+    var sc = S.sortCol, sd = S.sortDir;
+    groups = groups.map(function(g) {
+      return {
+        id: g.id, title: g.title,
+        rows: g.rows.slice().sort(function(a, b) {
+          var av = String(a[sc]||'').toLowerCase(), bv = String(b[sc]||'').toLowerCase();
+          return sd === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+        })
+      };
+    });
+  }
+
+  var filteredMice = groups.reduce(function(n, g) { return n + g.rows.length; }, 0);
+  var cnt = document.getElementById('cnt');
+  if (cnt) cnt.textContent = (q ? filteredMice + ' of ' : '') + totalMice + ' mice';
+
+  if (groups.length === 0) {
+    tw.innerHTML = '<div class="state-msg"><div class="icon">🔍</div><h3>No results</h3><p>Try searching by experiment name, ID, genotype…</p></div>';
+    return;
+  }
+  var hasGroups = groups.some(function(g) { return g.title !== null; });
+  var totalCols = S.headers.length + 2; // +1 checkbox, +1 actions
+
+  var hs = S.headers;
+  var buf = ['<table class="data-table"><thead><tr>'];
+  buf.push('<th class="col-check"><input type="checkbox" id="chk-all" title="Select all"></th>');
+  hs.forEach(function(h) {
+    var cls = S.sortCol === h ? ' sorted-' + S.sortDir : '';
+    buf.push('<th class="' + cls + '" data-col="' + esc(h) + '">' + esc(h || '—') + '</th>');
+  });
+  buf.push('<th class="th-actions">Actions</th></tr></thead><tbody>');
+
+  groups.forEach(function(group) {
+    // Group header row (only if there's a title)
+    if (group.title !== null && hasGroups) {
+      var collapsed = S.collapsed[group.id];
+      buf.push('<tr class="group-hdr-row' + (collapsed ? ' collapsed' : '') + '" data-gid="' + esc(group.id) + '">');
+      buf.push('<td colspan="' + totalCols + '">');
+      buf.push('<div class="group-toggle"><span class="gi">▼</span><span class="group-tag">' + esc(group.title) + '</span>');
+      buf.push('<span class="group-count">' + group.rows.length + ' mice</span>');
+      buf.push('</div></td></tr>');
+    }
+
+    // Data rows
+    group.rows.forEach(function(row) {
+      var isSelected = S.selected.has(row._row);
+      var hidden = group.title !== null && hasGroups && S.collapsed[group.id];
+      buf.push('<tr class="data-row' + (isSelected ? ' sel-row' : '') + (hidden ? ' group-hidden' : '') + '" data-gid="' + esc(group.id) + '" data-rrow="' + row._row + '">');
+
+      // Checkbox
+      buf.push('<td class="col-check"><input type="checkbox" class="row-chk"' + (isSelected ? ' checked' : '') + ' data-rrow="' + row._row + '"></td>');
+
+      // Data cells
+      hs.forEach(function(h) {
+        var v = row[h] == null ? '' : String(row[h]);
+        var cell;
+        if (h === 'AAV inj.') {
+          // AAV picker column — sheet value is the batch name; rich record cached locally by batch name
+          var batchVal = v; // v = row['AAV inj.'] from sheet, empty string if not set
+          if (batchVal) {
+            cell = '<span class="aav-linked-badge" data-rrow="' + row._row + '" data-batch="' + esc(batchVal) + '" '
+              + 'style="display:inline-flex;align-items:center;gap:.25rem;background:rgba(16,185,129,.12);'
+              + 'color:#059669;border:1px solid rgba(16,185,129,.35);border-radius:5px;'
+              + 'font-size:11px;padding:.1rem .35rem;cursor:pointer;font-weight:600;white-space:nowrap;" '
+              + 'title="Click to view AAV details — ' + esc(batchVal) + '">🦠 ' + esc(batchVal) + '</span>';
+          } else {
+            cell = '<button class="aav-pick-btn" data-rrow="' + row._row + '" '
+              + 'style="background:none;border:1px dashed var(--border,#d1d5db);border-radius:5px;'
+              + 'cursor:pointer;font-size:11px;padding:.1rem .4rem;color:var(--fg-muted,#9ca3af);'
+              + 'white-space:nowrap;" title="Link AAV from storage">🔗 Pick AAV</button>';
+          }
+        } else if (h === 'LNP inj.') {
+          // LNP picker column — sheet value is "DisplayName|||BATCHID" or legacy plain name
+          var lnpRaw = v;
+          var lnpDisplay = lnpRaw, lnpBatchId = '';
+          if (lnpRaw && lnpRaw.indexOf('|||') !== -1) {
+            var lnpParts = lnpRaw.split('|||');
+            lnpDisplay = lnpParts[0]; lnpBatchId = lnpParts[1] || '';
+          }
+          if (lnpRaw) {
+            cell = '<span class="lnp-linked-badge" data-rrow="' + row._row + '" data-item="' + esc(lnpRaw) + '" data-batchid="' + esc(lnpBatchId) + '" '
+              + 'style="display:inline-flex;align-items:center;gap:.25rem;background:rgba(6,182,212,.12);'
+              + 'color:#0891b2;border:1px solid rgba(6,182,212,.35);border-radius:5px;'
+              + 'font-size:11px;padding:.1rem .35rem;cursor:pointer;font-weight:600;white-space:nowrap;" '
+              + 'title="Click to view LNP details — ' + esc(lnpDisplay) + (lnpBatchId ? ' [#'+esc(lnpBatchId)+']' : '') + '">🧪 ' + esc(lnpDisplay) + '</span>';
+          } else {
+            cell = '<button class="lnp-pick-btn" data-rrow="' + row._row + '" '
+              + 'style="background:none;border:1px dashed var(--border,#d1d5db);border-radius:5px;'
+              + 'cursor:pointer;font-size:11px;padding:.1rem .4rem;color:var(--fg-muted,#9ca3af);'
+              + 'white-space:nowrap;" title="Link LNP from inventory">🔗 Pick LNP</button>';
+          }
+        } else if (/^(AMO|SAMO)-/i.test(v)) {
+          cell = '<span class="amo-id">' + esc(v) + '</span>';
+        } else if (h.toLowerCase() === 'sex') {
+          if (v === 'm' || v === 'M') cell = '<span class="badge badge-m">m</span>';
+          else if (v === 'f' || v === 'F') cell = '<span class="badge badge-f">f</span>';
+          else cell = esc(v);
+        } else {
+          cell = esc(v);
+        }
+        buf.push('<td class="editable-cell" data-col="' + esc(h) + '" data-rrow="' + row._row + '" title="' + esc(v) + '">' + cell + '</td>');
+      });
+
+      // Actions
+      var rj = escA(JSON.stringify(row));
+      buf.push('<td class="col-actions">' +
+        '<button class="btn btn-ghost" data-r=\'' + rj + '\' data-a="edit" title="Edit">✏</button>' +
+        '<button class="btn btn-ghost" data-r=\'' + rj + '\' data-a="del" title="Delete" style="color:var(--danger)">🗑</button>' +
+      '</td></tr>');
+    });
+  });
+
+  buf.push('</tbody></table>');
+  tw.innerHTML = buf.join('');
+
+  // Sort headers
+  tw.querySelectorAll('th[data-col]').forEach(function(th) {
+    th.onclick = function() {
+      var c = th.getAttribute('data-col');
+      S.sortDir = S.sortCol === c && S.sortDir === 'asc' ? 'desc' : 'asc';
+      S.sortCol = c;
+      renderTable();
+    };
+  });
+
+  // Action buttons
+  tw.querySelectorAll('[data-a]').forEach(function(btn) {
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      var row; try { row = JSON.parse(btn.getAttribute('data-r')); } catch(e) { return; }
+      if (btn.getAttribute('data-a') === 'edit') openModal(row);
+      else doDelete(row);
+    };
+  });
+
+  // AAV pick buttons (empty) and linked badges (show popover)
+  tw.querySelectorAll('.aav-pick-btn').forEach(function(btn) {
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      var rrow = btn.getAttribute('data-rrow');
+      openAavPicker(rrow);
+    };
+  });
+  tw.querySelectorAll('.aav-linked-badge').forEach(function(badge) {
+    badge.onclick = function(e) {
+      e.stopPropagation();
+      var rrow = badge.getAttribute('data-rrow');
+      var batchName = badge.getAttribute('data-batch') || '';
+      showAavPopover(rrow, batchName, badge);
+    };
+  });
+
+  // LNP pick buttons (empty) and linked badges (show popover)
+  tw.querySelectorAll('.lnp-pick-btn').forEach(function(btn) {
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      var rrow = btn.getAttribute('data-rrow');
+      openLnpPicker(rrow);
+    };
+  });
+  tw.querySelectorAll('.lnp-linked-badge').forEach(function(badge) {
+    badge.onclick = function(e) {
+      e.stopPropagation();
+      var rrow = badge.getAttribute('data-rrow');
+      var itemName = badge.getAttribute('data-item') || '';
+      showLnpPopover(rrow, itemName, badge);
+    };
+  });
+
+  // Inline cell editing
+  tw.querySelectorAll('td.editable-cell').forEach(function(td) {
+    td.onclick = function(e) {
+      if (td.classList.contains('editing')) return;
+      var col = td.getAttribute('data-col');
+      // AAV inj. and LNP inj. columns use their own picker buttons — skip inline editing
+      if (col === 'AAV inj.' || col === 'LNP inj.') return;
+      var rrow = parseInt(td.getAttribute('data-rrow'));
+      var row = null;
+      for (var i = 0; i < S.rows.length; i++) { if (S.rows[i]._row === rrow) { row = S.rows[i]; break; } }
+      if (row) editCell(td, row, col);
+    };
+  });
+
+  // Group toggle
+  tw.querySelectorAll('.group-hdr-row').forEach(function(hdr) {
+    hdr.onclick = function() { toggleGroup(hdr.getAttribute('data-gid')); };
+  });
+
+  // Row checkboxes
+  tw.querySelectorAll('.row-chk').forEach(function(chk) {
+    chk.onchange = function() {
+      var rrow = parseInt(chk.getAttribute('data-rrow'));
+      if (chk.checked) S.selected.add(rrow);
+      else S.selected.delete(rrow);
+      var tr = chk.closest('tr');
+      if (tr) tr.classList.toggle('sel-row', chk.checked);
+      updateBatchBar();
+    };
+  });
+
+  // Select-all checkbox
+  var chkAll = document.getElementById('chk-all');
+  if (chkAll) {
+    chkAll.onchange = function() {
+      tw.querySelectorAll('.row-chk').forEach(function(c) {
+        var rrow = parseInt(c.getAttribute('data-rrow'));
+        c.checked = chkAll.checked;
+        if (chkAll.checked) S.selected.add(rrow);
+        else S.selected.delete(rrow);
+        var tr = c.closest('tr');
+        if (tr) tr.classList.toggle('sel-row', chkAll.checked);
+      });
+      updateBatchBar();
+    };
+  }
+}
+
+// ── Group collapse/expand ──────────────────────────────
+function toggleGroup(gid) {
+  S.collapsed[gid] = !S.collapsed[gid];
+  var collapsed = S.collapsed[gid];
+  // Toggle header row class
+  var hdr = document.querySelector('.group-hdr-row[data-gid="' + gid + '"]');
+  if (hdr) hdr.classList.toggle('collapsed', collapsed);
+  // Toggle data rows
+  document.querySelectorAll('.data-row[data-gid="' + gid + '"]').forEach(function(tr) {
+    tr.classList.toggle('group-hidden', collapsed);
+  });
+}
+
+// ── Batch bar ──────────────────────────────────────────
+function updateBatchBar() {
+  var bar = document.getElementById('batch-bar');
+  var n = S.selected.size;
+  bar.classList.toggle('hidden', n === 0);
+  var cnt = document.getElementById('batch-count');
+  if (cnt) cnt.textContent = n + (n === 1 ? ' mouse' : ' mice') + ' selected';
+  var sc = document.getElementById('bulk-save-count');
+  if (sc) sc.textContent = n;
+}
+
+document.getElementById('batch-clear-btn').onclick = function() {
+  S.selected.clear();
+  document.querySelectorAll('.row-chk').forEach(function(c) { c.checked = false; });
+  document.querySelectorAll('.sel-row').forEach(function(tr) { tr.classList.remove('sel-row'); });
+  var ca = document.getElementById('chk-all');
+  if (ca) ca.checked = false;
+  updateBatchBar();
+};
+
+document.getElementById('batch-edit-btn').onclick = function() { openBulkEdit(); };
+
+document.getElementById('batch-del-btn').onclick = function() {
+  var n = S.selected.size;
+  if (!confirm('Delete ' + n + ' selected ' + (n === 1 ? 'mouse' : 'mice') + '? This cannot be undone.')) return;
+  var rows = Array.from(S.selected).sort(function(a, b) { return b - a; }); // delete from bottom up
+  var idx = 0;
+  var btn = document.getElementById('batch-del-btn');
+  btn.disabled = true;
+  function nextDel() {
+    if (idx >= rows.length) {
+      toast('✓ Deleted ' + rows.length + ' rows');
+      S.selected.clear();
+      updateBatchBar();
+      openSheet(S.active);
+      return;
+    }
+    jsonp({ action: 'deleteRow', sheet: S.active, row: rows[idx++] }, function() { nextDel(); });
+  }
+  nextDel();
+};
+
+// ── New sheet modal ────────────────────────────────────
+function openNewSheetDialog() {
+  document.getElementById('ns-name').value = '';
+  document.getElementById('new-sheet-modal').classList.remove('hidden');
+  setTimeout(function() { document.getElementById('ns-name').focus(); }, 40);
+}
+function closeNewSheetModal() {
+  document.getElementById('new-sheet-modal').classList.add('hidden');
+}
+document.getElementById('ns-close').onclick = closeNewSheetModal;
+document.getElementById('ns-cancel').onclick = closeNewSheetModal;
+document.getElementById('new-sheet-modal').onclick = function(e) { if (e.target === this) closeNewSheetModal(); };
+
+document.getElementById('ns-create').onclick = function() {
+  var name = document.getElementById('ns-name').value.trim();
+  if (!name) { document.getElementById('ns-name').focus(); return; }
+  var btn = this;
+  btn.disabled = true; btn.textContent = 'Creating…';
+  jsonp({ action: 'addSheet', name: name }, function(resp) {
+    btn.disabled = false; btn.textContent = 'Create';
+    if (resp.error) { toast('Error: ' + resp.error, true); return; }
+    toast('✓ Created "' + name + '"');
+    closeNewSheetModal();
+    // Reload sheet list and open the new tab
+    jsonp({ action: 'getSheets' }, function(d) {
+      if (d.error) return;
+      S.sheets = d.sheets || [];
+      S.active = name;
+      S.headers = [];
+      S.rows = [];
+      renderTabBar();
+      renderSheet();
+    });
+  });
+};
+document.getElementById('ns-name').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') document.getElementById('ns-create').click();
+});
+
+// ── Modal (add / edit row) ─────────────────────────────
+var SECTIONS = {
+  'Mouse Identity': ['Number','AKPS bottleneck Number','AMO NtF Screen Number','ID','Mosaic Liver ID','Lab ID','26.11.2024 Lab ID'],
+  'Treatment': ['AAV inj.','HTV','Vol. inj./ul','conc.','Conc.','date of AAV inj.','date of HTV inj.','date of inj.'],
+  'Genetics': ['Line / Strain','Mutation 1','Grade 1','Mutation 2','Grade 2','Background','Gen'],
+  'Animal Info': ['Sex','DOB','Age (w d)','Father','NTF1 Father','Mother 1','Mother 2','Cage','Rack'],
+  'Timeline': ['Age at Inj','Age at HTV','Org inj. Date','AKPS inj. Date (Intrasplenic)','Euthanasia Date','Time between AAV and Organoids inj.','Time since inj.','Age at Org inj.','Age at euthanasia'],
+  'Results': ['AAV coverage (GFP+)','Lib coverage (GFP+)','Metastatic foci on ventral liver surface','Mets?','Perfusion?','Section area/um^2','Tumor area^2','No. of mets','Av. met. area','average No of mets'],
+  'Comments': ['Comments for AAV injection','Comments for HTV injection','Comments for surgery']
+};
+
+function buildModalForm(row, prefix) {
+  prefix = prefix || '';
+  var secBuckets = {};
+  var placed = {};
+  S.headers.forEach(function(h) {
+    if (!h) return;
+    var found = false;
+    Object.keys(SECTIONS).forEach(function(sec) {
+      if (!found && SECTIONS[sec].indexOf(h) >= 0) {
+        if (!secBuckets[sec]) secBuckets[sec] = [];
+        secBuckets[sec].push(h);
+        placed[h] = true;
+        found = true;
+      }
+    });
+    if (!found) {
+      if (!secBuckets['Other']) secBuckets['Other'] = [];
+      secBuckets['Other'].push(h);
+    }
+  });
+
+  var allSecs = Object.keys(SECTIONS).concat(['Other']);
+  var html = '';
+  allSecs.forEach(function(sec) {
+    var cols = secBuckets[sec];
+    if (!cols || cols.length === 0) return;
+    html += '<div class="form-section"><div class="form-section-title">' + esc(sec) + '</div><div class="form-grid">';
+    cols.forEach(function(h) {
+      var val = row ? (row[h] || '') : '';
+      var long = /comment|notes|foci|coverage/i.test(h);
+      var cls = 'form-group' + (long ? ' full' : '');
+      html += '<div class="' + cls + '"><label>' + esc(h) + '</label>';
+      if (long) html += '<textarea name="' + esc(prefix + h) + '">' + esc(val) + '</textarea>';
+      else       html += '<input type="text" name="' + esc(prefix + h) + '" value="' + esc(val) + '">';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+  return html;
+}
+
+function openModal(row) {
+  S.editRow = row;
+  var isEdit = !!row;
+  document.getElementById('modal-title').textContent = isEdit ? 'Edit Mouse' : 'Add Mouse';
+  document.getElementById('modal-delete').classList.toggle('hidden', !isEdit);
+  document.getElementById('modal-body').innerHTML = buildModalForm(row);
+  document.getElementById('row-modal').classList.remove('hidden');
+  var first = document.querySelector('#modal-body input, #modal-body textarea');
+  if (first) setTimeout(function() { first.focus(); }, 40);
+}
+
+function closeModal() {
+  document.getElementById('row-modal').classList.add('hidden');
+  S.editRow = null;
+}
+
+function collectForm(container) {
+  container = container || document;
+  var d = {};
+  container.querySelectorAll('input[name], textarea[name]').forEach(function(el) { d[el.name] = el.value; });
+  return d;
+}
+
+document.getElementById('modal-close').onclick = closeModal;
+document.getElementById('modal-cancel').onclick = closeModal;
+document.getElementById('row-modal').onclick = function(e) { if (e.target === this) closeModal(); };
+
+document.getElementById('modal-save').onclick = function() {
+  var data = collectForm(document.getElementById('modal-body'));
+  var isEdit = !!S.editRow;
+  var btn = this;
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  var params = { action: isEdit ? 'updateRow' : 'addRow', sheet: S.active, data: JSON.stringify(data) };
+  if (isEdit) params.row = S.editRow._row;
+
+  jsonp(params, function(resp) {
+    btn.disabled = false; btn.textContent = 'Save';
+    if (resp.error) { toast('Error: ' + resp.error, true); return; }
+    toast(isEdit ? '✓ Updated' : '✓ Added');
+    closeModal();
+    openSheet(S.active);
+  });
+};
+
+document.getElementById('modal-delete').onclick = function() {
+  var row = S.editRow;
+  if (!row) return;
+  closeModal();
+  doDelete(row);
+};
+
+function doDelete(row) {
+  var label = row['ID'] || row['Number'] || 'this row';
+  if (!confirm('Delete ' + label + '? This cannot be undone.')) return;
+  jsonp({ action: 'deleteRow', sheet: S.active, row: row._row }, function(resp) {
+    if (resp.error) { toast('Error: ' + resp.error, true); return; }
+    toast('✓ Deleted');
+    S.selected.delete(row._row);
+    updateBatchBar();
+    openSheet(S.active);
+  });
+}
+
+// ── Bulk Edit ──────────────────────────────────────────
+function openBulkEdit() {
+  var n = S.selected.size;
+  if (n === 0) return;
+  document.getElementById('bulk-title').textContent = 'Bulk Edit (' + n + ' mice)';
+  document.getElementById('bulk-save-count').textContent = n;
+  document.getElementById('bulk-status').textContent = '';
+  // Build form with no pre-filled values (only fill what you want to change)
+  document.getElementById('bulk-body').innerHTML = buildModalForm(null);
+  document.getElementById('bulk-modal').classList.remove('hidden');
+  var first = document.querySelector('#bulk-body input, #bulk-body textarea');
+  if (first) setTimeout(function() { first.focus(); }, 40);
+}
+
+document.getElementById('bulk-close').onclick = function() { document.getElementById('bulk-modal').classList.add('hidden'); };
+document.getElementById('bulk-cancel').onclick = function() { document.getElementById('bulk-modal').classList.add('hidden'); };
+document.getElementById('bulk-modal').onclick = function(e) { if (e.target === this) document.getElementById('bulk-modal').classList.add('hidden'); };
+
+document.getElementById('bulk-save-btn').onclick = function() {
+  var bulkData = collectForm(document.getElementById('bulk-body'));
+  // Only keep fields the user filled
+  var updates = {};
+  Object.keys(bulkData).forEach(function(k) { if (bulkData[k] !== '') updates[k] = bulkData[k]; });
+  if (Object.keys(updates).length === 0) {
+    document.getElementById('bulk-status').textContent = 'Fill at least one field.';
+    return;
+  }
+
+  var selectedRows = S.rows.filter(function(r) { return S.selected.has(r._row); });
+  var btn = document.getElementById('bulk-save-btn');
+  btn.disabled = true;
+  var total = selectedRows.length;
+  var done = 0;
+
+  function nextSave() {
+    if (done >= total) {
+      btn.disabled = false; btn.textContent = 'Save to ' + total + ' mice';
+      toast('✓ Updated ' + total + ' mice');
+      document.getElementById('bulk-modal').classList.add('hidden');
+      S.selected.clear(); updateBatchBar();
+      openSheet(S.active);
+      return;
+    }
+    var row = selectedRows[done];
+    done++;
+    btn.textContent = 'Saving ' + done + ' / ' + total + '…';
+    // Merge: keep existing row data, overlay with new values
+    var merged = {};
+    S.headers.forEach(function(h) { merged[h] = row[h] || ''; });
+    Object.keys(updates).forEach(function(k) { merged[k] = updates[k]; });
+    jsonp({ action: 'updateRow', sheet: S.active, row: row._row, data: JSON.stringify(merged) }, function(resp) {
+      if (resp.error) document.getElementById('bulk-status').textContent = 'Error on row ' + row._row + ': ' + resp.error;
+      nextSave();
+    });
+  }
+  nextSave();
+};
+
+// ── CSV Import Wizard ──────────────────────────────────
+var WIZ = {
+  step: 1,
+  csv: null,         // { headers: [], rows: [] }
+  sel: new Set(),    // selected CSV row indices
+  filters: { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', endDate: '', query: '' },
+  conditions: {},    // fields applied to all selected mice
+  groupLabel: '',
+  step2MaxAge: '',   // user-defined max age at procedure (weeks) for flagging in Step 2
+};
+
+// CSV column → canonical sheet column
+var CSV_TO_SHEET = {
+  'WR': 'Number', 'ID': 'ID', 'Lab ID': 'Lab ID',
+  'Cage': 'Cage', 'Rack': 'Rack', 'Sex': 'Sex', 'Gen': 'Gen',
+  'Line / Strain': 'Line / Strain', 'Background': 'Background',
+  'DOB': 'DOB', 'Age (w)': 'Age (w d)', 'Age(w)': 'Age (w d)',
+  'Father': 'Father', 'Mother 1': 'Mother 1', 'Mother 2': 'Mother 1',
+  'Sacrifice date': 'Euthanasia Date',
+};
+
+function parseDOB(str) {
+  if (!str) return null;
+  str = str.trim();
+  var m;
+  // DD.MM.YYYY
+  m = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (m) return new Date(+m[3], +m[2]-1, +m[1]);
+  // YYYY-MM-DD
+  m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+  // MM/DD/YYYY
+  m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return new Date(+m[3], +m[1]-1, +m[2]);
+  return null;
+}
+
+function ageWeeks(dob, ref) {
+  if (!dob || !ref) return null;
+  var diff = ref - dob;
+  return diff < 0 ? null : Math.floor(diff / 604800000);
+}
+
+function getFilteredItems() {
+  if (!WIZ.csv) return [];
+  var now = new Date();
+  var procDate = WIZ.filters.procDate ? new Date(WIZ.filters.procDate) : null;
+  var endDate = WIZ.filters.endDate ? new Date(WIZ.filters.endDate) : null;
+  var minA = WIZ.filters.minAge !== '' ? +WIZ.filters.minAge : null;
+  var maxA = WIZ.filters.maxAge !== '' ? +WIZ.filters.maxAge : null;
+  var q = WIZ.filters.query.toLowerCase();
+
+  return WIZ.csv.rows.map(function(row, idx) {
+    var dob = parseDOB(row['DOB'] || '');
+    var ageNow = dob ? ageWeeks(dob, now) : null;
+    var ageAtProc = (dob && procDate) ? ageWeeks(dob, procDate) : null;
+    var ageAtEnd = (dob && endDate) ? ageWeeks(dob, endDate) : null;
+
+    // Sex filter
+    if (WIZ.filters.sex) {
+      var s = (row['Sex'] || '').toLowerCase();
+      var wantM = WIZ.filters.sex === 'm';
+      if (wantM && s !== 'm') return null;
+      if (!wantM && s !== 'f') return null;
+    }
+    // Genotype filter
+    if (WIZ.filters.genotypes.length > 0) {
+      var gen = (row['Gen'] || row['Genotype'] || '').trim();
+      if (!WIZ.filters.genotypes.includes(gen)) return null;
+    }
+    // Age filter (use ageAtProc if proc date given, else ageNow)
+    var ageRef = (procDate && ageAtProc != null) ? ageAtProc : ageNow;
+    if (minA != null && ageRef != null && ageRef < minA) return null;
+    // Max-age filter: if endDate given, check age at end; otherwise use ageRef
+    var maxAgeRef = (endDate && ageAtEnd != null) ? ageAtEnd : ageRef;
+    if (maxA != null && maxAgeRef != null && maxAgeRef > maxA) return null;
+    // Text search
+    if (q) {
+      var haystack = Object.values(row).map(String).join(' ').toLowerCase();
+      if (!haystack.includes(q)) return null;
+    }
+    return { idx: idx, row: row, dob: dob, ageNow: ageNow, ageAtProc: ageAtProc, ageAtEnd: ageAtEnd };
+  }).filter(Boolean);
+}
+
+function applyWizFilters() {
+  var items = getFilteredItems();
+  var wrap = document.getElementById('wiz-tbl-wrap');
+  if (!wrap) return;
+
+  // Update "Select visible" button label
+  var allVis = items.length > 0 && items.every(function(it) { return WIZ.sel.has(it.idx); });
+  var togBtn = document.getElementById('wiz-tog-vis');
+  if (togBtn) togBtn.textContent = allVis ? '☐ Deselect visible' : '☑ Select visible';
+  var selCount = document.getElementById('wiz-sel-count');
+  if (selCount) selCount.textContent = WIZ.sel.size + ' selected';
+
+  // Select-all checkbox state
+  var allSel = items.length > 0 && items.every(function(it) { return WIZ.sel.has(it.idx); });
+  var sa = document.getElementById('wiz-sel-all');
+  if (sa) sa.checked = allSel;
+
+  var procDate = WIZ.filters.procDate ? new Date(WIZ.filters.procDate) : null;
+  var endDate = WIZ.filters.endDate ? new Date(WIZ.filters.endDate) : null;
+
+  var html = '<table class="import-table"><thead><tr>';
+  html += '<th><input type="checkbox" id="wiz-sel-all2"' + (allSel?' checked':'') + '></th>';
+  html += '<th>ID</th><th>Lab ID</th><th>Sex</th><th>Gen</th><th>Line/Strain</th>';
+  html += '<th>DOB</th><th>Age now (w)</th>';
+  if (procDate) html += '<th>Age at proc. (w)</th>';
+  if (endDate) html += '<th>Age at end (w)</th>';
+  html += '<th>Condition</th>';
+  html += '</tr></thead><tbody>';
+
+  if (items.length === 0) {
+    html += '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text2)">No mice match the current filters</td></tr>';
+  } else {
+    items.forEach(function(it) {
+      var r = it.row;
+      var chk = WIZ.sel.has(it.idx) ? ' checked' : '';
+      var sexBadge = r['Sex'] === 'm' || r['Sex'] === 'M'
+        ? '<span class="badge badge-m">m</span>'
+        : r['Sex'] === 'f' || r['Sex'] === 'F'
+        ? '<span class="badge badge-f">f</span>'
+        : esc(r['Sex'] || '');
+      var ageNowCell = it.ageNow != null ? it.ageNow : '—';
+      var ageProcCell = procDate ? (it.ageAtProc != null ? it.ageAtProc : '—') : '';
+      var ageEndCell = endDate ? (it.ageAtEnd != null ? it.ageAtEnd : '—') : '';
+      var cond = WIZ.conditions['cond_' + it.idx] || '';
+      html += '<tr data-idx="' + it.idx + '">';
+      html += '<td><input type="checkbox" class="wiz-row-chk" data-idx="' + it.idx + '"' + chk + '></td>';
+      html += '<td><span class="amo-id">' + esc(r['ID'] || r['WR'] || '') + '</span></td>';
+      html += '<td>' + esc(r['Lab ID'] || '') + '</td>';
+      html += '<td>' + sexBadge + '</td>';
+      html += '<td>' + esc(r['Gen'] || r['Genotype'] || '') + '</td>';
+      html += '<td>' + esc(r['Line / Strain'] || r['Strain'] || '') + '</td>';
+      html += '<td>' + esc(r['DOB'] || '') + '</td>';
+      html += '<td>' + ageNowCell + '</td>';
+      if (procDate) html += '<td>' + ageProcCell + '</td>';
+      if (endDate) html += '<td>' + ageEndCell + '</td>';
+      html += '<td><input class="wiz-cond-input" data-idx="' + it.idx + '" value="' + esc(cond) + '" placeholder="e.g. Control" style="width:90px;padding:2px 5px;font-size:11px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);"></td>';
+      html += '</tr>';
+    });
+  }
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+
+  // Select-all
+  var sa2 = document.getElementById('wiz-sel-all2');
+  if (sa2) sa2.addEventListener('change', function() {
+    var checked = this.checked;
+    items.forEach(function(it) { if (checked) WIZ.sel.add(it.idx); else WIZ.sel.delete(it.idx); });
+    applyWizFilters();
+    updateWizStep1Footer();
+  });
+
+  // Row checkboxes
+  wrap.querySelectorAll('.wiz-row-chk').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      var idx = +this.dataset.idx;
+      if (this.checked) WIZ.sel.add(idx); else WIZ.sel.delete(idx);
+      updateWizStep1Footer();
+    });
+  });
+
+  // Condition inputs
+  wrap.querySelectorAll('.wiz-cond-input').forEach(function(inp) {
+    inp.addEventListener('change', function() {
+      WIZ.conditions['cond_' + this.dataset.idx] = this.value;
+    });
+    inp.addEventListener('input', function() {
+      WIZ.conditions['cond_' + this.dataset.idx] = this.value;
+    });
+  });
+}
+
+function updateWizStep1Footer() {
+  var n = WIZ.sel.size;
+  var nextBtn = document.getElementById('wiz-next-btn');
+  if (nextBtn) nextBtn.textContent = 'Next: Assign Conditions →' + (n ? ' (' + n + ')' : '');
+  if (nextBtn) nextBtn.disabled = n === 0;
+}
+
+function saveConditions() {
+  // Step 2 fields are saved inline via event listeners; no-op here
+}
+
+function openCSVWizard() {
+  WIZ.step = 1; WIZ.csv = null; WIZ.sel = new Set();
+  WIZ.filters = { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', endDate: '', query: '' };
+  WIZ.conditions = {}; WIZ.groupLabel = '';
+  WIZ.groups = []; WIZ.step2SubSel = new Set();
+  WIZ.step2Sex = ''; WIZ.step2Query = ''; WIZ.step2ProcType = '';
+  WIZ.step2CondLabel = ''; WIZ.step2ProcDate = '';
+  WIZ.step2Construct = ''; WIZ.step2Vol = ''; WIZ.step2Conc = ''; WIZ.step2Notes = '';
+  document.getElementById('csv-wizard').classList.remove('hidden');
+  renderWizard();
+}
+function closeCSVWizard() {
+  document.getElementById('csv-wizard').classList.add('hidden');
+}
+document.getElementById('wiz-close').onclick = closeCSVWizard;
+
+function renderWizardSteps() {
+  var steps = ['1. Upload & Filter', '2. Assign Conditions', '3. Review & Import'];
+  document.getElementById('wiz-steps').innerHTML = steps.map(function(s, i) {
+    var n = i + 1;
+    var cls = n < WIZ.step ? 'done' : n === WIZ.step ? 'active' : '';
+    return '<span class="wstep ' + cls + '">' + s + '</span>';
+  }).join('');
+}
+
+function renderWizard() {
+  renderWizardSteps();
+  if (WIZ.step === 1) renderWizStep1();
+  else if (WIZ.step === 2) renderWizStep2();
+  else renderWizStep3();
+}
+
+// ── Step 1: Upload, Filter & Select ───────────────────
+function renderWizStep1() {
+  var body = document.getElementById('wiz-body');
+  var footer = document.getElementById('wiz-footer');
+
+  if (!WIZ.csv) {
+    body.innerHTML =
+      '<div class="drop-zone" id="dz">' +
+        '<div class="dz-icon">📄</div>' +
+        '<p>Drop a CSV file here, or click to browse</p>' +
+        '<small>Animals_Data export — columns: WR, ID, Lab ID, Sex, Gen, Line / Strain, DOB…</small>' +
+      '</div>' +
+      '<input type="file" id="csv-file-input" accept=".csv,text/csv" style="display:none">';
+
+    var dz = document.getElementById('dz');
+    var fi = document.getElementById('csv-file-input');
+    dz.onclick = function() { fi.click(); };
+    dz.ondragover = function(e) { e.preventDefault(); dz.classList.add('drag-over'); };
+    dz.ondragleave = function() { dz.classList.remove('drag-over'); };
+    dz.ondrop = function(e) {
+      e.preventDefault(); dz.classList.remove('drag-over');
+      var f = e.dataTransfer.files[0];
+      if (f) loadCSVFile(f);
+    };
+    fi.onchange = function() { if (fi.files[0]) loadCSVFile(fi.files[0]); };
+
+    footer.innerHTML = '<div class="spacer"></div><button class="btn btn-secondary" id="wiz-cancel-btn">Cancel</button>';
+    document.getElementById('wiz-cancel-btn').onclick = closeCSVWizard;
+    return;
+  }
+
+  // Collect unique genotype values
+  var genKey = WIZ.csv.headers.find(function(h) { return h === 'Gen' || h === 'Genotype'; }) || 'Gen';
+  var genValues = [];
+  WIZ.csv.rows.forEach(function(r) {
+    var g = (r[genKey] || '').trim();
+    if (g && !genValues.includes(g)) genValues.push(g);
+  });
+
+  var html = '<div class="wiz-filters">';
+  html += '<div class="filter-row">';
+
+  // Sex buttons
+  html += '<div><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Sex</div>';
+  html += '<div class="sex-btns">';
+  ['', 'm', 'f'].forEach(function(v) {
+    var lbl = v === '' ? 'All' : v === 'm' ? '♂ Male' : '♀ Female';
+    html += '<button class="sex-btn' + (WIZ.filters.sex === v ? ' active' : '') + '" data-sex="' + v + '">' + lbl + '</button>';
+  });
+  html += '</div></div>';
+
+  // Genotype chips
+  if (genValues.length > 0) {
+    html += '<div><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Genotype</div>';
+    html += '<div class="gen-chips">';
+    genValues.forEach(function(g) {
+      html += '<button class="gen-chip' + (WIZ.filters.genotypes.includes(g) ? ' active' : '') + '" data-gen="' + esc(g) + '">' + esc(g) + '</button>';
+    });
+    html += '</div></div>';
+  }
+
+  // Age range
+  html += '<div><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Age range (weeks)</div>';
+  html += '<div style="display:flex;gap:6px;align-items:center;">';
+  html += '<input type="number" id="f-min-age" min="0" placeholder="Min" value="' + esc(WIZ.filters.minAge) + '" style="width:60px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;">';
+  html += '<span style="color:var(--text3)">—</span>';
+  html += '<input type="number" id="f-max-age" min="0" placeholder="Max" value="' + esc(WIZ.filters.maxAge) + '" style="width:60px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;">';
+  html += '</div></div>';
+
+  // Procedure date
+  html += '<div><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Procedure date</div>';
+  html += '<input type="date" id="f-proc-date" value="' + esc(WIZ.filters.procDate) + '" style="padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;">';
+  html += '<div style="font-size:10.5px;color:var(--text3);margin-top:3px;">Shows age at AAV / surgery / colonoscopy</div>';
+  html += '</div>';
+
+  // Experiment end date
+  html += '<div><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Experiment end date</div>';
+  html += '<input type="date" id="f-end-date" value="' + esc(WIZ.filters.endDate) + '" style="padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;">';
+  html += '<div style="font-size:10.5px;color:var(--text3);margin-top:3px;">Max age filter applied at this date</div>';
+  html += '</div>';
+
+  // Text search
+  html += '<div style="flex:1;min-width:130px;"><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Search</div>';
+  html += '<input type="text" id="f-query" placeholder="ID, cage, line…" value="' + esc(WIZ.filters.query) + '" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;">';
+  html += '</div>';
+
+  html += '</div></div>'; // .filter-row .wiz-filters
+
+  // Re-upload link
+  html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
+  html += '<span style="font-size:12px;color:var(--text2);">📄 ' + esc(WIZ.csv.rows.length) + ' mice loaded</span>';
+  html += '<button class="btn btn-ghost" id="wiz-re-upload" style="padding:2px 10px;font-size:12px;">↩ Re-upload</button>';
+  html += '</div>';
+
+  // Mouse selection table
+  html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+  html += '<button id="wiz-tog-vis" style="padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer;white-space:nowrap;">☑ Select visible</button>';
+  html += '<span id="wiz-sel-count" style="font-size:12px;color:var(--text2);">' + WIZ.sel.size + ' selected</span>';
+  html += '</div>';
+  html += '<div id="wiz-tbl-wrap" class="import-tbl-wrap"></div>';
+  body.innerHTML = html;
+
+  // "Select visible" toggle for Step 1
+  document.getElementById('wiz-tog-vis').addEventListener('click', function() {
+    var items = getFilteredItems();
+    var allVis = items.length > 0 && items.every(function(it) { return WIZ.sel.has(it.idx); });
+    items.forEach(function(it) { if (allVis) WIZ.sel.delete(it.idx); else WIZ.sel.add(it.idx); });
+    applyWizFilters(); updateWizStep1Footer();
+  });
+
+  // Filter event handlers
+  body.querySelectorAll('.sex-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      WIZ.filters.sex = this.dataset.sex;
+      body.querySelectorAll('.sex-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.sex === WIZ.filters.sex); });
+      applyWizFilters(); updateWizStep1Footer();
+    });
+  });
+  body.querySelectorAll('.gen-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      var g = this.dataset.gen;
+      var idx = WIZ.filters.genotypes.indexOf(g);
+      if (idx >= 0) WIZ.filters.genotypes.splice(idx, 1); else WIZ.filters.genotypes.push(g);
+      chip.classList.toggle('active', WIZ.filters.genotypes.includes(g));
+      applyWizFilters(); updateWizStep1Footer();
+    });
+  });
+  function refilter() {
+    WIZ.filters.minAge = (document.getElementById('f-min-age') || {}).value || '';
+    WIZ.filters.maxAge = (document.getElementById('f-max-age') || {}).value || '';
+    WIZ.filters.procDate = (document.getElementById('f-proc-date') || {}).value || '';
+    WIZ.filters.endDate = (document.getElementById('f-end-date') || {}).value || '';
+    WIZ.filters.query = (document.getElementById('f-query') || {}).value || '';
+    applyWizFilters(); updateWizStep1Footer();
+  }
+  ['f-min-age','f-max-age','f-proc-date','f-end-date','f-query'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) { el.addEventListener('input', refilter); el.addEventListener('change', refilter); }
+  });
+  document.getElementById('wiz-re-upload').onclick = function() {
+    WIZ.csv = null; WIZ.sel.clear();
+    WIZ.filters = { sex: '', genotypes: [], minAge: '', maxAge: '', procDate: '', endDate: '', query: '' };
+    WIZ.groups = []; WIZ.step2SubSel = new Set();
+    WIZ.step2Sex = ''; WIZ.step2Query = ''; WIZ.step2ProcType = '';
+    WIZ.step2CondLabel = ''; WIZ.step2ProcDate = '';
+    WIZ.step2Construct = ''; WIZ.step2Vol = ''; WIZ.step2Conc = ''; WIZ.step2Notes = '';
+    renderWizard();
+  };
+
+  applyWizFilters();
+
+  footer.innerHTML =
+    '<div class="spacer"></div>' +
+    '<button class="btn btn-secondary" id="wiz-cancel-btn">Cancel</button>' +
+    '<button class="btn btn-primary" id="wiz-next-btn"' + (WIZ.sel.size === 0 ? ' disabled' : '') + '>Next: Assign Conditions (' + WIZ.sel.size + ') →</button>';
+
+  document.getElementById('wiz-cancel-btn').onclick = closeCSVWizard;
+  document.getElementById('wiz-next-btn').onclick = function() { WIZ.step = 2; renderWizard(); };
+}
+
+function loadCSVFile(file) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var parsed = parseCSV(e.target.result);
+    if (!parsed || parsed.rows.length === 0) { toast('Could not parse CSV — make sure it has a header row.', true); return; }
+    WIZ.csv = parsed;
+    WIZ.sel.clear();
+    // Do NOT auto-select — user picks manually
+    renderWizard();
+  };
+  reader.readAsText(file);
+}
+
+function parseCSV(text) {
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // Auto-detect delimiter: count tabs vs commas in the first non-empty line
+  var firstLine = text.split('\n')[0] || '';
+  var tabCount = (firstLine.match(/\t/g) || []).length;
+  var commaCount = (firstLine.match(/,/g) || []).length;
+  var delim = tabCount > commaCount ? '\t' : ',';
+
+  var lines = [];
+  var cur = [];
+  var inQ = false;
+  var cell = '';
+
+  for (var i = 0; i <= text.length; i++) {
+    var c = i < text.length ? text[i] : '\n';
+    if (c === '"') {
+      if (inQ && text[i+1] === '"') { cell += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === delim && !inQ) {
+      cur.push(cell); cell = '';
+    } else if (c === '\n' && !inQ) {
+      cur.push(cell); cell = '';
+      if (cur.some(function(v) { return v.trim(); })) lines.push(cur);
+      cur = [];
+    } else {
+      cell += c;
+    }
+  }
+
+  if (lines.length === 0) return null;
+  // Strip surrounding quotes from header names
+  var headers = lines[0].map(function(h) { return h.trim().replace(/^"|"$/g, ''); });
+  var rows = [];
+  for (var j = 1; j < lines.length; j++) {
+    var row = {};
+    headers.forEach(function(h, k) {
+      var v = (lines[j][k] || '').trim().replace(/^"|"$/g, '');
+      row[h] = v;
+    });
+    // Alias WR → Number for sheet mapping
+    if (row['WR'] !== undefined && !row['Number']) row['Number'] = row['WR'];
+    rows.push(row);
+  }
+  return { headers: headers, rows: rows };
+}
+
+// ── Step 2: Assign Conditions ─────────────────────────
+var S2_GROUP_COLORS = ['#0c7c59','#1a73b8','#b5371d','#8c44d6','#c47a00','#1f7a2a','#b53068','#005f8a'];
+var S2_PROC_SUGGESTIONS = ['AAV injection','Colonoscopy','Surgery','Euthanasia','Organoid injection','CRISPR injection','Tissue harvest','Blood collection','Other'];
+
+function renderWizStep2() {
+  var body = document.getElementById('wiz-body');
+  var footer = document.getElementById('wiz-footer');
+  var n = WIZ.sel.size;
+  var selArr = Array.from(WIZ.sel);
+
+  if (!WIZ.groups) WIZ.groups = [];
+  if (!WIZ.step2SubSel) WIZ.step2SubSel = new Set();
+  if (!WIZ.step2ProcType) WIZ.step2ProcType = '';
+
+  function inp(id, opts) {
+    opts = opts || {};
+    var type = opts.type || 'text';
+    var val = esc(opts.val || '');
+    var ph = esc(opts.ph || '');
+    var style = 'width:100%;box-sizing:border-box;padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;' + (opts.style || '');
+    var extra = opts.extra || '';
+    return '<input type="' + type + '" id="' + id + '" value="' + val + '" placeholder="' + ph + '" style="' + style + '" ' + extra + '>';
+  }
+  function lbl(text) {
+    return '<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">' + text + '</div>';
+  }
+  function fld(label, content, full) {
+    return '<div style="' + (full ? '' : '') + 'margin-bottom:8px;">' + lbl(label) + content + '</div>';
+  }
+
+  function renderBody() {
+    var query = (WIZ.step2Query || '').toLowerCase();
+    var visible = selArr.filter(function(idx) {
+      var row = WIZ.csv.rows[idx];
+      if (!row) return false;
+      if (WIZ.step2Sex) {
+        var sex = (row['Sex'] || '').trim().toLowerCase();
+        if (!sex.startsWith(WIZ.step2Sex.toLowerCase()[0])) return false;
+      }
+      if (query) {
+        var hay = Object.values(row).join(' ').toLowerCase();
+        if (!hay.includes(query)) return false;
+      }
+      return true;
+    });
+
+    var nChecked = selArr.filter(function(i) { return WIZ.step2SubSel.has(i); }).length;
+    var allVis = visible.length > 0 && visible.every(function(i) { return WIZ.step2SubSel.has(i); });
+    var ungrouped = selArr.filter(function(i) { return !WIZ.groups.some(function(g) { return g.mice.has(i); }); }).length;
+    var curType = WIZ.step2ProcType || '';
+    var isAAV = /aav/i.test(curType);
+
+    var html = '';
+
+    // Section label row
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">';
+    html += '<label style="font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap;flex-shrink:0;">Section label:</label>';
+    html += '<input id="s2-group-label" type="text" value="' + esc(WIZ.groupLabel) + '" placeholder="e.g. APP KO Colonoscopy — leave blank to skip" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;">';
+    html += '</div>';
+
+    // Two-column grid: assign panel | groups list
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">';
+
+    // ── Left: assign panel ──
+    html += '<div class="map-section" style="margin:0;padding:14px;">';
+    html += '<h3 style="margin-bottom:10px;">Assign to checked mice</h3>';
+
+    // Procedure type — free text with suggestions
+    html += fld('Procedure type',
+      '<datalist id="s2-proc-list">' +
+      S2_PROC_SUGGESTIONS.map(function(s) { return '<option value="' + esc(s) + '">'; }).join('') +
+      '</datalist>' +
+      inp('s2-proc-type', { val: WIZ.step2ProcType || '', ph: 'e.g. AAV injection, Colonoscopy, Surgery…', style: '', extra: 'list="s2-proc-list"' })
+    );
+
+    // Condition label
+    html += fld('Condition label', inp('s2-cond-label', { val: WIZ.step2CondLabel || '', ph: 'e.g. Control, AAV-GFP, …' }));
+
+    // Date
+    html += fld('Date', inp('s2-proc-date', { type: 'date', val: WIZ.step2ProcDate || '' }));
+
+    // AAV-specific extra fields
+    if (isAAV) {
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">';
+      html += '<div>' + lbl('Construct') + inp('s2-aav-construct', { val: WIZ.step2Construct || '', ph: 'e.g. AAV8-GFP' }) + '</div>';
+      html += '<div>' + lbl('Volume (µl)') + inp('s2-aav-vol', { type: 'number', val: WIZ.step2Vol || '', ph: '50' }) + '</div>';
+      html += '</div>';
+      html += fld('Concentration', inp('s2-aav-conc', { val: WIZ.step2Conc || '', ph: 'e.g. 1e12 vg/ml' }));
+    }
+
+    // Mutation fields (for any type)
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">';
+    html += '<div>' + lbl('Mutation 1') + inp('s2-mut1', { val: WIZ.step2Mut1 || '', ph: 'e.g. Kras G12D' }) + '</div>';
+    html += '<div>' + lbl('Grade 1') + inp('s2-grade1', { val: WIZ.step2Grade1 || '', ph: 'het / hom' }) + '</div>';
+    html += '</div>';
+
+    // Notes
+    html += '<div style="margin-bottom:10px;">' + lbl('Notes');
+    html += '<textarea id="s2-notes" rows="2" placeholder="Notes for this group…" style="width:100%;box-sizing:border-box;padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;resize:vertical;">' + esc(WIZ.step2Notes || '') + '</textarea></div>';
+
+    // Assign button
+    var btnLabel = nChecked > 0 ? 'Assign to ' + nChecked + ' mice' : 'Check mice below to assign';
+    html += '<button id="s2-assign-btn" class="btn btn-primary" style="width:100%;' + (nChecked === 0 ? 'opacity:.45;' : '') + '"' + (nChecked === 0 ? ' disabled' : '') + '>' + btnLabel + '</button>';
+    html += '</div>'; // end left
+
+    // ── Right: groups list ──
+    html += '<div class="map-section" style="margin:0;padding:14px;">';
+    html += '<h3 style="margin-bottom:10px;">Groups <span style="font-weight:400;color:var(--text3);font-size:13px;">(' + WIZ.groups.length + ')</span></h3>';
+
+    if (WIZ.groups.length === 0) {
+      html += '<div style="font-size:12px;color:var(--text3);font-style:italic;padding:10px 0 6px;">No groups yet.<br>Check mice in the table, fill in the assignment panel, then click Assign.</div>';
+    } else {
+      html += '<div style="display:flex;flex-direction:column;gap:7px;">';
+      WIZ.groups.forEach(function(g) {
+        html += '<div style="border:1px solid ' + g.color + '55;border-radius:7px;padding:8px 10px;background:' + g.color + '0d;">';
+        html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">';
+        html += '<span style="width:10px;height:10px;border-radius:50%;background:' + g.color + ';flex-shrink:0;display:inline-block;"></span>';
+        html += '<strong style="font-size:13px;color:var(--text);">' + esc(g.label || g.procType) + '</strong>';
+        html += '<span style="font-size:11px;color:var(--text3);margin-left:auto;">' + g.mice.size + ' mice</span>';
+        html += '<button class="s2-del-group" data-gid="' + g.id + '" style="border:none;background:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;" title="Remove group">×</button>';
+        html += '</div>';
+        var details = ['<em>' + esc(g.procType) + '</em>'];
+        if (g.date) details.push(g.date);
+        if (g.construct) details.push(g.construct);
+        if (g.notes) details.push(g.notes);
+        html += '<div style="font-size:11px;color:var(--text2);">' + details.join(' · ') + '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    // Ungrouped count
+    html += '<div style="margin-top:10px;font-size:11.5px;padding-top:8px;border-top:1px solid var(--border);color:' + (ungrouped === 0 ? 'var(--accent)' : 'var(--text3)') + ';">';
+    html += ungrouped === 0 ? '✓ All ' + n + ' mice assigned to a group.' : ungrouped + ' of ' + n + ' mice not yet assigned.';
+    html += '</div>';
+    html += '</div>'; // end right
+    html += '</div>'; // end grid
+
+    // ── Mouse table ──
+    html += '<div class="map-section" style="margin:0;padding:14px;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">';
+    html += '<h3 style="margin:0;">Mice <span style="font-weight:400;color:var(--text3);font-size:13px;">(' + n + ' selected from step 1)</span></h3>';
+    // Sex buttons
+    html += '<div class="sex-btns" style="flex-shrink:0;">';
+    ['All','M','F'].forEach(function(s) {
+      var isActive = s === 'All' ? !WIZ.step2Sex : WIZ.step2Sex === s;
+      html += '<button class="sex-btn s2-sex-btn' + (isActive ? ' active' : '') + '" data-sex="' + (s === 'All' ? '' : s) + '">' + s + '</button>';
+    });
+    html += '</div>';
+    // Search
+    html += '<input id="s2-query" type="text" placeholder="Search…" value="' + esc(WIZ.step2Query || '') + '" style="flex:1;min-width:80px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;">';
+    // Toggle all visible
+    html += '<button id="s2-tog-vis" style="padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer;white-space:nowrap;">' + (allVis ? '☐ Deselect visible' : '☑ Select visible') + '</button>';
+    html += '</div>';
+
+    // Max-age-at-procedure flag row
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;color:var(--text2);">';
+    html += '<label for="s2-max-age" style="white-space:nowrap;">⚠️ Flag if age at procedure &gt;</label>';
+    html += '<input type="number" id="s2-max-age" min="0" placeholder="weeks" value="' + esc(WIZ.step2MaxAge || '') + '" style="width:64px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;">';
+    html += '<span style="color:var(--text3);">weeks — shown in the age column if a procedure date is set</span>';
+    html += '</div>';
+
+    html += '<div class="import-tbl-wrap" style="max-height:260px;">';
+    html += '<table class="import-table"><thead><tr>';
+    html += '<th style="width:28px;"><input type="checkbox" id="s2-chk-hdr"' + (allVis ? ' checked' : '') + '></th>';
+    var hasProcDate = !!WIZ.step2ProcDate;
+    html += '<th>ID</th><th>Lab ID</th><th>Sex</th><th>Line / Strain</th><th>DOB</th>';
+    html += hasProcDate ? '<th>Age at proc. (w)</th>' : '<th>Age now (w)</th>';
+    html += '<th>Group</th>';
+    html += '</tr></thead><tbody>';
+
+    var now = new Date();
+    var procDateForAge = hasProcDate ? new Date(WIZ.step2ProcDate) : null;
+    var maxAgeNum = WIZ.step2MaxAge ? parseFloat(WIZ.step2MaxAge) : null;
+    visible.forEach(function(idx) {
+      var r = WIZ.csv.rows[idx];
+      var dob = parseDOB(r['DOB'] || '');
+      var age = dob ? ageWeeks(dob, procDateForAge || now) : null;
+      var overAge = (maxAgeNum != null && age != null && age > maxAgeNum);
+      var checked = WIZ.step2SubSel.has(idx);
+      var mouseGroups = WIZ.groups.filter(function(g) { return g.mice.has(idx); });
+      html += '<tr' + (checked ? ' style="background:var(--accent-light);"' : '') + '>';
+      html += '<td><input type="checkbox" class="s2-row-chk" data-idx="' + idx + '"' + (checked ? ' checked' : '') + '></td>';
+      html += '<td>' + esc(r['ID'] || r['WR'] || '') + '</td>';
+      html += '<td>' + esc(r['Lab ID'] || '') + '</td>';
+      html += '<td>' + esc(r['Sex'] || '') + '</td>';
+      html += '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(r['Line / Strain'] || '') + '</td>';
+      html += '<td>' + esc(r['DOB'] || '') + '</td>';
+      var ageCell = age != null ? age : '—';
+      if (overAge) {
+        ageCell = '<span style="color:#e53935;font-weight:600;" title="Exceeds max age of ' + maxAgeNum + ' w">⚠ ' + age + '</span>';
+      }
+      html += '<td>' + ageCell + '</td>';
+      if (mouseGroups.length > 0) {
+        html += '<td style="white-space:nowrap;">' + mouseGroups.map(function(g) {
+          return '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;font-size:11px;background:' + g.color + '22;color:' + g.color + ';border:1px solid ' + g.color + '55;margin-right:3px;">' +
+            '<span style="width:6px;height:6px;border-radius:50%;background:' + g.color + ';display:inline-block;"></span>' + esc(g.label || g.procType) + '</span>';
+        }).join('') + '</td>';
+      } else {
+        html += '<td style="color:var(--text3);font-size:11px;">—</td>';
+      }
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    html += '</div>'; // map-section
+
+    body.innerHTML = html;
+    wireStep2();
+  }
+
+  function saveStep2Fields() {
+    WIZ.groupLabel = (document.getElementById('s2-group-label') || {}).value || '';
+    WIZ.step2ProcType = (document.getElementById('s2-proc-type') || {}).value || WIZ.step2ProcType || '';
+    WIZ.step2CondLabel = (document.getElementById('s2-cond-label') || {}).value || '';
+    WIZ.step2ProcDate = (document.getElementById('s2-proc-date') || {}).value || '';
+    WIZ.step2Construct = (document.getElementById('s2-aav-construct') || {}).value || '';
+    WIZ.step2Vol = (document.getElementById('s2-aav-vol') || {}).value || '';
+    WIZ.step2Conc = (document.getElementById('s2-aav-conc') || {}).value || '';
+    WIZ.step2Mut1 = (document.getElementById('s2-mut1') || {}).value || '';
+    WIZ.step2Grade1 = (document.getElementById('s2-grade1') || {}).value || '';
+    WIZ.step2Notes = (document.getElementById('s2-notes') || {}).value || '';
+    WIZ.step2MaxAge = (document.getElementById('s2-max-age') || {}).value || '';
+  }
+
+  function wireStep2() {
+    // Section label
+    var lblEl = document.getElementById('s2-group-label');
+    if (lblEl) lblEl.addEventListener('input', function() { WIZ.groupLabel = this.value; });
+
+    // Procedure type text input — re-render to show/hide AAV fields when it changes
+    var procTypeEl = document.getElementById('s2-proc-type');
+    if (procTypeEl) procTypeEl.addEventListener('input', function() {
+      WIZ.step2ProcType = this.value;
+      // Re-render only if AAV-visibility changes
+      var wasAAV = /aav/i.test(curType);
+      var nowAAV = /aav/i.test(WIZ.step2ProcType);
+      if (wasAAV !== nowAAV) { saveStep2Fields(); renderBody(); }
+    });
+
+    // Assign button
+    var assignBtn = document.getElementById('s2-assign-btn');
+    if (assignBtn) assignBtn.addEventListener('click', function() {
+      saveStep2Fields();
+      var toAssign = selArr.filter(function(i) { return WIZ.step2SubSel.has(i); });
+      if (!toAssign.length) return;
+      // Allow mice to be in multiple groups — do NOT remove from existing groups
+      var color = S2_GROUP_COLORS[WIZ.groups.length % S2_GROUP_COLORS.length];
+      WIZ.groups.push({
+        id: Date.now(),
+        label: WIZ.step2CondLabel || WIZ.step2ProcType || 'Group',
+        procType: WIZ.step2ProcType || 'Other',
+        date: WIZ.step2ProcDate,
+        construct: WIZ.step2Construct,
+        vol: WIZ.step2Vol,
+        conc: WIZ.step2Conc,
+        mut1: WIZ.step2Mut1,
+        grade1: WIZ.step2Grade1,
+        notes: WIZ.step2Notes,
+        color: color,
+        mice: new Set(toAssign),
+      });
+      WIZ.step2SubSel = new Set();
+      renderBody();
+    });
+
+    // Delete group
+    body.querySelectorAll('.s2-del-group').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var gid = +this.dataset.gid;
+        WIZ.groups = WIZ.groups.filter(function(g) { return g.id !== gid; });
+        renderBody();
+      });
+    });
+
+    // Sex filter
+    body.querySelectorAll('.s2-sex-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { WIZ.step2Sex = this.dataset.sex; renderBody(); });
+    });
+
+    // Query
+    var qEl = document.getElementById('s2-query');
+    if (qEl) qEl.addEventListener('input', function() { WIZ.step2Query = this.value; renderBody(); });
+
+    // Max-age flag input — re-render table when threshold changes
+    var maxAgeEl = document.getElementById('s2-max-age');
+    if (maxAgeEl) maxAgeEl.addEventListener('input', function() { WIZ.step2MaxAge = this.value; renderBody(); });
+
+    // Proc date — re-render table when date changes (updates age-at-proc column)
+    var procDateEl = document.getElementById('s2-proc-date');
+    if (procDateEl) procDateEl.addEventListener('change', function() { WIZ.step2ProcDate = this.value; renderBody(); });
+
+    // Toggle visible
+    document.getElementById('s2-tog-vis') && document.getElementById('s2-tog-vis').addEventListener('click', function() {
+      var query = (WIZ.step2Query || '').toLowerCase();
+      var vis = selArr.filter(function(idx) {
+        var row = WIZ.csv.rows[idx];
+        if (!row) return false;
+        if (WIZ.step2Sex) { if (!(row['Sex']||'').trim().toLowerCase().startsWith(WIZ.step2Sex.toLowerCase()[0])) return false; }
+        if (query) { if (!Object.values(row).join(' ').toLowerCase().includes(query)) return false; }
+        return true;
+      });
+      var allVis = vis.every(function(i) { return WIZ.step2SubSel.has(i); });
+      vis.forEach(function(i) { if (allVis) WIZ.step2SubSel.delete(i); else WIZ.step2SubSel.add(i); });
+      renderBody();
+    });
+
+    // Header checkbox
+    var hdrChk = document.getElementById('s2-chk-hdr');
+    if (hdrChk) hdrChk.addEventListener('change', function() {
+      body.querySelectorAll('.s2-row-chk').forEach(function(c) {
+        c.checked = hdrChk.checked;
+        var idx = +c.dataset.idx;
+        if (hdrChk.checked) WIZ.step2SubSel.add(idx); else WIZ.step2SubSel.delete(idx);
+      });
+      refreshAssignBtn();
+    });
+
+    // Row checkboxes
+    body.querySelectorAll('.s2-row-chk').forEach(function(chk) {
+      chk.addEventListener('change', function() {
+        var idx = +this.dataset.idx;
+        if (this.checked) WIZ.step2SubSel.add(idx); else WIZ.step2SubSel.delete(idx);
+        refreshAssignBtn();
+      });
+    });
+
+    function refreshAssignBtn() {
+      var nC = selArr.filter(function(i) { return WIZ.step2SubSel.has(i); }).length;
+      var btn = document.getElementById('s2-assign-btn');
+      if (btn) {
+        btn.textContent = nC > 0 ? 'Assign to ' + nC + ' mice' : 'Check mice below to assign';
+        btn.disabled = nC === 0;
+        btn.style.opacity = nC === 0 ? '0.45' : '1';
+      }
+    }
+  }
+
+  renderBody();
+
+  footer.innerHTML =
+    '<button class="btn btn-ghost" id="wiz-back-btn">← Back</button>' +
+    '<div class="spacer"></div>' +
+    '<button class="btn btn-secondary" id="wiz-cancel-btn">Cancel</button>' +
+    '<button class="btn btn-primary" id="wiz-next-btn">Review (' + n + ' mice) →</button>';
+
+  document.getElementById('wiz-back-btn').onclick = function() { saveStep2Fields(); WIZ.step = 1; renderWizard(); };
+  document.getElementById('wiz-cancel-btn').onclick = closeCSVWizard;
+  document.getElementById('wiz-next-btn').onclick = function() { saveStep2Fields(); WIZ.step = 3; renderWizard(); };
+
+  function saveStep2Fields() {
+    WIZ.groupLabel = (document.getElementById('s2-group-label') || {}).value || '';
+    WIZ.step2ProcType = (document.getElementById('s2-proc-type') || {}).value || WIZ.step2ProcType || '';
+    WIZ.step2CondLabel = (document.getElementById('s2-cond-label') || {}).value || '';
+    WIZ.step2ProcDate = (document.getElementById('s2-proc-date') || {}).value || '';
+    WIZ.step2Construct = (document.getElementById('s2-aav-construct') || {}).value || '';
+    WIZ.step2Vol = (document.getElementById('s2-aav-vol') || {}).value || '';
+    WIZ.step2Conc = (document.getElementById('s2-aav-conc') || {}).value || '';
+    WIZ.step2Mut1 = (document.getElementById('s2-mut1') || {}).value || '';
+    WIZ.step2Grade1 = (document.getElementById('s2-grade1') || {}).value || '';
+    WIZ.step2Notes = (document.getElementById('s2-notes') || {}).value || '';
+    WIZ.step2MaxAge = (document.getElementById('s2-max-age') || {}).value || '';
+  }
+}
+
+// ── Step 3: Review & Import ────────────────────────────
+function renderWizStep3() {
+  var body = document.getElementById('wiz-body');
+  var footer = document.getElementById('wiz-footer');
+  var n = WIZ.sel.size;
+  var importRows = buildImportRows();
+
+  var html = '<div class="import-summary">';
+  html += '<strong>' + n + ' mice</strong> will be added to <strong>' + esc(S.active) + '</strong>.';
+  if (WIZ.groupLabel) html += '<br>Section header: <strong>' + esc(WIZ.groupLabel) + '</strong>';
+  if (WIZ.groups && WIZ.groups.length) {
+    html += '<br>Groups: ' + WIZ.groups.map(function(g) {
+      return '<strong>' + esc(g.label || g.procType) + '</strong> (' + g.mice.size + ' mice)';
+    }).join(', ');
+  }
+  html += '</div>';
+
+  var previewRows = importRows.slice(0, 5);
+  var PREVIEW_COLS = ['Number','ID','Lab ID','Sex','Gen','Line / Strain','DOB','Age (w d)','date of AAV inj.','AAV inj.','Age at Inj'];
+  var previewCols = PREVIEW_COLS.filter(function(h) { return previewRows.some(function(r) { return r[h]; }); });
+  if (!previewCols.length) previewCols = S.headers.filter(function(h) { return h && previewRows.some(function(r) { return r[h]; }); }).slice(0, 7);
+
+  html += '<p style="font-size:12px;color:var(--text2);margin-bottom:6px;">Preview (first ' + Math.min(5, n) + ' of ' + n + '):</p>';
+  html += '<div class="import-tbl-wrap" style="max-height:220px;margin-bottom:16px;"><table class="import-table"><thead><tr>';
+  previewCols.forEach(function(h) { html += '<th>' + esc(h) + '</th>'; });
+  html += '</tr></thead><tbody>';
+  previewRows.forEach(function(row) {
+    html += '<tr>';
+    previewCols.forEach(function(h) { html += '<td>' + esc(row[h]||'') + '</td>'; });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  html += '<div id="import-progress" class="import-progress" style="display:none;">';
+  html += '<div style="font-size:13px;color:var(--text2);" id="prog-label">Importing…</div>';
+  html += '<div class="prog-bar-wrap"><div class="prog-bar" id="prog-bar" style="width:0%"></div></div>';
+  html += '</div>';
+
+  body.innerHTML = html;
+
+  footer.innerHTML =
+    '<button class="btn btn-ghost" id="wiz-back-btn">← Back</button>' +
+    '<div class="spacer"></div>' +
+    '<button class="btn btn-secondary" id="wiz-cancel-btn">Cancel</button>' +
+    '<button class="btn btn-primary" id="wiz-import-btn">📥 Import ' + n + ' mice</button>';
+
+  document.getElementById('wiz-back-btn').onclick = function() { WIZ.step = 2; renderWizard(); };
+  document.getElementById('wiz-cancel-btn').onclick = closeCSVWizard;
+  document.getElementById('wiz-import-btn').onclick = function() { doImport(importRows); };
+}
+
+function buildImportRows() {
+  var now = new Date();
+  var rows = [];
+  WIZ.sel.forEach(function(idx) {
+    var csvRow = WIZ.csv.rows[idx];
+    var sheetRow = {};
+
+    // Map CSV columns via CSV_TO_SHEET lookup, then exact match fallback
+    WIZ.csv.headers.forEach(function(csvH) {
+      var shH = CSV_TO_SHEET[csvH];
+      if (!shH) shH = S.headers.find(function(h) { return h === csvH; }) || '';
+      if (shH && csvRow[csvH] !== undefined && csvRow[csvH] !== '') {
+        sheetRow[shH] = csvRow[csvH];
+      }
+    });
+
+    // Apply all groups this mouse belongs to (mice can have multiple procedures)
+    var mouseGroups = (WIZ.groups || []).filter(function(g) { return g.mice.has(idx); });
+    if (mouseGroups.length > 0) {
+      // Condition = comma-joined group labels
+      sheetRow['Condition'] = mouseGroups.map(function(g) { return g.label || g.procType; }).join(', ');
+      // Merge each group's fields (last value wins if multiple groups set the same field)
+      var aavNotes = [], otherNotes = [];
+      mouseGroups.forEach(function(grp) {
+        if (grp.mut1)   sheetRow['Mutation 1'] = grp.mut1;
+        if (grp.grade1) sheetRow['Grade 1'] = grp.grade1;
+        var pt = (grp.procType || '').toLowerCase();
+        if (/aav/.test(pt)) {
+          if (grp.date)      sheetRow['date of AAV inj.'] = grp.date;
+          if (grp.construct) sheetRow['AAV inj.'] = grp.construct;
+          if (grp.vol)       sheetRow['Vol. inj./ul'] = grp.vol;
+          if (grp.conc)      sheetRow['conc.'] = grp.conc;
+          if (grp.notes)     aavNotes.push(grp.notes);
+        } else if (/colonoscopy/.test(pt)) {
+          if (grp.date)  sheetRow['Org inj. Date'] = grp.date;
+          if (grp.notes) otherNotes.push('Colonoscopy: ' + grp.notes);
+        } else if (/surgery/.test(pt)) {
+          if (grp.date)  sheetRow['Surgery Date'] = grp.date;
+          if (grp.notes) otherNotes.push('Surgery: ' + grp.notes);
+        } else if (/euthanasia/.test(pt)) {
+          if (grp.date) sheetRow['Euthanasia Date'] = grp.date;
+          if (grp.notes) otherNotes.push('Euthanasia: ' + grp.notes);
+        } else {
+          if (grp.date)  sheetRow['Procedure Date'] = grp.date;
+          if (grp.notes) otherNotes.push(grp.procType + ': ' + grp.notes);
+        }
+      });
+      if (aavNotes.length)   sheetRow['Comments for AAV injection'] = aavNotes.join(' | ');
+      if (otherNotes.length) sheetRow['Comments for surgery'] = otherNotes.join(' | ');
+    }
+
+    // Auto-calculate age fields from DOB + procedure dates
+    var dob = parseDOB(sheetRow['DOB'] || csvRow['DOB'] || '');
+    function calcAge(dateStr, field) {
+      var d = dateStr ? new Date(dateStr) : null;
+      if (dob && d && !sheetRow[field]) {
+        var w = ageWeeks(dob, d);
+        if (w != null) sheetRow[field] = w + ' w';
+      }
+    }
+    calcAge(sheetRow['date of AAV inj.'],  'Age at Inj');
+    calcAge(sheetRow['Org inj. Date'],     'Age at Org inj.');
+    calcAge(sheetRow['Euthanasia Date'],   'Age at euthanasia');
+
+    rows.push(sheetRow);
+  });
+  return rows;
+}
+
+function doImport(importRows) {
+  var btn = document.getElementById('wiz-import-btn');
+  var backBtn = document.getElementById('wiz-back-btn');
+  var cancelBtn = document.getElementById('wiz-cancel-btn');
+  btn.disabled = true; backBtn.disabled = true; cancelBtn.disabled = true;
+
+  var progDiv = document.getElementById('import-progress');
+  progDiv.style.display = 'block';
+
+  var progBar = document.getElementById('prog-bar');
+  var progLabel = document.getElementById('prog-label');
+  var total = importRows.length;
+  var done = 0;
+  var failed = 0;
+
+  function updateProg() {
+    var pct = total > 0 ? Math.round((done + failed) / total * 100) : 100;
+    if (progBar) progBar.style.width = pct + '%';
+    if (progLabel) progLabel.textContent = (done + failed) + ' / ' + total + ' mice' + (failed ? ' (' + failed + ' errors)' : '');
+  }
+
+  function sendNext(i) {
+    if (i >= total) {
+      // All done
+      if (progBar) progBar.style.width = '100%';
+      btn.disabled = false; backBtn.disabled = false; cancelBtn.disabled = false;
+      if (failed === 0) {
+        toast('✓ Imported ' + done + ' mice into "' + S.active + '"');
+        closeCSVWizard();
+        openSheet(S.active);
+      } else {
+        if (progLabel) { progLabel.textContent = 'Done: ' + done + ' imported, ' + failed + ' failed.'; progLabel.style.color = 'var(--danger)'; }
+        toast('Imported ' + done + ' mice; ' + failed + ' failed', true);
+      }
+      return;
+    }
+
+    var row = importRows[i];
+    var params = { action: 'addRow', sheet: S.active, data: JSON.stringify(row) };
+    jsonp(params, function(resp) {
+      if (resp && resp.error) { failed++; } else { done++; }
+      updateProg();
+      sendNext(i + 1);
+    });
+  }
+
+  updateProg();
+  sendNext(0);
+}
+
+// ── Inline cell editing ────────────────────────────────
+function fmtDateStr(v) {
+  // Reformat GAS date strings like "Sat Nov 12 2026 00:00:00 GMT+0100..." → "12.11.2026"
+  // Also handles ISO strings "2026-11-12T00:00:00.000Z"
+  if (!v) return v;
+  if (/^\w{3} \w{3} \d{2} \d{4} \d{2}:\d{2}:\d{2} GMT/.test(v) || /^\d{4}-\d{2}-\d{2}T/.test(v)) {
+    var d = new Date(v);
+    if (!isNaN(d.getTime())) {
+      return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear();
+    }
+  }
+  return v;
+}
+
+function renderCellContent(td, col, val) {
+  var v = val == null ? '' : String(val);
+  var display = fmtDateStr(v);
+  var html;
+  if (/^(AMO|SAMO)-/i.test(v)) {
+    html = '<span class="amo-id">' + esc(v) + '</span>';
+  } else if (col.toLowerCase() === 'sex') {
+    if (v === 'm' || v === 'M') html = '<span class="badge badge-m">m</span>';
+    else if (v === 'f' || v === 'F') html = '<span class="badge badge-f">f</span>';
+    else html = esc(display);
+  } else {
+    html = esc(display);
+  }
+  td.innerHTML = html;
+  td.title = display;
+}
+
+function editCell(td, row, col) {
+  if (td.classList.contains('editing')) return;
+  var oldVal = row[col] == null ? '' : String(row[col]);
+  var isLong = /comment|notes|foci|coverage|result/i.test(col);
+
+  td.classList.add('editing');
+  var input = document.createElement(isLong ? 'textarea' : 'input');
+  input.className = 'cell-input';
+  input.value = oldVal;
+  if (!isLong) input.type = 'text';
+  if (isLong) {
+    // auto-size rows
+    var lineCount = (oldVal.match(/\n/g) || []).length + 1;
+    input.rows = Math.max(2, Math.min(lineCount, 6));
+  }
+  td.innerHTML = '';
+  td.appendChild(input);
+  input.focus();
+  input.select();
+
+  var saved = false;
+
+  function save() {
+    if (saved) return;
+    saved = true;
+    var newVal = input.value;
+    td.classList.remove('editing');
+    if (newVal === oldVal) {
+      renderCellContent(td, col, oldVal);
+      return;
+    }
+    // Optimistic update in S.rows
+    for (var i = 0; i < S.rows.length; i++) {
+      if (S.rows[i]._row === row._row) { S.rows[i][col] = newVal; row = S.rows[i]; break; }
+    }
+    renderCellContent(td, col, newVal);
+    td.classList.add('cell-saving');
+
+    // Build full merged row
+    var merged = {};
+    S.headers.forEach(function(h) { merged[h] = row[h] || ''; });
+    merged[col] = newVal;
+
+    jsonp({ action: 'updateRow', sheet: S.active, row: row._row, data: JSON.stringify(merged) }, function(resp) {
+      td.classList.remove('cell-saving');
+      if (resp.error) {
+        // Revert
+        for (var i = 0; i < S.rows.length; i++) {
+          if (S.rows[i]._row === row._row) { S.rows[i][col] = oldVal; break; }
+        }
+        renderCellContent(td, col, oldVal);
+        toast('Error saving: ' + resp.error, true);
+      } else {
+        td.classList.add('cell-saved');
+        setTimeout(function() { td.classList.remove('cell-saved'); }, 700);
+      }
+    });
+  }
+
+  function cancel() {
+    if (saved) return;
+    saved = true;
+    td.classList.remove('editing');
+    renderCellContent(td, col, oldVal);
+  }
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      input.removeEventListener('blur', save);
+      cancel();
+    } else if (e.key === 'Enter' && !isLong) {
+      e.preventDefault();
+      input.removeEventListener('blur', save);
+      save();
+      // Move focus to next row same column
+      var allCells = Array.from(document.querySelectorAll('td.editable-cell[data-col="' + col + '"]'));
+      var idx = allCells.indexOf(td);
+      if (idx >= 0 && idx + 1 < allCells.length) allCells[idx + 1].click();
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      input.removeEventListener('blur', save);
+      save();
+      // Move to next/prev sibling cell
+      var siblings = Array.from(td.parentElement.querySelectorAll('td.editable-cell'));
+      var si = siblings.indexOf(td);
+      var next = e.shiftKey ? siblings[si - 1] : siblings[si + 1];
+      if (next) next.click();
+    }
+  });
+}
+
+// ── AAV Picker Integration ─────────────────────────────
+// _aavLinks keyed by batch name so the rich record follows the sheet value cross-device
+var _aavLinks = {};
+try { _aavLinks = JSON.parse(localStorage.getItem('mice-aav-links') || '{}'); } catch(e) {}
+
+function saveAavLinks() {
+  try { localStorage.setItem('mice-aav-links', JSON.stringify(_aavLinks)); } catch(e) {}
+}
+
+var _pendingAavRow = null;
+function openAavPicker(rrow) {
+  var w = window.open('aav-protocol.html?mode=picker', 'aav-picker', 'width=1100,height=720,resizable=yes');
+  if (!w) { alert('Popup blocked — please allow popups for this page.'); return; }
+  _pendingAavRow = rrow;
+}
+
+function openAavProtocol(batchName) {
+  // Open aav-protocol.html on the Storage tab, highlighting the specific batch
+  window.open('aav-protocol.html?tab=storage&highlight=' + encodeURIComponent(batchName), '_blank');
+}
+
+window.addEventListener('message', function(e) {
+  if (!e.data || e.data.type !== 'aav-pick') return;
+  var rrow = _pendingAavRow;
+  _pendingAavRow = null;
+  if (rrow == null) return;
+  var rec = e.data.record;
+  var batchName = rec.batch || '';
+  // Store rich record keyed by batch name (survives across devices via Sheet)
+  _aavLinks[batchName] = rec;
+  saveAavLinks();
+  // Write batch name into the Google Sheet 'AAV inj.' column
+  var rowObj = null;
+  for (var i = 0; i < S.rows.length; i++) { if (String(S.rows[i]._row) === String(rrow)) { rowObj = S.rows[i]; break; } }
+  if (rowObj && batchName) {
+    var oldVal = rowObj['AAV inj.'] || '';
+    rowObj['AAV inj.'] = batchName;
+    var merged = {};
+    S.headers.forEach(function(h) { merged[h] = rowObj[h] || ''; });
+    merged['AAV inj.'] = batchName;
+    toast('💾 Saving AAV link to sheet…');
+    jsonp({ action: 'updateRow', sheet: S.active, row: rowObj._row, data: JSON.stringify(merged) }, function(resp) {
+      if (resp && resp.error) {
+        rowObj['AAV inj.'] = oldVal;
+        toast('Error saving AAV to sheet: ' + resp.error, true);
+      } else {
+        toast('✅ AAV linked and saved to sheet');
+      }
+      renderTable();
+    });
+  } else {
+    renderTable();
+  }
+});
+
+function unlinkAav(rrow) {
+  // Clear the Sheet cell value and remove local record
+  var rowObj = null;
+  for (var i = 0; i < S.rows.length; i++) { if (String(S.rows[i]._row) === String(rrow)) { rowObj = S.rows[i]; break; } }
+  if (rowObj) {
+    var batchName = rowObj['AAV inj.'] || '';
+    rowObj['AAV inj.'] = '';
+    var merged = {};
+    S.headers.forEach(function(h) { merged[h] = rowObj[h] || ''; });
+    merged['AAV inj.'] = '';
+    jsonp({ action: 'updateRow', sheet: S.active, row: rowObj._row, data: JSON.stringify(merged) }, function(resp) {
+      if (resp && resp.error) { rowObj['AAV inj.'] = batchName; toast('Error unlinking: ' + resp.error, true); }
+      else { toast('AAV unlinked'); }
+      renderTable();
+    });
+  }
+  closeAavPopover();
+}
+
+function changeAav(rrow) {
+  closeAavPopover();
+  openAavPicker(rrow);
+}
+
+var _aavPopoverTarget = null;
+function showAavPopover(rrow, batchName, anchorEl) {
+  closeAavPopover();
+  // Look up rich record by batch name; fall back to minimal display
+  var rec = _aavLinks[batchName] || null;
+  var titreNum = rec ? (parseFloat(rec.titre) || 0) : 0;
+  var stockVol = rec ? ((rec.aliquot||0) * (rec.nAliquots||0)) : 0;
+  var injPart = 1e11;
+  var injVol = titreNum > 0 ? (injPart / titreNum).toFixed(2) : '—';
+  var nMice = titreNum > 0 ? Math.floor((titreNum * stockVol) / injPart) : '—';
+  var fmt = function(n) { return isNaN(n)||!isFinite(n) ? '—' : parseFloat(n).toExponential(2); };
+  var freezerPos = rec && rec.freezerStore && rec.freezerRow && rec.freezerCol
+    ? rec.freezerStore + ((rec.freezerCol-1)*3+rec.freezerRow)
+    : (rec && rec.freezerStore ? rec.freezerStore : '—');
+  var aavUrl = 'aav-protocol.html?tab=storage&highlight=' + encodeURIComponent(batchName);
+  var html = '<div style="max-width:320px;">'
+    + '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">'
+    + '<span style="font-weight:700;font-size:13px;color:var(--accent);">🦠 ' + esc(batchName||'—') + '</span>'
+    + '<a href="' + esc(aavUrl) + '" target="_blank" title="Open in AAV Protocol" '
+    + 'style="margin-left:auto;background:#059669;color:#fff;border-radius:5px;font-size:11px;padding:.15rem .5rem;text-decoration:none;font-weight:600;white-space:nowrap;">↗ Open protocol</a>'
+    + '</div>';
+  if (rec) {
+    html += '<table style="font-size:11.5px;border-collapse:collapse;width:100%;">'
+      + '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Date</td><td style="padding:.15rem 0;">' + esc(rec.date||'—') + '</td></tr>'
+      + '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Titre</td><td>' + esc(rec.titre||'—') + ' vg/µL <span style="opacity:.65;">(' + esc(rec.method||'') + ')</span></td></tr>'
+      + '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Aliquots</td><td>' + (rec.nAliquots||'—') + ' × ' + (rec.aliquot||'—') + ' µL = ' + (stockVol||'—') + ' µL</td></tr>'
+      + '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Freezer</td><td>🧊 ' + esc(freezerPos) + '</td></tr>'
+      + '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Plasmids</td><td><b>H:</b> ' + esc(rec.helperName||'—') + ' · <b>C:</b> ' + esc(rec.capsidName||'—') + '<br><b>T:</b> ' + esc(rec.transgeneName||'—') + '</td></tr>'
+      + '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Calc.</td><td>' + fmt(injPart) + ' vg → ' + injVol + ' µL/mouse, ~' + nMice + ' mice</td></tr>'
+      + (rec.operator ? '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Operator</td><td>' + esc(rec.operator) + '</td></tr>' : '')
+      + (rec.notes ? '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Notes</td><td>' + esc(rec.notes) + '</td></tr>' : '')
+      + '</table>';
+  } else {
+    html += '<div style="font-size:12px;color:var(--fg-muted);margin:.3rem 0;">Full record not cached locally — click ↗ Open protocol to view in AAV app.</div>';
+  }
+  html += '<div style="display:flex;gap:.4rem;margin-top:.65rem;">'
+    + '<button onclick="changeAav(\'' + String(rrow).replace(/'/g,"\\'") + '\')" style="flex:1;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:.3rem .5rem;font-size:11px;cursor:pointer;font-weight:600;">🔄 Change</button>'
+    + '<button onclick="unlinkAav(\'' + String(rrow).replace(/'/g,"\\'") + '\')" style="flex:1;background:none;border:1px solid #ef4444;color:#ef4444;border-radius:6px;padding:.3rem .5rem;font-size:11px;cursor:pointer;">✕ Unlink</button>'
+    + '</div></div>';
+  var pop = document.getElementById('aav-popover');
+  pop.innerHTML = html;
+  pop.style.display = 'block';
+  _aavPopoverTarget = rrow;
+  var rect = anchorEl.getBoundingClientRect();
+  var pw = 330;
+  var left = Math.min(rect.left + window.scrollX, window.innerWidth + window.scrollX - pw - 12);
+  var top = rect.bottom + window.scrollY + 4;
+  pop.style.left = Math.max(8, left) + 'px';
+  pop.style.top = top + 'px';
+}
+function closeAavPopover() {
+  var pop = document.getElementById('aav-popover');
+  if (pop) pop.style.display = 'none';
+  _aavPopoverTarget = null;
+}
+document.addEventListener('click', function(e) {
+  if (_aavPopoverTarget !== null && !e.target.closest('#aav-popover') && !e.target.closest('.aav-linked-badge')) {
+    closeAavPopover();
+  }
+}, true);
+
+// ══════════════════════════════════════════════════════════════
+//  LNP INJECTION INTEGRATION
+// ══════════════════════════════════════════════════════════════
+// _lnpLinks keyed by batchId (preferred) or item name for legacy records
+var _lnpLinks = {};
+try { _lnpLinks = JSON.parse(localStorage.getItem('mice-lnp-links') || '{}'); } catch(e2) {}
+
+function saveLnpLinks() {
+  try { localStorage.setItem('mice-lnp-links', JSON.stringify(_lnpLinks)); } catch(e2) {}
+}
+
+// Parse a raw sheet value "DisplayName|||BATCHID" or plain "name"
+function parseLnpVal(raw) {
+  if (!raw) return { display: '', batchId: '', linkKey: '' };
+  if (raw.indexOf('|||') !== -1) {
+    var p = raw.split('|||');
+    return { display: p[0], batchId: p[1] || '', linkKey: p[1] || p[0] };
+  }
+  return { display: raw, batchId: '', linkKey: raw };
+}
+
+// Look up cached LNP record by batchId or name
+function getLnpRecord(raw) {
+  var parsed = parseLnpVal(raw);
+  return _lnpLinks[parsed.linkKey] || _lnpLinks[parsed.display] || { name: parsed.display, batchId: parsed.batchId };
+}
+
+var _pendingLnpRow = null;
+function openLnpPicker(rrow) {
+  var w = window.open('inventory.html?mode=lnp-picker', 'lnp-picker', 'width=1100,height=720,resizable=yes');
+  if (!w) { alert('Popup blocked — please allow popups for this page.'); return; }
+  _pendingLnpRow = rrow;
+}
+
+function openInventory(identifier) {
+  // identifier can be a batchId, a plain name, or a "name|||batchId" sheet value
+  var parsed = parseLnpVal(identifier);
+  var key = parsed.batchId || parsed.display || identifier;
+  window.open('inventory.html?highlight=' + encodeURIComponent(key), '_blank');
+}
+
+window.addEventListener('message', function(e2) {
+  if (!e2.data || e2.data.type !== 'lnp-pick') return;
+  var rrow = _pendingLnpRow;
+  _pendingLnpRow = null;
+  if (rrow == null) return;
+  var item = e2.data.item || {};
+  var itemName = item.name || '';
+  var itemBatchId = item.batchId || '';
+  // Key by batchId if available, else by name (backward-compatible)
+  var linkKey = itemBatchId || itemName;
+  _lnpLinks[linkKey] = item;
+  saveLnpLinks();
+  // Sheet cell stores "DisplayName|||BATCHID" (or plain name if no batchId)
+  var sheetVal = itemBatchId ? (itemName + '|||' + itemBatchId) : itemName;
+  // Write into the Google Sheet 'LNP inj.' column
+  var rowObj = null;
+  for (var i2 = 0; i2 < S.rows.length; i2++) { if (String(S.rows[i2]._row) === String(rrow)) { rowObj = S.rows[i2]; break; } }
+  if (rowObj && itemName) {
+    var oldVal2 = rowObj['LNP inj.'] || '';
+    rowObj['LNP inj.'] = sheetVal;
+    var merged2 = {};
+    S.headers.forEach(function(h2) { merged2[h2] = rowObj[h2] || ''; });
+    merged2['LNP inj.'] = sheetVal;
+    toast('💾 Saving LNP link to sheet…');
+    jsonp({ action: 'updateRow', sheet: S.active, row: rowObj._row, data: JSON.stringify(merged2) }, function(resp2) {
+      if (resp2 && resp2.error) {
+        rowObj['LNP inj.'] = oldVal2;
+        toast('Error saving LNP to sheet: ' + resp2.error, true);
+      } else {
+        toast('✅ LNP linked and saved to sheet');
+        // Prompt to record volume used
+        var volUsed = prompt('Record volume used from LNP stock (µL)? Enter amount or leave blank to skip:', '');
+        if (volUsed && parseFloat(volUsed) > 0) {
+          deductLnpVolume(item, parseFloat(volUsed));
+        }
+      }
+      renderTable();
+    });
+  } else {
+    renderTable();
+  }
+});
+
+function deductLnpVolume(item, volUsed) {
+  // Open inventory in a hidden popup and send deduct-volumes postMessage
+  var invUrl = 'inventory.html';
+  var w2 = window.open(invUrl, 'lnp-deduct', 'width=900,height=600,resizable=yes');
+  if (!w2) { toast('Popup blocked — volume deduction skipped', true); return; }
+  var timeout2 = setTimeout(function() { toast('⚠️ Inventory did not respond — please deduct manually', true); }, 15000);
+  window.addEventListener('message', function handler2(ev) {
+    if (!ev.data || ev.data.type !== 'inv-ready') return;
+    clearTimeout(timeout2);
+    window.removeEventListener('message', handler2);
+    w2.postMessage({
+      type: 'deduct-volumes',
+      deductions: [{
+        name:    item.name    || '',
+        batchId: item.batchId || '',
+        vol:     volUsed,
+        row:     item._row,
+        sheet:   '',
+        box:     '',
+        used:    volUsed
+      }]
+    }, '*');
+  });
+}
+
+function unlinkLnp(rrow) {
+  var rowObj2 = null;
+  for (var i3 = 0; i3 < S.rows.length; i3++) { if (String(S.rows[i3]._row) === String(rrow)) { rowObj2 = S.rows[i3]; break; } }
+  if (rowObj2) {
+    var itemName2 = rowObj2['LNP inj.'] || '';
+    rowObj2['LNP inj.'] = '';
+    var merged3 = {};
+    S.headers.forEach(function(h3) { merged3[h3] = rowObj2[h3] || ''; });
+    merged3['LNP inj.'] = '';
+    jsonp({ action: 'updateRow', sheet: S.active, row: rowObj2._row, data: JSON.stringify(merged3) }, function(resp3) {
+      if (resp3 && resp3.error) { rowObj2['LNP inj.'] = itemName2; toast('Error unlinking LNP: ' + resp3.error, true); }
+      else { toast('LNP unlinked'); }
+      renderTable();
+    });
+  }
+  closeLnpPopover();
+}
+
+function changeLnp(rrow) {
+  closeLnpPopover();
+  openLnpPicker(rrow);
+}
+
+function recordLnpVol(rrow) {
+  closeLnpPopover();
+  var rowObj3 = null;
+  for (var i4 = 0; i4 < S.rows.length; i4++) { if (String(S.rows[i4]._row) === String(rrow)) { rowObj3 = S.rows[i4]; break; } }
+  if (!rowObj3) return;
+  var rawVal3 = rowObj3['LNP inj.'] || '';
+  var cachedItem = getLnpRecord(rawVal3);
+  var itemName3 = cachedItem.name || parseLnpVal(rawVal3).display;
+  var volUsed2 = prompt('Record volume used from LNP "' + itemName3 + '" stock (µL):', '');
+  if (volUsed2 && parseFloat(volUsed2) > 0) {
+    deductLnpVolume(cachedItem, parseFloat(volUsed2));
+  }
+}
+
+var _lnpPopoverTarget = null;
+function showLnpPopover(rrow, rawSheetVal, anchorEl) {
+  closeLnpPopover();
+  var parsed2 = parseLnpVal(rawSheetVal);
+  var itemName = parsed2.display || rawSheetVal;
+  var rec2 = getLnpRecord(rawSheetVal);
+  // Use batchId for highlight link so it survives renaming; fallback to name
+  var highlightKey = parsed2.batchId || itemName;
+  var invUrl2 = 'inventory.html?highlight=' + encodeURIComponent(highlightKey);
+  var html2 = '<div style="max-width:320px;">'
+    + '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">'
+    + '<span style="font-weight:700;font-size:13px;color:#0891b2;">🧪 ' + esc(itemName||'—') + '</span>'
+    + '<a href="' + esc(invUrl2) + '" target="_blank" title="Open in Inventory" '
+    + 'style="margin-left:auto;background:#0891b2;color:#fff;border-radius:5px;font-size:11px;padding:.15rem .5rem;text-decoration:none;font-weight:600;white-space:nowrap;">↗ Open inventory</a>'
+    + '</div>';
+  if (rec2) {
+    html2 += '<table style="font-size:11.5px;border-collapse:collapse;width:100%;">'
+      + (rec2.date ? '<tr><td style="color:var(--text2,#6c757d);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Date</td><td style="padding:.15rem 0;">' + esc(rec2.date) + '</td></tr>' : '')
+      + (rec2.concentration ? '<tr><td style="color:var(--text2,#6c757d);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Conc.</td><td>' + esc(rec2.concentration) + '</td></tr>' : '')
+      + (rec2.volume ? '<tr><td style="color:var(--text2,#6c757d);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Volume</td><td>' + esc(rec2.volume) + ' µL</td></tr>' : '')
+      + (rec2.preparer ? '<tr><td style="color:var(--text2,#6c757d);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Preparer</td><td>' + esc(rec2.preparer) + '</td></tr>' : '')
+      + (rec2.notes ? '<tr><td style="color:var(--text2,#6c757d);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Notes</td><td>' + esc(rec2.notes) + '</td></tr>' : '')
+      + '</table>';
+  } else {
+    html2 += '<div style="font-size:12px;color:var(--text2,#6c757d);margin:.3rem 0;">Full record not cached locally — click ↗ Open inventory to view.</div>';
+  }
+  html2 += '<div style="display:flex;gap:.4rem;margin-top:.65rem;">'
+    + '<button onclick="recordLnpVol(\'' + String(rrow).replace(/'/g,"\\'") + '\')" style="flex:1;background:#0891b2;color:#fff;border:none;border-radius:6px;padding:.3rem .5rem;font-size:11px;cursor:pointer;font-weight:600;">📉 Record vol used</button>'
+    + '<button onclick="changeLnp(\'' + String(rrow).replace(/'/g,"\\'") + '\')" style="flex:1;background:var(--accent,#0c7c59);color:#fff;border:none;border-radius:6px;padding:.3rem .5rem;font-size:11px;cursor:pointer;font-weight:600;">🔄 Change</button>'
+    + '<button onclick="unlinkLnp(\'' + String(rrow).replace(/'/g,"\\'") + '\')" style="flex:1;background:none;border:1px solid #ef4444;color:#ef4444;border-radius:6px;padding:.3rem .5rem;font-size:11px;cursor:pointer;">✕ Unlink</button>'
+    + '</div></div>';
+  var pop2 = document.getElementById('lnp-popover');
+  pop2.innerHTML = html2;
+  pop2.style.display = 'block';
+  _lnpPopoverTarget = rrow;
+  var rect2 = anchorEl.getBoundingClientRect();
+  var pw2 = 330;
+  var left2 = Math.min(rect2.left + window.scrollX, window.innerWidth + window.scrollX - pw2 - 12);
+  var top2 = rect2.bottom + window.scrollY + 4;
+  pop2.style.left = Math.max(8, left2) + 'px';
+  pop2.style.top = top2 + 'px';
+}
+
+function closeLnpPopover() {
+  var pop2 = document.getElementById('lnp-popover');
+  if (pop2) pop2.style.display = 'none';
+  _lnpPopoverTarget = null;
+}
+
+document.addEventListener('click', function(e3) {
+  if (_lnpPopoverTarget !== null && !e3.target.closest('#lnp-popover') && !e3.target.closest('.lnp-linked-badge')) {
+    closeLnpPopover();
+  }
+}, true);
+
+// ── Keyboard ───────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    if (_lnpPopoverTarget !== null) { closeLnpPopover(); return; }
+    if (_aavPopoverTarget !== null) { closeAavPopover(); return; }
+    if (!document.getElementById('csv-wizard').classList.contains('hidden')) { closeCSVWizard(); return; }
+    if (!document.getElementById('bulk-modal').classList.contains('hidden')) { document.getElementById('bulk-modal').classList.add('hidden'); return; }
+    if (!document.getElementById('new-sheet-modal').classList.contains('hidden')) { closeNewSheetModal(); return; }
+    closeModal();
+  }
+});
+
+init();
+</script>
+</body>
+</html>
