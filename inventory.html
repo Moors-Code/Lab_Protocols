@@ -184,8 +184,12 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 .gc .badge-dot{position:absolute;top:2px;left:2px;width:7px;height:7px;border-radius:50%;background:var(--danger)}
 
 /* ── Box panel ──────────────────────────────────────────────────── */
-.box-panel-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.box-panel-header{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}
 .box-panel-header h2{font-size:17px;font-weight:600}
+.box-meta-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.box-meta-chip{font-size:12px;color:var(--muted);background:var(--tag-bg);border-radius:12px;padding:3px 10px;white-space:nowrap}
+.box-meta-edit-btn{font-size:12px;background:none;border:1px solid var(--border);border-radius:12px;padding:3px 10px;cursor:pointer;color:var(--muted);white-space:nowrap}
+.box-meta-edit-btn:hover{background:var(--hover)}
 .btn-add-item{
   padding:6px 14px;background:var(--accent);color:#fff;
   border:none;border-radius:var(--rad);cursor:pointer;
@@ -390,7 +394,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
    STATE
 ══════════════════════════════════════════════════════════════ */
 const S = {
-  url:         localStorage.getItem('inv_url') || 'https://script.google.com/macros/s/AKfycbxBEOpcAIVvRBbwT1waR2YRBLQ0MCXBKSRGLhHnYCqNRn7mNMxYFJuU5udLkA8bdKlncA/exec',
+  url:         localStorage.getItem('inv_url') || 'https://script.google.com/macros/s/AKfycbwbHXE8h4RaTJQqmD5rIsLsHDA-rTUV5o-N7U88pOFbeBAZJahoWQz8prqf-n1VdIeZKw/exec',
   sheets:      [],
   activeSheet: localStorage.getItem('inv_sheet') || '',
   data:        null,
@@ -474,28 +478,125 @@ async function archiveItem(row) {
   } catch(e) { toast(`Archive failed: ${e.message}`, true); }
 }
 
-async function unarchiveItem(archRow) {
+function unarchiveItem(archRow) {
   const entry = _archive.find(a => a.item._row === archRow || a.item._archRow === archRow);
   if (!entry) return;
-  if (!confirm(`Restore "${entry.item.name}" to ${entry.box}?\n\nIt will go back to its original slot. Volume will be cleared — update it after restoring.`)) return;
-  showLoading('Restoring…');
+
+  // Build sheet options, defaulting to the item's original sheet
+  const origSheet = entry.sheet || S.activeSheet;
+  const origBox   = entry.box   || S.activeBox;
+  const sheetOpts = (S.sheets || []).map(s =>
+    `<option value="${h(s.name)}"${s.name === origSheet ? ' selected' : ''}>${h(s.name)}</option>`
+  ).join('');
+  // Box options for the original sheet (we'll refresh if sheet changes)
+  const sheetData = origSheet === S.activeSheet ? S.data : null;
+  const boxOpts = sheetData
+    ? sheetData.boxes.map(b => `<option value="${h(b.name)}"${b.name === origBox ? ' selected' : ''}>${h(b.name)}</option>`).join('')
+    : `<option value="${h(origBox)}" selected>${h(origBox)}</option>`;
+
+  openModal(`<div class="modal">
+    <div class="modal-hd"><h3>↩ Restore Item</h3><button class="modal-x" onclick="closeModal()">✕</button></div>
+    <div class="modal-bd">
+      <div id="modal-err-wrap"></div>
+      <p style="margin:0 0 1rem;color:var(--text2);font-size:14px;">
+        Restoring <strong>${h(entry.item.name)}</strong>. Choose where to place it — volume will be cleared so you can enter the current amount.
+      </p>
+      <div class="fgrid2">
+        <div class="frow"><label>Freezer / Sheet</label>
+          <select class="finput" id="ri-sheet" onchange="restoreSheetChanged(this.value)">${sheetOpts}</select>
+        </div>
+        <div class="frow"><label>Box</label>
+          <select class="finput" id="ri-box">${boxOpts}</select>
+        </div>
+      </div>
+      <div class="frow"><label>Well position</label>
+        <input class="finput" id="ri-pos" maxlength="2" autocomplete="off"
+          style="text-transform:uppercase;width:80px" placeholder="e.g. A1">
+        <div class="fhint">Leave blank to place in the next free slot.</div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitRestore(${archRow})">Restore</button>
+    </div>
+  </div>`);
+
+  // If the original sheet isn't loaded, fetch its boxes now
+  if (origSheet !== S.activeSheet) restoreSheetChanged(origSheet);
+}
+
+async function restoreSheetChanged(sheetName) {
+  const boxSel = document.getElementById('ri-box');
+  const posInp = document.getElementById('ri-pos');
+  if (!boxSel) return;
+  boxSel.innerHTML = '<option>Loading…</option>';
+  if (posInp) posInp.value = '';
   try {
+    const res = await apiFetch({ action: 'getData', sheet: sheetName });
+    if (res.boxes && res.boxes.length) {
+      boxSel.innerHTML = res.boxes.map(b => `<option value="${h(b.name)}">${h(b.name)}</option>`).join('');
+    } else {
+      boxSel.innerHTML = '<option value="">— no boxes found —</option>';
+    }
+  } catch(e) {
+    boxSel.innerHTML = '<option value="">Error loading boxes</option>';
+  }
+}
+
+async function submitRestore(archRow) {
+  const entry    = _archive.find(a => a.item._row === archRow || a.item._archRow === archRow);
+  if (!entry) { closeModal(); return; }
+  const destSheet = document.getElementById('ri-sheet')?.value || entry.sheet || S.activeSheet;
+  const destBox   = document.getElementById('ri-box')?.value   || entry.box   || S.activeBox;
+  const posInput  = (document.getElementById('ri-pos')?.value  || '').trim().toUpperCase();
+
+  let destSeq = null;
+  if (posInput) {
+    destSeq = posToSeq(posInput);
+    if (destSeq < 0) { modalErr('Invalid position — use format A1 to I9.'); return; }
+  }
+
+  showLoading('Restoring…');
+  closeModal();
+  try {
+    // 1. Add to chosen location (volume blank so user updates it)
+    const itemData = {
+      name: entry.item.name, concentration: entry.item.concentration || '',
+      volume: '', date: entry.item.date || '', preparer: entry.item.preparer || '',
+      glycerol: entry.item.glycerol || '', labcollector: entry.item.labcollector || '',
+      batchId: entry.item.batchId || ''
+    };
+    if (destSeq !== null) itemData._seq = destSeq;
+    const addRes = await apiFetch({ action: 'addItem', sheet: destSheet, box: destBox, data: JSON.stringify(itemData) });
+    if (addRes.error) throw new Error(addRes.error);
+
+    // 2. Remove from archive
     if (entry.item._archRow) {
       const delRes = await apiFetch({ action: 'removeFromArchive', archRow: entry.item._archRow });
-      if (delRes.error) throw new Error(delRes.error);
+      if (delRes.error) throw new Error('Restored to box, but archive row not cleared: ' + delRes.error);
     }
-    const originalRow = entry.item._originalRow || entry.item._row;
-    const merged = { name: entry.item.name, concentration: entry.item.concentration || '', volume: '',
-      date: entry.item.date || '', preparer: entry.item.preparer || '', glycerol: entry.item.glycerol || '',
-      labcollector: entry.item.labcollector || '', batchId: entry.item.batchId || '' };
-    const res = await apiFetch({ action: 'updateItem', sheet: entry.sheet || S.activeSheet, box: entry.box, row: originalRow, data: JSON.stringify(merged) });
-    if (res.error) throw new Error(res.error);
     _archive = _archive.filter(a => a !== entry);
     saveArchive();
-    toast(`✅ "${entry.item.name}" restored to ${entry.box}`);
-    S.activeSheet = entry.sheet || S.activeSheet;
-    await loadSheet(S.activeSheet, true);
+    toast(`✅ "${entry.item.name}" restored to ${destBox}`);
+    S.activeSheet = destSheet;
+    S.activeBox   = destBox;
+    await loadSheet(destSheet, true);
   } catch(e) { toast(`Restore failed: ${e.message}`, true); }
+}
+
+/* ── Date formatting helper ── */
+function fmtDate(raw) {
+  if (!raw) return '—';
+  // Already a clean YYYY-MM-DD or DD.MM.YYYY string
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(raw)) return raw;
+  // ISO string or full Date string — parse and reformat
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return raw; // unparseable, show as-is
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 /* ── Well-position helpers ── */
@@ -868,7 +969,7 @@ function renderArchivePanel() {
       <td style="font-size:11px;color:var(--text3);">${h(entry.archivedAt||'—')}</td>
       <td class="mono" style="color:var(--text2);">${h(it.concentration||'—')}</td>
       <td class="mono" style="color:var(--text3);text-decoration:line-through;">${h(it.volume||'—')}</td>
-      <td class="mono">${h(it.date||'—')}</td>
+      <td class="mono">${fmtDate(it.date)}</td>
       <td>${h(it.preparer||'—')}</td>
       <td style="max-width:160px;font-size:12px;color:var(--text2);" title="${h(note)}">${h(snippet)||'—'}</td>
       <td><div class="row-actions">
@@ -960,6 +1061,16 @@ function renderBoxPanel() {
   html += `<h2>📋 ${h(S.activeBox)}</h2>`;
   html += `<button class="btn-add-item" onclick="openAddItemModal()">+ Add Item</button>`;
   html += '</div>';
+  // Box metadata bar (description + location)
+  if (box) {
+    const desc = box.description || '';
+    const loc  = box.location   || '';
+    html += '<div class="box-meta-bar">';
+    if (loc)  html += `<span class="box-meta-chip">📍 ${h(loc)}</span>`;
+    if (desc) html += `<span class="box-meta-chip">🧊 ${h(desc)}</span>`;
+    html += `<button class="box-meta-edit-btn" onclick="openEditBoxModal()" title="Edit box info">✏️ Edit box info</button>`;
+    html += '</div>';
+  }
 
   // ── Physical plate grid (9×9) reconstructed from _seq ────────
   if (box) {
@@ -1272,24 +1383,93 @@ async function submitAddItem() {
   } catch(e) { modalErr(e.message); }
 }
 
+/* ── Edit Box Meta ─────────────────────────────────────────── */
+function openEditBoxModal() {
+  const box = findBox(S.activeBox, S.data);
+  if (!box) return;
+  openModal(`
+    <div class="modal-hd"><h3>✏️ Edit Box Info</h3><button class="modal-x" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <label class="fi-label">Box Name</label>
+      <input id="bm-name" class="fi-input" value="${h(box.name)}" placeholder="Box 1: Plasmids">
+      <label class="fi-label">Description</label>
+      <input id="bm-desc" class="fi-input" value="${h(box.description||'')}" placeholder="e.g. Azenta Green Box">
+      <label class="fi-label">Location</label>
+      <input id="bm-loc" class="fi-input" value="${h(box.location||'')}" placeholder="e.g. Top shelf -20 under bench">
+      <p class="fi-hint" style="margin-top:8px;color:var(--muted);font-size:12px">These are written directly to the Google Sheet header rows.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="submitBoxMeta()">Save</button>
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+    </div>
+  `);
+}
+
+async function submitBoxMeta() {
+  const box = findBox(S.activeBox, S.data);
+  if (!box) return;
+  const newName = document.getElementById('bm-name')?.value?.trim() || '';
+  const newDesc = document.getElementById('bm-desc')?.value?.trim() || '';
+  const newLoc  = document.getElementById('bm-loc')?.value?.trim()  || '';
+  if (!newName) { modalErr('Box name cannot be empty'); return; }
+  try {
+    const res = await apiFetch({
+      action:   'updateBoxMeta',
+      sheet:    S.activeSheet,
+      newName,
+      newDesc,
+      newLoc,
+      titleRow: box.titleRowNum,
+      titleCol: box.titleColNum,
+      descRow:  box.descRowNum,
+      descCol:  box.descColNum,
+      locRow:   box.locRowNum,
+      locCol:   box.locColNum,
+    });
+    if (res.error) throw new Error(res.error);
+    closeModal();
+    // If box name changed, update activeBox so we stay on same box
+    if (newName !== S.activeBox) S.activeBox = newName;
+    toast('📦 Box info saved ✓');
+    await loadSheet(S.activeSheet, true);
+  } catch(e) { modalErr(e.message); }
+}
+
 /* ── Edit Item ─────────────────────────────────────────────── */
 function openEditModal(row) {
   const box  = findBox(S.activeBox, S.data);
   const item = box?.items.find(i => i._row === row);
   if (!item) return;
 
-  const currentPos = item._seq != null ? seqToPos(item._seq) : '—';
+  const currentPos = item._seq != null ? seqToPos(item._seq) : '';
+
+  // Sheet options
+  const sheetOpts = (S.sheets || []).map(s =>
+    `<option value="${h(s.name)}"${s.name === S.activeSheet ? ' selected' : ''}>${h(s.name)}</option>`
+  ).join('');
+
+  // Box options for current sheet
+  const boxOpts = (S.data?.boxes || []).map(b =>
+    `<option value="${h(b.name)}"${b.name === S.activeBox ? ' selected' : ''}>${h(b.name)}</option>`
+  ).join('');
 
   openModal(`<div class="modal">
     <div class="modal-hd"><h3>Edit Item</h3><button class="modal-x" onclick="closeModal()">✕</button></div>
     <div class="modal-bd">
       <div id="modal-err-wrap"></div>
       <div class="frow req"><label>Name</label><input class="finput" id="mi-name" value="${h(item.name||'')}" autocomplete="off"></div>
-      <div class="frow"><label>Box position</label>
-        <input class="finput" id="mi-pos" value="${currentPos !== '—' ? currentPos : ''}" maxlength="2"
-          autocomplete="off" style="text-transform:uppercase;width:80px"
-          placeholder="${currentPos}">
-        <div class="fhint">Well in the 9×9 grid (A1–I9). Move to a new position — won't overwrite occupied wells.</div>
+      <div class="fgrid2">
+        <div class="frow"><label>Freezer / Sheet</label>
+          <select class="finput" id="mi-sheet" onchange="editSheetChanged(this.value)">${sheetOpts}</select>
+        </div>
+        <div class="frow"><label>Box</label>
+          <select class="finput" id="mi-box" onchange="document.getElementById('mi-pos').value=''">${boxOpts}</select>
+        </div>
+      </div>
+      <div class="frow"><label>Well position</label>
+        <input class="finput" id="mi-pos" value="${currentPos}" maxlength="2"
+          autocomplete="off" style="text-transform:uppercase;width:80px" placeholder="${currentPos || 'A1'}">
+        <div class="fhint">A1–I9. Leave blank when moving to a different box to use the next free slot.</div>
       </div>
       <div class="frow"><label>LabCollector ID</label><input class="finput" id="mi-lab" value="${h(item.labcollector||'')}" autocomplete="off"></div>
       <div class="frow req"><label>Date</label><input class="finput" id="mi-date" type="date" value="${h(item.date||'')}"></div>
@@ -1310,48 +1490,85 @@ function openEditModal(row) {
   setTimeout(() => document.getElementById('mi-name')?.focus(), 40);
 }
 
+async function editSheetChanged(sheetName) {
+  const boxSel  = document.getElementById('mi-box');
+  const posInp  = document.getElementById('mi-pos');
+  if (!boxSel) return;
+  boxSel.innerHTML = '<option>Loading…</option>';
+  if (posInp) posInp.value = '';
+  try {
+    const res = await apiFetch({ action: 'getData', sheet: sheetName });
+    if (res.boxes && res.boxes.length) {
+      boxSel.innerHTML = res.boxes.map(b => `<option value="${h(b.name)}">${h(b.name)}</option>`).join('');
+    } else {
+      boxSel.innerHTML = '<option value="">— no boxes found —</option>';
+    }
+  } catch(e) {
+    boxSel.innerHTML = '<option value="">Error loading boxes</option>';
+  }
+}
+
 async function submitEdit(row) {
-  const name    = document.getElementById('mi-name').value.trim();
-  const lab     = (document.getElementById('mi-lab')?.value     || '').trim();
-  const date    = document.getElementById('mi-date').value;
-  const glycerol= (document.getElementById('mi-glycerol')?.value|| '').trim();
-  const conc    = (document.getElementById('mi-conc')?.value    || '').trim();
-  const vol     = (document.getElementById('mi-vol')?.value     || '').trim();
-  const prep    = (document.getElementById('mi-prep')?.value    || '').trim();
-  const notes   = (document.getElementById('mi-notes')?.value   || '').trim();
+  const name     = document.getElementById('mi-name').value.trim();
+  const lab      = (document.getElementById('mi-lab')?.value      || '').trim();
+  const date     = document.getElementById('mi-date').value;
+  const glycerol = (document.getElementById('mi-glycerol')?.value || '').trim();
+  const conc     = (document.getElementById('mi-conc')?.value     || '').trim();
+  const vol      = (document.getElementById('mi-vol')?.value      || '').trim();
+  const prep     = (document.getElementById('mi-prep')?.value     || '').trim();
+  const notes    = (document.getElementById('mi-notes')?.value    || '').trim();
+  const posInput = (document.getElementById('mi-pos')?.value      || '').trim().toUpperCase();
+  const newSheet = document.getElementById('mi-sheet')?.value || S.activeSheet;
+  const newBox   = document.getElementById('mi-box')?.value   || S.activeBox;
+
   if (!name) { modalErr('Name is required.'); return; }
 
-  // Resolve position change
-  const box = findBox(S.activeBox, S.data);
+  const box  = findBox(S.activeBox, S.data);
   const item = box?.items.find(i => i._row === row);
-  const posInput = (document.getElementById('mi-pos')?.value || '').trim();
-  let newSeq = item?._seq ?? null;
+  const locationChanged = newSheet !== S.activeSheet || newBox !== S.activeBox;
 
+  // Validate position
+  let newSeq = null;
   if (posInput) {
-    const parsed = posToSeq(posInput);
-    if (parsed < 0) { modalErr('Invalid position — use format A1 to I9.'); return; }
-    if (parsed !== newSeq) {
-      // Check occupancy by another item
-      const occupant = box?.items.find(i => i._seq === parsed && i._row !== row && i.name);
+    newSeq = posToSeq(posInput);
+    if (newSeq < 0) { modalErr('Invalid position — use format A1 to I9.'); return; }
+    if (!locationChanged) {
+      // Check occupancy only within the same box
+      const occupant = box?.items.find(i => i._seq === newSeq && i._row !== row && i.name);
       if (occupant) {
-        modalErr(`Position ${seqToPos(parsed)} is already occupied by "${occupant.name}". Choose a different well.`);
+        modalErr(`Position ${seqToPos(newSeq)} is already occupied by "${occupant.name}". Choose a different well.`);
         return;
       }
-      newSeq = parsed;
     }
+  } else if (!locationChanged) {
+    newSeq = item?._seq ?? null;
   }
+  // If locationChanged and no position given → newSeq stays null → GAS picks next free slot
+
+  const itemData = { name, labcollector:lab, date, glycerol, concentration:conc, volume:vol, preparer:prep, notes, batchId: item?.batchId || '' };
+  if (newSeq !== null) itemData._seq = newSeq;
 
   try {
-    const itemData = { name, labcollector:lab, date, glycerol, concentration:conc, volume:vol, preparer:prep, notes, batchId: item?.batchId || '' };
-    if (newSeq !== null) itemData._seq = newSeq;
-    const res = await apiFetch({
-      action: 'updateItem', sheet: S.activeSheet, box: S.activeBox, row,
-      data: JSON.stringify(itemData)
-    });
-    if (res.error) throw new Error(res.error);
-    closeModal();
-    toast('Saved ✓');
-    await refreshCurrent();
+    if (locationChanged) {
+      // 1. Add to new location
+      const addRes = await apiFetch({ action:'addItem', sheet:newSheet, box:newBox, data:JSON.stringify(itemData) });
+      if (addRes.error) throw new Error(addRes.error);
+      // 2. Clear old slot
+      const delRes = await apiFetch({ action:'deleteItem', sheet:S.activeSheet, box:S.activeBox, row });
+      if (delRes.error) throw new Error('Moved to new box, but failed to clear old slot: ' + delRes.error);
+      closeModal();
+      toast(`📦 Moved to ${newBox !== S.activeBox ? newBox : newSheet} ✓`);
+      // Navigate to new location
+      S.activeSheet = newSheet;
+      S.activeBox   = newBox;
+      await loadSheet(newSheet, true);
+    } else {
+      const res = await apiFetch({ action:'updateItem', sheet:S.activeSheet, box:S.activeBox, row, data:JSON.stringify(itemData) });
+      if (res.error) throw new Error(res.error);
+      closeModal();
+      toast('Saved ✓');
+      await refreshCurrent();
+    }
   } catch(e) { modalErr(e.message); }
 }
 
