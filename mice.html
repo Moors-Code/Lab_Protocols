@@ -362,6 +362,7 @@ body { font-family: var(--font); font-size: 14px; color: var(--text); background
   <span class="batch-count" id="batch-count">0 selected</span>
   <span class="batch-sep">|</span>
   <button class="btn btn-primary" id="batch-edit-btn">✏ Bulk Edit</button>
+  <button class="btn btn-secondary" id="batch-aav-btn" style="background:#059669;color:#fff;border-color:#059669;">🦠 Assign AAV</button>
   <button class="btn btn-secondary" id="batch-del-btn" style="background:none;color:var(--danger);border-color:var(--danger);">🗑 Delete</button>
   <button class="btn-clear" id="batch-clear-btn" title="Clear selection">✕</button>
 </div>
@@ -879,6 +880,7 @@ document.getElementById('batch-clear-btn').onclick = function() {
 };
 
 document.getElementById('batch-edit-btn').onclick = function() { openBulkEdit(); };
+document.getElementById('batch-aav-btn').onclick = function() { openBulkAavPicker(); };
 
 document.getElementById('batch-del-btn').onclick = function() {
   var n = S.selected.size;
@@ -2219,11 +2221,18 @@ function saveAavLinks() {
   try { localStorage.setItem('mice-aav-links', JSON.stringify(_aavLinks)); } catch(e) {}
 }
 
-var _pendingAavRow = null;
+var _pendingAavRow = null;   // single row number, or array of row numbers for bulk
 function openAavPicker(rrow) {
   var w = window.open('aav-protocol.html?mode=picker', 'aav-picker', 'width=1100,height=720,resizable=yes');
   if (!w) { alert('Popup blocked — please allow popups for this page.'); return; }
   _pendingAavRow = rrow;
+}
+function openBulkAavPicker() {
+  var rows = Array.from(S.selected);
+  if (!rows.length) return;
+  var w = window.open('aav-protocol.html?mode=picker', 'aav-picker', 'width=1100,height=720,resizable=yes');
+  if (!w) { alert('Popup blocked — please allow popups for this page.'); return; }
+  _pendingAavRow = rows; // array of row numbers
 }
 
 function openAavProtocol(batchName) {
@@ -2233,36 +2242,50 @@ function openAavProtocol(batchName) {
 
 window.addEventListener('message', function(e) {
   if (!e.data || e.data.type !== 'aav-pick') return;
-  var rrow = _pendingAavRow;
+  var pending = _pendingAavRow;
   _pendingAavRow = null;
-  if (rrow == null) return;
+  if (pending == null) return;
   var rec = e.data.record;
   var batchName = rec.batch || '';
+  // Normalise field names: lab archive uses helper/capsid/transgene + stockVol;
+  // ensure mice.html popover fields are always populated regardless of source.
+  rec.helperName    = rec.helperName    || rec.helper    || '';
+  rec.capsidName    = rec.capsidName    || rec.capsid    || '';
+  rec.transgeneName = rec.transgeneName || rec.transgene || '';
+  if (!rec.stockVol && rec.aliquot && rec.nAliquots) rec.stockVol = rec.aliquot * rec.nAliquots;
   // Store rich record keyed by batch name (survives across devices via Sheet)
   _aavLinks[batchName] = rec;
   saveAavLinks();
-  // Write batch name into the Google Sheet 'AAV inj.' column
-  var rowObj = null;
-  for (var i = 0; i < S.rows.length; i++) { if (String(S.rows[i]._row) === String(rrow)) { rowObj = S.rows[i]; break; } }
-  if (rowObj && batchName) {
+
+  // Support both single-row and bulk (array of rows)
+  var rrows = Array.isArray(pending) ? pending : [pending];
+  var total = 0, done = 0;
+  rrows.forEach(function(rrow) {
+    var rowObj = null;
+    for (var i = 0; i < S.rows.length; i++) { if (String(S.rows[i]._row) === String(rrow)) { rowObj = S.rows[i]; break; } }
+    if (!rowObj || !batchName) return;
+    total++;
     var oldVal = rowObj['AAV inj.'] || '';
     rowObj['AAV inj.'] = batchName;
     var merged = {};
     S.headers.forEach(function(h) { merged[h] = rowObj[h] || ''; });
     merged['AAV inj.'] = batchName;
-    toast('💾 Saving AAV link to sheet…');
     jsonp({ action: 'updateRow', sheet: S.active, row: rowObj._row, data: JSON.stringify(merged) }, function(resp) {
-      if (resp && resp.error) {
-        rowObj['AAV inj.'] = oldVal;
-        toast('Error saving AAV to sheet: ' + resp.error, true);
-      } else {
-        toast('✅ AAV linked and saved to sheet');
+      if (resp && resp.error) { rowObj['AAV inj.'] = oldVal; }
+      done++;
+      if (done >= total) {
+        if (Array.isArray(pending) && pending.length > 1) {
+          toast('✅ AAV assigned to ' + total + ' mice');
+          S.selected.clear(); updateBatchBar();
+        } else {
+          toast('✅ AAV linked and saved to sheet');
+        }
+        renderTable();
       }
-      renderTable();
     });
-  } else {
-    renderTable();
-  }
+  });
+  if (total === 0) { renderTable(); }
+  else { toast('💾 Saving AAV link to ' + total + (total === 1 ? ' mouse' : ' mice') + '…'); }
 });
 
 function unlinkAav(rrow) {
@@ -2295,14 +2318,17 @@ function showAavPopover(rrow, batchName, anchorEl) {
   // Look up rich record by batch name; fall back to minimal display
   var rec = _aavLinks[batchName] || null;
   var titreNum = rec ? (parseFloat(rec.titre) || 0) : 0;
-  var stockVol = rec ? ((rec.aliquot||0) * (rec.nAliquots||0)) : 0;
+  // Support both lab-archive field names (stockVol) and legacy local names (aliquot × nAliquots)
+  var stockVol = rec ? (rec.stockVol || ((rec.aliquot||0) * (rec.nAliquots||0))) : 0;
   var injPart = 1e11;
   var injVol = titreNum > 0 ? (injPart / titreNum).toFixed(2) : '—';
   var nMice = titreNum > 0 ? Math.floor((titreNum * stockVol) / injPart) : '—';
   var fmt = function(n) { return isNaN(n)||!isFinite(n) ? '—' : parseFloat(n).toExponential(2); };
-  var freezerPos = rec && rec.freezerStore && rec.freezerRow && rec.freezerCol
-    ? rec.freezerStore + ((rec.freezerCol-1)*3+rec.freezerRow)
-    : (rec && rec.freezerStore ? rec.freezerStore : '—');
+  // Freezer position: prefer pre-formatted rec.storage ("B24"), then construct from components
+  var freezerPos = rec && rec.storage ? rec.storage
+    : (rec && rec.freezerStore && rec.freezerRow && rec.freezerCol
+        ? rec.freezerStore + ((rec.freezerCol-1)*3+rec.freezerRow)
+        : (rec && rec.freezerStore ? rec.freezerStore : '—'));
   var aavUrl = 'aav-protocol.html?tab=storage&highlight=' + encodeURIComponent(batchName);
   var html = '<div style="max-width:320px;">'
     + '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">'
@@ -2313,10 +2339,10 @@ function showAavPopover(rrow, batchName, anchorEl) {
   if (rec) {
     html += '<table style="font-size:11.5px;border-collapse:collapse;width:100%;">'
       + '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Date</td><td style="padding:.15rem 0;">' + esc(rec.date||'—') + '</td></tr>'
-      + '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Titre</td><td>' + esc(rec.titre||'—') + ' vg/µL <span style="opacity:.65;">(' + esc(rec.method||'') + ')</span></td></tr>'
-      + '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Aliquots</td><td>' + (rec.nAliquots||'—') + ' × ' + (rec.aliquot||'—') + ' µL = ' + (stockVol||'—') + ' µL</td></tr>'
+      + '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Titre</td><td>' + fmt(titreNum) + ' vg/µL <span style="opacity:.65;">(' + esc(rec.method||'') + ')</span></td></tr>'
+      + '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Stock vol.</td><td>' + (stockVol||'—') + ' µL</td></tr>'
       + '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Freezer</td><td>🧊 ' + esc(freezerPos) + '</td></tr>'
-      + '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Plasmids</td><td><b>H:</b> ' + esc(rec.helperName||'—') + ' · <b>C:</b> ' + esc(rec.capsidName||'—') + '<br><b>T:</b> ' + esc(rec.transgeneName||'—') + '</td></tr>'
+      + '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Plasmids</td><td><b>H:</b> ' + esc(rec.helperName||rec.helper||'—') + ' · <b>C:</b> ' + esc(rec.capsidName||rec.capsid||'—') + '<br><b>T:</b> ' + esc(rec.transgeneName||rec.transgene||'—') + '</td></tr>'
       + '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Calc.</td><td>' + fmt(injPart) + ' vg → ' + injVol + ' µL/mouse, ~' + nMice + ' mice</td></tr>'
       + (rec.operator ? '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Operator</td><td>' + esc(rec.operator) + '</td></tr>' : '')
       + (rec.notes ? '<tr><td style="color:var(--fg-muted);padding:.15rem .4rem .15rem 0;white-space:nowrap;">Notes</td><td>' + esc(rec.notes) + '</td></tr>' : '')
