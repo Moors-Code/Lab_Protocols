@@ -2471,9 +2471,8 @@ function pickStorageRecord(id) {
   window.close();
 }
 
-function pickArchiveRecord(batchName) {
-  // Build a record-like object from the archive entry
-  const r = _labArchiveRecords.find(a => a.batch === batchName);
+function pickArchiveRecord(idx) {
+  const r = _labArchiveRecords[idx];
   if (!r) return;
   if (window.opener) {
     window.opener.postMessage({ type: 'aav-pick', record: r }, '*');
@@ -3383,9 +3382,9 @@ function renderStorageArchive(records) {
     const e = Math.floor(Math.log10(n));
     return (n / Math.pow(10, e)).toFixed(1) + ' × 10<sup>' + e + '</sup>';
   }
-  el.innerHTML = records.map(r => {
+  el.innerHTML = records.map((r, idx) => {
     const pickerAttrs = _pickerMode
-      ? `onclick="pickArchiveRecord(${JSON.stringify(esc(r.batch))})" style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:.7rem 1rem;margin-bottom:.5rem;font-size:12px;cursor:pointer;transition:box-shadow .15s,border-color .15s;" onmouseenter="this.style.borderColor='#059669';this.style.boxShadow='0 0 0 2px rgba(5,150,105,.25)'" onmouseleave="this.style.borderColor='';this.style.boxShadow='';"`
+      ? `onclick="pickArchiveRecord(${idx})" style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:.7rem 1rem;margin-bottom:.5rem;font-size:12px;cursor:pointer;transition:box-shadow .15s,border-color .15s;" onmouseenter="this.style.borderColor='#059669';this.style.boxShadow='0 0 0 2px rgba(5,150,105,.25)'" onmouseleave="this.style.borderColor='';this.style.boxShadow='';"`
       : `style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:.7rem 1rem;margin-bottom:.5rem;font-size:12px;"`;
     return `
     <div class="lab-archive-card" ${pickerAttrs}>
