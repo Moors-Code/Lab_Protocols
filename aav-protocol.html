@@ -1373,12 +1373,13 @@ td.warn{color:var(--red);font-weight:600;}
       </div>
       <div class="inp-row">
         <div class="inp-group">
-          <label>Freezer store (A/B/C) <span style="color:var(--accent);">*</span></label>
+          <label>Freezer store <span style="color:var(--accent);">*</span></label>
           <select id="store-freezer-store" style="width:90px;">
             <option value="">— none —</option>
             <option value="A">Store A</option>
             <option value="B">Store B</option>
             <option value="C">Store C</option>
+            <option value="D">Store D</option>
           </select>
         </div>
         <div class="inp-group">
@@ -1419,6 +1420,7 @@ td.warn{color:var(--red);font-weight:600;}
         <button id="fz-tab-A" class="fz-store-tab active" onclick="switchFreezerStore('A')">Store A</button>
         <button id="fz-tab-B" class="fz-store-tab" onclick="switchFreezerStore('B')">Store B</button>
         <button id="fz-tab-C" class="fz-store-tab" onclick="switchFreezerStore('C')">Store C</button>
+        <button id="fz-tab-D" class="fz-store-tab" onclick="switchFreezerStore('D')">Store D</button>
         <button id="fz-stock-toggle" onclick="toggleFzStockBar()" title="Low stock overlay settings">📉 Low stock</button>
         <div style="display:flex;align-items:center;gap:.3rem;margin-left:auto;border:1px solid var(--input-border);border-radius:7px;padding:.3rem .6rem;background:var(--input-bg);">
           <span style="font-size:12px;color:var(--fg-muted);">🔍</span>
@@ -2278,7 +2280,8 @@ function addStorageRecord() {
 
   saveLS();
   renderStorageRecords();
-  renderFreezerGrid();
+  // Switch to the assigned store so the user sees the new cell immediately
+  if (freezerStore) switchFreezerStore(freezerStore); else renderFreezerGrid();
   autoSendStorageRecord(rec); // share immediately so lab archive updates on next load
   toast('Record added ✓');
 }
@@ -2545,7 +2548,7 @@ let _activeFreezerStore = 'A';
 
 function switchFreezerStore(s) {
   _activeFreezerStore = s;
-  ['A','B','C'].forEach(x => {
+  ['A','B','C','D'].forEach(x => {
     const btn = document.getElementById('fz-tab-' + x);
     if (btn) btn.classList.toggle('active', x === s);
   });
@@ -2874,10 +2877,21 @@ function fzAssignCell(store, row, col) {
     }
   }
   _fzMap[batchKey] = { store, row, col };
+  // Also update in-memory lab archive record so renderFreezerGrid step 3 stays consistent
+  _labArchiveRecords.forEach((r, i) => {
+    if (r.batch && r.batch.toLowerCase() === batchKey) {
+      _labArchiveRecords[i] = { ...r,
+        freezerStore: store, freezer_store: store,
+        freezerRow:   row,   freezer_row:   row,
+        freezerCol:   col,   freezer_col:   col
+      };
+    }
+  });
   saveFzMap();
   sendFreezerMapToSheets();
   closeFzPopover();
-  renderFreezerGrid();
+  // Switch to the correct store tab so the user sees the update
+  switchFreezerStore(store);
   renderStorageRecords();
   toast('Batch assigned ✓ — syncing to Sheets…');
 }
