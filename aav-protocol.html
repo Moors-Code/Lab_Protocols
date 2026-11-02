@@ -1791,6 +1791,11 @@ window.addEventListener('DOMContentLoaded', () => {
     if (banner) banner.style.display = 'flex';
     document.title = '🔗 Select AAV — Picker';
     renderStorageRecords(); // re-render now that _pickerMode is set
+    // Auto-expand Lab Archive so batches are immediately visible
+    const archBody = document.getElementById('lab-archive-body');
+    const archBtn  = document.getElementById('lab-archive-toggle');
+    if (archBody) { archBody.classList.remove('collapsed'); archBody.style.maxHeight = ''; }
+    if (archBtn)  { archBtn.classList.remove('collapsed'); }
   }
   // ?tab=storage&highlight=BATCH_NAME — jump to and flash-highlight a specific record
   if (_urlParams.get('tab') === 'storage') {
@@ -2459,6 +2464,16 @@ function renderStorageRecords() {
 // ─── Picker mode ─────────────────────────────────────────
 function pickStorageRecord(id) {
   const r = storageRecords.find(s => s.id === id);
+  if (!r) return;
+  if (window.opener) {
+    window.opener.postMessage({ type: 'aav-pick', record: r }, '*');
+  }
+  window.close();
+}
+
+function pickArchiveRecord(batchName) {
+  // Build a record-like object from the archive entry
+  const r = _labArchiveRecords.find(a => a.batch === batchName);
   if (!r) return;
   if (window.opener) {
     window.opener.postMessage({ type: 'aav-pick', record: r }, '*');
@@ -3368,8 +3383,12 @@ function renderStorageArchive(records) {
     const e = Math.floor(Math.log10(n));
     return (n / Math.pow(10, e)).toFixed(1) + ' × 10<sup>' + e + '</sup>';
   }
-  el.innerHTML = records.map(r => `
-    <div class="lab-archive-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:.7rem 1rem;margin-bottom:.5rem;font-size:12px;">
+  el.innerHTML = records.map(r => {
+    const pickerAttrs = _pickerMode
+      ? `onclick="pickArchiveRecord(${JSON.stringify(esc(r.batch))})" style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:.7rem 1rem;margin-bottom:.5rem;font-size:12px;cursor:pointer;transition:box-shadow .15s,border-color .15s;" onmouseenter="this.style.borderColor='#059669';this.style.boxShadow='0 0 0 2px rgba(5,150,105,.25)'" onmouseleave="this.style.borderColor='';this.style.boxShadow='';"`
+      : `style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:.7rem 1rem;margin-bottom:.5rem;font-size:12px;"`;
+    return `
+    <div class="lab-archive-card" ${pickerAttrs}>
       <div style="display:flex;flex-wrap:wrap;gap:.6rem 1.4rem;margin-bottom:.35rem;align-items:baseline;">
         <div><span style="font-size:10px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Batch/Exp</span><br><strong style="font-size:13px;">${esc(r.batch)}</strong></div>
         <div><span style="font-size:10px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Titre</span><br>${r.titre ? (parseFloat(r.titre)||0).toExponential(2)+' vg/µL' : '—'}</div>
@@ -3377,6 +3396,7 @@ function renderStorageArchive(records) {
         <div><span style="font-size:10px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Total vg</span><br>${fmtParticles(r.totalParticles)}</div>
         <div><span style="font-size:10px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Inj vol/mouse</span><br>${r.injVol ? r.injVol+' µL' : '—'}</div>
         <div><span style="font-size:10px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Mice</span><br>${r.nMice || '—'}</div>
+        ${_pickerMode ? '<div style="margin-left:auto;"><span style="background:#059669;color:#fff;border-radius:6px;padding:.2rem .6rem;font-size:11px;font-weight:700;">→ Use</span></div>' : ''}
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:.4rem 1.4rem;color:var(--fg-muted);font-size:11px;border-top:1px solid var(--border);padding-top:.35rem;">
         <div>🧬 H: <strong style="color:var(--fg);">${esc(r.helper||'—')}</strong></div>
@@ -3390,8 +3410,8 @@ function renderStorageArchive(records) {
           ${r.notes ? (()=>{const n=String(r.notes);return '<span title="'+esc(n)+'">📝 '+esc(n.length>30?n.slice(0,30)+'…':n)+'</span>';})() : ''}
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function filterLabArchive(q) {
